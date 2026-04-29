@@ -1,0 +1,39 @@
+providers:
+  openai:
+    api_key: "${OPENAI_API_KEY}"
+    default_model: "gpt-4o-mini"
+  deepseek:
+    api_key: "${DEEPSEEK_API_KEY}"
+    default_model: "deepseek-chat"
+  anthropic:
+    api_key: "${ANTHROPIC_API_KEY}"
+    default_model: "claude-3-5-sonnet-latest"
+  groq:
+    api_key: "${GROQ_API_KEY}"
+    default_model: "llama-3.3-70b-versatile"
+  ollama:
+    endpoint: "http://localhost:11434"
+    default_model: "llama3"
+
+defaults:
+  provider: "deepseek"
+  model: null
+
+report_output_dir: "~/reconiq/reports"
+
+modules:
+  company_profile:
+    provider: "deepseek"
+    model: null
+  seo_keywords:
+    provider: "deepseek"
+    model: null
+  competitor:
+    provider: "anthropic"
+    model: null
+  social_content:
+    provider: "openai"
+    model: null
+  swot:
+    provider: "anthropic"
+    model: null
