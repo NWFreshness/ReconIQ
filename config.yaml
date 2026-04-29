@@ -19,7 +19,7 @@ defaults:
   provider: "deepseek"
   model: null
 
-report_output_dir: "~/reconiq/reports"
+report_output_dir: "~/Documents/ai-automation-agency/ReconIQ/reports"
 
 modules:
   company_profile:
