@@ -1,7 +1,7 @@
 """Module 4: Social & Content — infer social presence and content quality."""
 from __future__ import annotations
 
-from research.parsing import JSON_RESPONSE_RULES, extract_json_object
+from research.parsing import JSON_RESPONSE_RULES, extract_json_object, require_keys
 
 
 SYSTEM_PROMPT = (
@@ -14,9 +14,24 @@ SYSTEM_PROMPT = (
     "- review_sites: list of review platforms they likely appear on (Google, Yelp, Trustpilot, etc.)\n"
     "- blog_or_resources: 'yes' or 'no' — do they maintain a blog or resource center\n"
     "- content_gaps: 3-4 types of content they likely don't produce well\n"
-    "- email_signals: 'prominent', 'present', or 'minimal' — how visible is their email list/CTAs\n\n"
+    "- email_signals: 'prominent', 'present', or 'minimal' — how visible is their email list/CTAs\n"
+    "- data_confidence: 'low', 'medium', or 'high' with brief rationale\n"
+    "- data_limitations: list of caveats; explicitly label inferred social/content signals\n\n"
     f"{JSON_RESPONSE_RULES}"
 )
+
+REQUIRED_KEYS = [
+    "platforms",
+    "content_quality",
+    "content_frequency",
+    "engagement_signals",
+    "review_sites",
+    "blog_or_resources",
+    "content_gaps",
+    "email_signals",
+    "data_confidence",
+    "data_limitations",
+]
 
 
 def run(company_profile: dict, target_url: str, llm_complete) -> dict:
@@ -44,4 +59,5 @@ def run(company_profile: dict, target_url: str, llm_complete) -> dict:
 
 
 def _parse_response(raw: str) -> dict:
-    return extract_json_object(raw)
+    data = extract_json_object(raw)
+    return require_keys(data, REQUIRED_KEYS, context="social content")

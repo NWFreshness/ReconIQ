@@ -1,22 +1,36 @@
 """Module 3: Competitor Intelligence — auto-discover and analyze competitors."""
 from __future__ import annotations
 
-from research.parsing import JSON_RESPONSE_RULES, JsonParsingError, extract_json_array, extract_json_object
+from research.parsing import JSON_RESPONSE_RULES, JsonParsingError, extract_json_object, require_keys
 
 
 SYSTEM_PROMPT = (
     "You are an expert competitive intelligence analyst. Based on the company profile and target URL, "
-    "identify 4-5 direct competitors in the same market. Return a JSON array of competitor objects, "
-    "each with:\n"
+    "identify 4-5 direct competitors in the same market. Return a JSON object with a competitors array. "
+    "Each competitor object must include:\n"
     "- name: company name\n"
     "- url: their website (use plausible URLs if unknown)\n"
     "- positioning: 1-2 sentence market position description\n"
     "- estimated_pricing_tier: 'budget', 'mid-market', 'premium', or 'enterprise'\n"
     "- key_messaging: their main marketing claim or tagline\n"
     "- weaknesses: 2-3 specific weaknesses or gaps\n"
-    "- inferred_services: 3-5 services they likely offer\n\n"
+    "- inferred_services: 3-5 services they likely offer\n"
+    "Also include top-level keys:\n"
+    "- data_confidence: 'low', 'medium', or 'high' with brief rationale\n"
+    "- data_limitations: list of caveats, especially where competitors are inferred\n\n"
     f"{JSON_RESPONSE_RULES}"
 )
+
+REQUIRED_KEYS = ["competitors", "data_confidence", "data_limitations"]
+REQUIRED_COMPETITOR_KEYS = [
+    "name",
+    "url",
+    "positioning",
+    "estimated_pricing_tier",
+    "key_messaging",
+    "weaknesses",
+    "inferred_services",
+]
 
 
 def run(company_profile: dict, target_url: str, llm_complete) -> dict:
@@ -44,12 +58,13 @@ def run(company_profile: dict, target_url: str, llm_complete) -> dict:
 
 
 def _parse_response(raw: str) -> dict:
-    try:
-        data = extract_json_object(raw)
-    except JsonParsingError:
-        competitors = extract_json_array(raw)
-        return {"competitors": competitors}
-
-    if "competitors" not in data:
-        raise JsonParsingError("competitor analysis missing required keys: competitors")
+    data = extract_json_object(raw)
+    data = require_keys(data, REQUIRED_KEYS, context="competitor analysis")
+    competitors = data.get("competitors")
+    if not isinstance(competitors, list):
+        raise JsonParsingError("competitor analysis field 'competitors' must be a list")
+    for index, competitor in enumerate(competitors, start=1):
+        if not isinstance(competitor, dict):
+            raise JsonParsingError(f"competitor analysis item {index} must be an object")
+        require_keys(competitor, REQUIRED_COMPETITOR_KEYS, context=f"competitor analysis item {index}")
     return data

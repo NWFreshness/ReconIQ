@@ -5,17 +5,48 @@ from research.parsing import JsonParsingError
 
 
 def test_object_modules_parse_fenced_json():
-    raw = '```json\n{"top_keywords": ["agency"], "content_gaps": []}\n```'
+    raw = '''```json
+{
+  "top_keywords": ["agency"],
+  "content_gaps": [],
+  "seo_weaknesses": [],
+  "quick_wins": [],
+  "estimated_traffic_tier": "low — inferred",
+  "local_seo_signals": "weak — inferred",
+  "data_confidence": "low",
+  "data_limitations": ["No measured SEO data was available."]
+}
+```'''
 
-    assert seo_keywords._parse_response(raw) == {"top_keywords": ["agency"], "content_gaps": []}
+    result = seo_keywords._parse_response(raw)
+
+    assert result["top_keywords"] == ["agency"]
+    assert result["data_confidence"] == "low"
 
 
 def test_competitors_parse_fenced_json_array():
-    raw = '```json\n[{"name": "Competitor A", "url": "https://example.com"}]\n```'
-
-    assert competitors._parse_response(raw) == {
-        "competitors": [{"name": "Competitor A", "url": "https://example.com"}]
+    raw = '''```json
+{
+  "competitors": [
+    {
+      "name": "Competitor A",
+      "url": "https://example.com",
+      "positioning": "Local competitor",
+      "estimated_pricing_tier": "mid-market",
+      "key_messaging": "Reliable service",
+      "weaknesses": ["thin content"],
+      "inferred_services": ["consulting"]
     }
+  ],
+  "data_confidence": "low",
+  "data_limitations": ["Competitor data is inferred."]
+}
+```'''
+
+    result = competitors._parse_response(raw)
+
+    assert result["competitors"][0]["name"] == "Competitor A"
+    assert result["data_limitations"] == ["Competitor data is inferred."]
 
 
 def test_company_profile_invalid_json_raises_instead_of_flattening():

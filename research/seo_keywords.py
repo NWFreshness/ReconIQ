@@ -1,7 +1,7 @@
 """Module 2: SEO & Keywords — analyze search presence and content gaps."""
 from __future__ import annotations
 
-from research.parsing import JSON_RESPONSE_RULES, extract_json_object
+from research.parsing import JSON_RESPONSE_RULES, extract_json_object, require_keys
 
 
 SYSTEM_PROMPT = (
@@ -12,9 +12,22 @@ SYSTEM_PROMPT = (
     "- seo_weaknesses: 4-5 specific weaknesses (technical, content, or backlink)\n"
     "- quick_wins: 3-4 SEO improvements they could make with moderate effort\n"
     "- estimated_traffic_tier: 'low', 'medium', or 'high' (explain briefly)\n"
-    "- local_seo_signals: 'strong', 'moderate', or 'weak' (Google Business Profile, local keywords)\n\n"
+    "- local_seo_signals: 'strong', 'moderate', or 'weak' (Google Business Profile, local keywords)\n"
+    "- data_confidence: 'low', 'medium', or 'high' with brief rationale\n"
+    "- data_limitations: list of caveats; explicitly state that keyword/traffic claims are inferred unless backed by provided data\n\n"
     f"{JSON_RESPONSE_RULES}"
 )
+
+REQUIRED_KEYS = [
+    "top_keywords",
+    "content_gaps",
+    "seo_weaknesses",
+    "quick_wins",
+    "estimated_traffic_tier",
+    "local_seo_signals",
+    "data_confidence",
+    "data_limitations",
+]
 
 
 def run(company_profile: dict, target_url: str, llm_complete) -> dict:
@@ -42,4 +55,5 @@ def run(company_profile: dict, target_url: str, llm_complete) -> dict:
 
 
 def _parse_response(raw: str) -> dict:
-    return extract_json_object(raw)
+    data = extract_json_object(raw)
+    return require_keys(data, REQUIRED_KEYS, context="SEO keywords")

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 
-from research.parsing import JSON_RESPONSE_RULES, extract_json_object
+from research.parsing import JSON_RESPONSE_RULES, JsonParsingError, extract_json_object, require_keys
 
 
 SYSTEM_PROMPT = (
@@ -17,9 +17,22 @@ SYSTEM_PROMPT = (
     "- acquisition_angle: 2-3 sentence summary of the best way to pitch YOUR agency to them\n"
     "- talking_points: 4-6 specific talking points for outreach (what to say, what to offer)\n"
     "- recommended_next_steps: 3-5 specific tactical actions (email sequence, content, offer)\n"
-    "- competitive_advantage: 1-2 sentences on what you'd offer that their current provider lacks\n\n"
+    "- competitive_advantage: 1-2 sentences on what you'd offer that their current provider lacks\n"
+    "- data_confidence: 'low', 'medium', or 'high' with brief rationale\n"
+    "- data_limitations: list of caveats about inferred strategy or incomplete module data\n\n"
     f"{JSON_RESPONSE_RULES}"
 )
+
+REQUIRED_KEYS = [
+    "swot",
+    "acquisition_angle",
+    "talking_points",
+    "recommended_next_steps",
+    "competitive_advantage",
+    "data_confidence",
+    "data_limitations",
+]
+REQUIRED_SWOT_KEYS = ["strengths", "weaknesses", "opportunities", "threats"]
 
 
 def run(
@@ -80,4 +93,10 @@ def _format_dict(d: dict) -> str:
 
 
 def _parse_response(raw: str) -> dict:
-    return extract_json_object(raw)
+    data = extract_json_object(raw)
+    data = require_keys(data, REQUIRED_KEYS, context="SWOT synthesis")
+    swot = data.get("swot")
+    if not isinstance(swot, dict):
+        raise JsonParsingError("SWOT synthesis field 'swot' must be an object")
+    require_keys(swot, REQUIRED_SWOT_KEYS, context="SWOT synthesis swot")
+    return data
