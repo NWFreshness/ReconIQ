@@ -1,8 +1,7 @@
 """Module 2: SEO & Keywords — analyze search presence and content gaps."""
 from __future__ import annotations
 
-from research.parsing import JSON_RESPONSE_RULES, extract_json_object, require_keys
-
+from research.parsing import JSON_RESPONSE_RULES, llm_json_call
 
 SYSTEM_PROMPT = (
     "You are an expert SEO analyst. Based on the provided company profile and target URL, "
@@ -50,10 +49,12 @@ def run(company_profile: dict, target_url: str, llm_complete) -> dict:
         f"Infer the SEO landscape as instructed."
     )
 
-    raw = llm_complete(prompt, module="seo_keywords", system=SYSTEM_PROMPT, max_tokens=1200)
-    return _parse_response(raw)
-
-
-def _parse_response(raw: str) -> dict:
-    data = extract_json_object(raw)
-    return require_keys(data, REQUIRED_KEYS, context="SEO keywords")
+    return llm_json_call(
+        llm_complete=llm_complete,
+        prompt=prompt,
+        module="seo_keywords",
+        system=SYSTEM_PROMPT,
+        required_keys=REQUIRED_KEYS,
+        context="SEO keywords",
+        max_tokens=1200,
+    )

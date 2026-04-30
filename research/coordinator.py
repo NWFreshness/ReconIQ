@@ -10,6 +10,7 @@ from research.seo_keywords import run as run_seo_keywords
 from research.competitors import run as run_competitors
 from research.social_content import run as run_social_content
 from research.swot import run as run_swot
+from scraper.scraper import ScrapeCache, extract_domain_name, scrape
 
 
 ProgressCallback = Optional[Callable[[str, float], None]]
@@ -32,12 +33,17 @@ def run_all(
     Run all enabled research modules and return a combined results dict.
 
     Execution order:
-    1. Company Profile runs first.
+    1. Company Profile runs first (scrapes the target URL once, shares content).
     2. SEO, Competitors, and Social/Content run in parallel after profile.
     3. SWOT runs after all available downstream module outputs are collected.
     """
     metadata = _initial_metadata(target_url, llm_complete)
     results: dict[str, Any] = {"metadata": metadata}
+
+    # Create a scrape cache for this analysis run so we don't re-scrape the
+    # same URL across modules. The homepage content is scraped once here and
+    # shared with all modules that need it.
+    scrape_cache = ScrapeCache()
 
     def log(msg: str, pct: float) -> None:
         if progress_callback:
@@ -64,11 +70,29 @@ def run_all(
         if not enabled_modules.get(module_name, True):
             mark_skipped(module_name)
 
+    # ── Phase 1: Scrape the homepage once ────────────────────────────────────
+    scraped_content: str | None = None
+    if enabled_modules.get("company_profile", True):
+        log("Scraping target website...", 5.0)
+        scraped_content = scrape_cache.get_text(target_url)
+        if not scraped_content:
+            # Fallback: use domain name as hint
+            domain = extract_domain_name(target_url)
+            scraped_content = (
+                f"Could not access {target_url}. "
+                f"The company's domain is: {domain}. "
+                f"Analyze based on the domain name alone."
+            )
+        log("Website scraped", 10.0)
+
+    # ── Phase 2: Company Profile (must succeed for downstream modules) ───────
     company_profile_succeeded = False
     if enabled_modules.get("company_profile", True):
-        log("Running Company Profile...", 10.0)
+        log("Running Company Profile...", 12.0)
         try:
-            profile = run_company_profile(target_url, llm_complete)
+            profile = run_company_profile(
+                target_url, llm_complete, scraped_content=scraped_content
+            )
             mark_run("company_profile", profile)
             company_profile_succeeded = True
             log("✓ Company Profile complete", 25.0)

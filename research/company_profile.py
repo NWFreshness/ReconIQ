@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from scraper.scraper import scrape, extract_domain_name
-from research.parsing import JSON_RESPONSE_RULES, extract_json_object, require_keys
+from research.parsing import JSON_RESPONSE_RULES, llm_json_call
 
 
 SYSTEM_PROMPT = (
@@ -36,18 +36,22 @@ REQUIRED_KEYS = [
 ]
 
 
-def run(target_url: str, llm_complete) -> dict:
+def run(target_url: str, llm_complete, scraped_content: str | None = None) -> dict:
     """
     Run the company profile module.
 
     Args:
         target_url: URL to analyze.
         llm_complete: Callable(prompt, module, system, max_tokens) -> str.
+        scraped_content: Pre-scraped page content. If None, scrapes the URL.
 
     Returns:
         Dict with company profile fields.
     """
-    content = scrape(target_url)
+    if scraped_content is not None:
+        content = scraped_content
+    else:
+        content = scrape(target_url)
 
     if not content:
         # Fallback: use domain name as hint
@@ -64,12 +68,12 @@ def run(target_url: str, llm_complete) -> dict:
         f"Extract the company profile as instructed."
     )
 
-    raw = llm_complete(prompt, module="company_profile", system=SYSTEM_PROMPT, max_tokens=1500)
-
-    return _parse_response(raw)
-
-
-def _parse_response(raw: str) -> dict:
-    """Parse the LLM text response into a structured dict."""
-    data = extract_json_object(raw)
-    return require_keys(data, REQUIRED_KEYS, context="company profile")
+    return llm_json_call(
+        llm_complete=llm_complete,
+        prompt=prompt,
+        module="company_profile",
+        system=SYSTEM_PROMPT,
+        required_keys=REQUIRED_KEYS,
+        context="company profile",
+        max_tokens=1500,
+    )

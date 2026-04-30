@@ -1,8 +1,7 @@
 """Module 4: Social & Content — infer social presence and content quality."""
 from __future__ import annotations
 
-from research.parsing import JSON_RESPONSE_RULES, extract_json_object, require_keys
-
+from research.parsing import JSON_RESPONSE_RULES, llm_json_call
 
 SYSTEM_PROMPT = (
     "You are a content and social media analyst. Based on the company profile and target URL, "
@@ -54,10 +53,12 @@ def run(company_profile: dict, target_url: str, llm_complete) -> dict:
         f"Analyze social and content presence as instructed."
     )
 
-    raw = llm_complete(prompt, module="social_content", system=SYSTEM_PROMPT, max_tokens=1200)
-    return _parse_response(raw)
-
-
-def _parse_response(raw: str) -> dict:
-    data = extract_json_object(raw)
-    return require_keys(data, REQUIRED_KEYS, context="social content")
+    return llm_json_call(
+        llm_complete=llm_complete,
+        prompt=prompt,
+        module="social_content",
+        system=SYSTEM_PROMPT,
+        required_keys=REQUIRED_KEYS,
+        context="social content",
+        max_tokens=1200,
+    )

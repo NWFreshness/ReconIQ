@@ -1,7 +1,9 @@
 import pytest
 
-from research import company_profile, competitors, seo_keywords, social_content, swot
-from research.parsing import JsonParsingError
+from research.parsing import JsonParsingError, extract_json_object, require_keys
+
+
+# ── Fenced / messy JSON parsing ──────────────────────────────────────────────
 
 
 def test_object_modules_parse_fenced_json():
@@ -18,7 +20,7 @@ def test_object_modules_parse_fenced_json():
 }
 ```'''
 
-    result = seo_keywords._parse_response(raw)
+    result = extract_json_object(raw)
 
     assert result["top_keywords"] == ["agency"]
     assert result["data_confidence"] == "low"
@@ -43,28 +45,49 @@ def test_competitors_parse_fenced_json_array():
 }
 ```'''
 
-    result = competitors._parse_response(raw)
+    result = extract_json_object(raw)
 
     assert result["competitors"][0]["name"] == "Competitor A"
     assert result["data_limitations"] == ["Competitor data is inferred."]
 
 
-def test_company_profile_invalid_json_raises_instead_of_flattening():
+# ── Invalid JSON handling ────────────────────────────────────────────────────
+
+
+def test_invalid_json_raises_instead_of_flattening():
+    """Trailing commas and other JSON syntax errors should raise JsonParsingError."""
     raw = '{"company_name": "Acme", "services_products": ["SEO", ]}'
 
     with pytest.raises(JsonParsingError):
-        company_profile._parse_response(raw)
+        extract_json_object(raw)
 
 
-def test_social_content_invalid_json_raises_instead_of_flattening():
+def test_non_json_text_raises():
+    """Plain text that isn't JSON at all should raise JsonParsingError."""
     raw = "platforms: LinkedIn\ncontent_quality: high"
 
     with pytest.raises(JsonParsingError):
-        social_content._parse_response(raw)
+        extract_json_object(raw)
 
 
-def test_swot_invalid_json_raises_instead_of_flattening():
-    raw = '{"swot": {"strengths": ["Brand"], "weaknesses": [}}'
+def test_truncated_json_raises():
+    """Incomplete JSON objects (truncated) should raise JsonParsingError."""
+    raw = '{"swot": {"strengths": ["Brand"], "weaknesses": ["thin'
 
     with pytest.raises(JsonParsingError):
-        swot._parse_response(raw)
+        extract_json_object(raw)
+
+
+# ── require_keys ─────────────────────────────────────────────────────────────
+
+
+def test_require_keys_passes_when_all_keys_present():
+    data = {"company_name": "Acme", "what_they_do": "Builds widgets"}
+    result = require_keys(data, ["company_name", "what_they_do"], context="test")
+    assert result == data
+
+
+def test_require_keys_raises_on_missing_keys():
+    data = {"company_name": "Acme"}
+    with pytest.raises(JsonParsingError, match="missing required keys"):
+        require_keys(data, ["company_name", "what_they_do", "brand_voice"], context="test")

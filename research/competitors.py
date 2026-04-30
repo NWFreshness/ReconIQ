@@ -1,8 +1,7 @@
 """Module 3: Competitor Intelligence — auto-discover and analyze competitors."""
 from __future__ import annotations
 
-from research.parsing import JSON_RESPONSE_RULES, JsonParsingError, extract_json_object, require_keys
-
+from research.parsing import JSON_RESPONSE_RULES, JsonParsingError, llm_json_call, require_keys
 
 SYSTEM_PROMPT = (
     "You are an expert competitive intelligence analyst. Based on the company profile and target URL, "
@@ -53,13 +52,17 @@ def run(company_profile: dict, target_url: str, llm_complete) -> dict:
         f"Identify direct competitors and analyze each as instructed."
     )
 
-    raw = llm_complete(prompt, module="competitor", system=SYSTEM_PROMPT, max_tokens=2000)
-    return _parse_response(raw)
+    data = llm_json_call(
+        llm_complete=llm_complete,
+        prompt=prompt,
+        module="competitor",
+        system=SYSTEM_PROMPT,
+        required_keys=REQUIRED_KEYS,
+        context="competitor analysis",
+        max_tokens=2000,
+    )
 
-
-def _parse_response(raw: str) -> dict:
-    data = extract_json_object(raw)
-    data = require_keys(data, REQUIRED_KEYS, context="competitor analysis")
+    # Extra validation: check competitor list structure
     competitors = data.get("competitors")
     if not isinstance(competitors, list):
         raise JsonParsingError("competitor analysis field 'competitors' must be a list")
@@ -67,4 +70,5 @@ def _parse_response(raw: str) -> dict:
         if not isinstance(competitor, dict):
             raise JsonParsingError(f"competitor analysis item {index} must be an object")
         require_keys(competitor, REQUIRED_COMPETITOR_KEYS, context=f"competitor analysis item {index}")
+
     return data

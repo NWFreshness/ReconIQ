@@ -3,8 +3,7 @@ from __future__ import annotations
 
 import json
 
-from research.parsing import JSON_RESPONSE_RULES, JsonParsingError, extract_json_object, require_keys
-
+from research.parsing import JSON_RESPONSE_RULES, JsonParsingError, llm_json_call, require_keys
 
 SYSTEM_PROMPT = (
     "You are a senior marketing strategist at an AI automation agency. Synthesize all provided research into a "
@@ -74,8 +73,23 @@ def run(
         f"Synthesize into an acquisition strategy as instructed."
     )
 
-    raw = llm_complete(prompt, module="swot", system=SYSTEM_PROMPT, max_tokens=2000)
-    return _parse_response(raw)
+    data = llm_json_call(
+        llm_complete=llm_complete,
+        prompt=prompt,
+        module="swot",
+        system=SYSTEM_PROMPT,
+        required_keys=REQUIRED_KEYS,
+        context="SWOT synthesis",
+        max_tokens=2000,
+    )
+
+    # Extra validation: check nested swot structure
+    swot = data.get("swot")
+    if not isinstance(swot, dict):
+        raise JsonParsingError("SWOT synthesis field 'swot' must be an object")
+    require_keys(swot, REQUIRED_SWOT_KEYS, context="SWOT synthesis swot")
+
+    return data
 
 
 def _format_dict(d: dict) -> str:
@@ -98,13 +112,3 @@ def _format_dict(d: dict) -> str:
         else:
             lines.append(f"- {k}: {v}")
     return "\n".join(lines)
-
-
-def _parse_response(raw: str) -> dict:
-    data = extract_json_object(raw)
-    data = require_keys(data, REQUIRED_KEYS, context="SWOT synthesis")
-    swot = data.get("swot")
-    if not isinstance(swot, dict):
-        raise JsonParsingError("SWOT synthesis field 'swot' must be an object")
-    require_keys(swot, REQUIRED_SWOT_KEYS, context="SWOT synthesis swot")
-    return data

@@ -32,6 +32,38 @@ _playwright_available: bool | None = None
 _config: dict | None = None
 
 
+class ScrapeCache:
+    """Simple in-memory cache for scrape results, scoped to a single analysis run.
+
+    Prevents re-scraping the same URL across multiple research modules within
+    one run_all() call. Thread-safe for use with ThreadPoolExecutor.
+    """
+
+    def __init__(self) -> None:
+        self._text_cache: dict[str, str] = {}
+        self._structured_cache: dict[str, ScrapeResult] = {}
+
+    def get_text(self, url: str, timeout: int = 15) -> str:
+        """Scrape and cache raw text for a URL. Returns cached result on subsequent calls."""
+        normalized = normalize_url(url) if url else url
+        if normalized in self._text_cache:
+            logger.debug("ScrapeCache hit (text) for %s", normalized)
+            return self._text_cache[normalized]
+        result = scrape(normalized or url, timeout=timeout)
+        self._text_cache[normalized] = result
+        return result
+
+    def get_structured(self, url: str, timeout: int = 15) -> ScrapeResult:
+        """Scrape and cache structured data for a URL. Returns cached result on subsequent calls."""
+        normalized = normalize_url(url) if url else url
+        if normalized in self._structured_cache:
+            logger.debug("ScrapeCache hit (structured) for %s", normalized)
+            return self._structured_cache[normalized]
+        result = scrape_structured(normalized or url, timeout=timeout)
+        self._structured_cache[normalized] = result
+        return result
+
+
 def _get_config() -> dict:
     """Load scraper config lazily (cached after first call)."""
     global _config

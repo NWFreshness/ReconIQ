@@ -5,8 +5,7 @@ import json
 import pytest
 
 from research import company_profile, competitors, seo_keywords, social_content, swot
-from research.parsing import JsonParsingError
-
+from research.parsing import JsonParsingError, llm_json_call
 
 COMPANY_PROFILE_RESULT = {
     "company_name": "Acme Widgets",
@@ -97,6 +96,19 @@ class RecordingLLM:
         return json.dumps(self.response)
 
 
+class FailingThenSucceedingLLM:
+    """Returns unparseable text first, then valid JSON on retry."""
+    def __init__(self, valid_response: dict):
+        self.valid_response = valid_response
+        self.call_count = 0
+
+    def __call__(self, prompt: str, module: str, system: str | None = None, max_tokens: int = 2048, **kwargs):
+        self.call_count += 1
+        if self.call_count == 1:
+            return "This is not JSON at all, just prose."
+        return json.dumps(self.valid_response)
+
+
 def test_company_profile_uses_scraped_content_when_available(monkeypatch):
     monkeypatch.setattr(company_profile, "scrape", lambda url: "Homepage says Acme builds durable widgets.")
     llm = RecordingLLM(COMPANY_PROFILE_RESULT)
@@ -116,6 +128,17 @@ def test_company_profile_falls_back_to_domain_context_when_scrape_fails(monkeypa
 
     assert "Could not access https://www.acme.example/path" in llm.calls[0]["prompt"]
     assert "The company's domain is: acme.example" in llm.calls[0]["prompt"]
+
+
+def test_company_profile_accepts_pre_scraped_content():
+    """company_profile.run() should use scraped_content when provided, bypassing scrape()."""
+    llm = RecordingLLM(COMPANY_PROFILE_RESULT)
+    pre_scraped = "Pre-scraped content from cache"
+
+    result = company_profile.run("https://acme.example", llm, scraped_content=pre_scraped)
+
+    assert result == COMPANY_PROFILE_RESULT
+    assert pre_scraped in llm.calls[0]["prompt"]
 
 
 @pytest.mark.parametrize(
@@ -143,60 +166,126 @@ def test_each_module_calls_llm_with_correct_module_name(monkeypatch, runner, arg
     assert llm.calls[0]["module"] == expected_module
 
 
+# ── llm_json_call tests ─────────────────────────────────────────────────────
+
+
+def test_llm_json_call_parses_valid_json():
+    """llm_json_call should parse a valid JSON response and validate keys."""
+    llm = RecordingLLM(COMPANY_PROFILE_RESULT)
+
+    result = llm_json_call(
+        llm_complete=llm,
+        prompt="Analyze this company",
+        module="company_profile",
+        system="You are an analyst.",
+        required_keys=["company_name", "what_they_do"],
+        context="test",
+    )
+
+    assert result["company_name"] == "Acme Widgets"
+    assert result["what_they_do"] == "Builds widgets for local businesses."
+
+
+def test_llm_json_call_retries_on_bad_json():
+    """llm_json_call should retry when the first response is not valid JSON."""
+    llm = FailingThenSucceedingLLM(COMPANY_PROFILE_RESULT)
+
+    result = llm_json_call(
+        llm_complete=llm,
+        prompt="Analyze this company",
+        module="company_profile",
+        system="You are an analyst.",
+        required_keys=company_profile.REQUIRED_KEYS,
+        context="company profile",
+        max_tokens=1500,
+    )
+
+    assert llm.call_count == 2
+    assert result["company_name"] == "Acme Widgets"
+
+
+def test_llm_json_call_raises_after_max_retries():
+    """llm_json_call should raise JsonParsingError after exhausting retries."""
+    always_fail_llm = RecordingLLM("This is never valid JSON")
+
+    with pytest.raises(JsonParsingError):
+        llm_json_call(
+            llm_complete=always_fail_llm,
+            prompt="Analyze this",
+            module="company_profile",
+            system="You are an analyst.",
+            required_keys=["company_name"],
+            context="test",
+            max_retries=2,
+        )
+
+
+def test_llm_json_call_retries_on_missing_keys():
+    """llm_json_call should retry when JSON parses but required keys are missing."""
+    incomplete = {"company_name": "Acme"}  # missing most required keys
+    # First call returns incomplete JSON, second returns complete JSON
+    call_count = [0]
+    complete = COMPANY_PROFILE_RESULT
+
+    def partial_then_full(prompt, module, system=None, max_tokens=2048, **kwargs):
+        call_count[0] += 1
+        if call_count[0] == 1:
+            return json.dumps(incomplete)
+        return json.dumps(complete)
+
+    result = llm_json_call(
+        llm_complete=partial_then_full,
+        prompt="Analyze",
+        module="company_profile",
+        system="Analyst.",
+        required_keys=["company_name", "what_they_do", "target_audience"],
+        context="test",
+    )
+
+    assert call_count[0] == 2
+    assert result["company_name"] == "Acme Widgets"
+
+
+# ── Direct parsing tests (via extract_json_object + require_keys) ────────────
+
+
 @pytest.mark.parametrize(
-    ("parse_response", "response"),
+    ("response",),
     [
-        (company_profile._parse_response, COMPANY_PROFILE_RESULT),
-        (seo_keywords._parse_response, SEO_RESULT),
-        (competitors._parse_response, COMPETITOR_RESULT),
-        (social_content._parse_response, SOCIAL_RESULT),
-        (swot._parse_response, SWOT_RESULT),
+        (COMPANY_PROFILE_RESULT,),
+        (SEO_RESULT,),
+        (COMPETITOR_RESULT,),
+        (SOCIAL_RESULT,),
+        (SWOT_RESULT,),
     ],
 )
-def test_each_module_parses_strict_json_successfully(parse_response, response):
+def test_extract_json_object_parses_strict_json(response):
+    """All module result dicts should round-trip through JSON parse."""
+    from research.parsing import extract_json_object, require_keys
     raw = json.dumps(response)
+    assert extract_json_object(raw) == response
 
-    assert parse_response(raw) == response
 
-
-@pytest.mark.parametrize(
-    ("parse_response", "response", "missing_key"),
-    [
-        (company_profile._parse_response, COMPANY_PROFILE_RESULT, "company_name"),
-        (seo_keywords._parse_response, SEO_RESULT, "data_confidence"),
-        (competitors._parse_response, COMPETITOR_RESULT, "data_limitations"),
-        (social_content._parse_response, SOCIAL_RESULT, "email_signals"),
-        (swot._parse_response, SWOT_RESULT, "competitive_advantage"),
-    ],
-)
-def test_each_module_rejects_json_missing_required_keys(parse_response, response, missing_key):
-    incomplete = response.copy()
-    incomplete.pop(missing_key)
-
+def test_require_keys_rejects_incomplete_json():
+    """require_keys should raise JsonParsingError when keys are missing."""
+    from research.parsing import extract_json_object, require_keys
+    incomplete = {"company_name": "Acme"}
     with pytest.raises(JsonParsingError):
-        parse_response(json.dumps(incomplete))
+        require_keys(incomplete, ["company_name", "what_they_do"], context="test")
 
 
-@pytest.mark.parametrize(
-    "parse_response",
-    [
-        company_profile._parse_response,
-        seo_keywords._parse_response,
-        competitors._parse_response,
-        social_content._parse_response,
-        swot._parse_response,
-    ],
-)
-def test_bad_json_raises_controlled_error(parse_response):
+def test_bad_json_raises_controlled_error():
+    """extract_json_object should raise JsonParsingError on garbage input."""
+    from research.parsing import extract_json_object
     with pytest.raises(JsonParsingError):
-        parse_response("not json at all")
+        extract_json_object("not json at all")
 
 
 def test_competitor_module_requires_object_with_metadata_not_legacy_array():
     legacy_array = json.dumps(COMPETITOR_RESULT["competitors"])
 
     with pytest.raises(JsonParsingError):
-        competitors._parse_response(legacy_array)
+        competitors.run(COMPANY_PROFILE_RESULT, "https://acme.example", RecordingLLM(legacy_array))
 
 
 def test_swot_module_requires_nested_swot_keys():
@@ -204,4 +293,7 @@ def test_swot_module_requires_nested_swot_keys():
     incomplete["swot"] = {"strengths": [], "weaknesses": [], "opportunities": []}
 
     with pytest.raises(JsonParsingError):
-        swot._parse_response(json.dumps(incomplete))
+        swot.run(
+            COMPANY_PROFILE_RESULT, SEO_RESULT, COMPETITOR_RESULT, SOCIAL_RESULT,
+            "https://acme.example", RecordingLLM(incomplete),
+        )

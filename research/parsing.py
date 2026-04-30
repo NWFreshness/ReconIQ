@@ -17,6 +17,97 @@ class JsonParsingError(ValueError):
     """Raised when an LLM response cannot be parsed as the expected JSON shape."""
 
 
+# ── Retry helper ────────────────────────────────────────────────────────────
+
+_JSON_RETRY_REMINDER = (
+    "\n\nIMPORTANT: Your previous response could not be parsed as valid JSON. "
+    "Please return ONLY a valid JSON object with no surrounding text, no markdown fences, "
+    "no comments, and no trailing commas. Double-check that every key and string value "
+    "uses double quotes."
+)
+
+# Lower temperature for retry attempts — more deterministic output
+_RETRY_TEMPERATURES = [0.7, 0.4, 0.3]
+
+
+def llm_json_call(
+    llm_complete: callable,
+    prompt: str,
+    module: str,
+    system: str,
+    required_keys: list[str] | None = None,
+    context: str = "",
+    max_tokens: int = 2048,
+    max_retries: int = 2,
+) -> dict:
+    """Call the LLM, parse the JSON response, and retry on parse failures.
+
+    This wraps the common pattern shared by every research module:
+    call LLM → extract JSON → validate required keys.
+
+    On parse failure, retries with:
+      1st retry: same temperature, but appends a JSON reminder to the prompt
+      2nd retry: lower temperature (0.3), JSON reminder appended
+
+    Args:
+        llm_complete: LLM completion callable from core/services.
+        prompt: The user prompt for the LLM.
+        module: Module name for LLM routing (e.g. "company_profile").
+        system: System prompt for the LLM.
+        required_keys: Keys that must exist in the parsed JSON dict.
+                      If None, only JSON parsing is attempted (no key validation).
+        context: Human-readable context for error messages (e.g. "company profile").
+        max_tokens: Max tokens for the LLM completion.
+        max_retries: Number of retry attempts after the first failure (default 2).
+
+    Returns:
+        Parsed and validated dict from the LLM response.
+
+    Raises:
+        JsonParsingError: If all attempts fail to produce valid JSON.
+    """
+    last_error: Exception | None = None
+    attempt = 0
+    max_attempts = 1 + max_retries
+
+    while attempt < max_attempts:
+        temperature = _RETRY_TEMPERATURES[min(attempt, len(_RETRY_TEMPERATURES) - 1)]
+
+        # On retries, append the JSON reminder to the prompt
+        attempt_prompt = prompt
+        if attempt > 0:
+            attempt_prompt = prompt + _JSON_RETRY_REMINDER
+
+        raw = llm_complete(
+            prompt=attempt_prompt,
+            module=module,
+            system=system,
+            max_tokens=max_tokens,
+            temperature=temperature,
+        )
+
+        try:
+            data = extract_json_object(raw)
+        except JsonParsingError as exc:
+            last_error = exc
+            attempt += 1
+            continue
+
+        # JSON parsed successfully — validate keys if requested
+        if required_keys is not None:
+            try:
+                data = require_keys(data, required_keys, context=context or module)
+            except JsonParsingError as exc:
+                last_error = exc
+                attempt += 1
+                continue
+
+        return data
+
+    # All attempts exhausted
+    raise last_error  # type: ignore[misc]
+
+
 _DECODER = json.JSONDecoder()
 
 
