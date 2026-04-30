@@ -413,7 +413,16 @@ section[data-testid="stSidebar"] hr {
     box-shadow: 0 0 40px var(--accent-glow), 0 0 80px rgba(94, 106, 210, 0.05) !important;
 }
 
-/* ── Hide Streamlit Branding ───────────────────────────────── */
+/* ── Prevent Sidebar Collapse ────────────────────────────────── */
+/* Hide the built-in collapse arrow so the sidebar cannot disappear */
+button[kind="header"] {
+    display: none !important;
+}
+[data-testid="stSidebarCollapse"] {
+    display: none !important;
+}
+
+/* ── Hide Streamlit Branding ──────────────────────────────── */
 #MainMenu { visibility: hidden; }
 footer { visibility: hidden; }
 header { visibility: hidden; }

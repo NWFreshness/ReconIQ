@@ -8,8 +8,6 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 import streamlit as st
-from llm.router import check_ollama
-
 from core.models import AnalysisRequest
 from core.services import run_analysis
 
@@ -117,11 +115,20 @@ with st.sidebar:
     )
     st.markdown("---")
 
-    # Connection status
-    ollama_ok = check_ollama()
-    ollama_icon = "🟢" if ollama_ok else "🔴"
-    ollama_label = "Connected" if ollama_ok else "Not found"
-    st.markdown(f"**Ollama:** {ollama_icon} {ollama_label}")
+    # Active provider status (reads from config)
+    from llm.router import get_config as _get_llm_config
+    _cfg = _get_llm_config()
+    _default_provider = _cfg.get("defaults", {}).get("provider", "deepseek")
+    _default_model = _cfg.get("providers", {}).get(_default_provider, {}).get("default_model", "")
+    _provider_label = _default_model or _default_provider
+    st.markdown(
+        f'<div style="display:flex;align-items:center;gap:8px;">'
+        f'<span class="status-dot connected"></span>'
+        f'<span style="color:var(--text-secondary);font-size:0.85rem;">{_default_provider}</span>'
+        f'<span style="color:var(--text-muted);font-size:0.75rem;">({_default_model or "default"})</span>'
+        '</div>',
+        unsafe_allow_html=True,
+    )
 
     # LLM Settings
     st.markdown(
