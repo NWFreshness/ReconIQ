@@ -12,6 +12,59 @@
 
 ---
 
+## Phase Status and Source of Truth
+
+This section is the durable source of truth for implementation progress. Future agents/models must read this section before starting work, update it when a phase changes state, and keep it synchronized with GitHub PR status and local verification results.
+
+Update rules for future agents/models:
+1. Before starting a phase, confirm the previous phase status here and verify the referenced PR/branch state when applicable.
+2. Mark a phase `[x]` only after the code is implemented, committed, pushed, and either merged or opened as a PR with passing local verification.
+3. If a phase is implemented but the PR is still open, keep the checkbox checked only when local verification passed and record `Status: PR open`.
+4. Record the PR URL, branch, latest commit, and local verification summary for completed/in-progress phases.
+5. If a phase needs follow-up after review, change the status back to an explicit non-complete state and add a short note.
+6. Do not rely only on chat history or transient todo state; this file is the project-level progress tracker.
+
+- [x] Phase 0 — Baseline and Environment
+  - Status: Complete
+  - Evidence: uv environment created, dependencies installed, dependency import check passed, compile check passed.
+
+- [x] Phase 1 — Configuration, Core Boundaries, and LLM Router
+  - Status: Merged
+  - PR: https://github.com/NWFreshness/ReconIQ/pull/1
+  - Branch: `feat/phase-1-core-llm-router`
+  - Merge commit: `683eb8d6c1f4ad47940748dd558585b7d579554e`
+  - Local verification: `13 passed`; compile check passed; `git diff --check` passed.
+
+- [x] Phase 2 — Shared JSON Parsing Utilities
+  - Status: PR open
+  - PR: https://github.com/NWFreshness/ReconIQ/pull/2
+  - Branch: `feat/phase-2-json-parser`
+  - Latest commit: `c462cf7 feat: add shared LLM JSON parsing`
+  - Local verification: `28 passed`; compile check passed; `git diff --check` passed.
+
+- [ ] Phase 3 — Scraper
+  - Status: Not started
+
+- [ ] Phase 4 — Research Modules
+  - Status: Not started
+
+- [ ] Phase 5 — Coordinator
+  - Status: Not started
+
+- [ ] Phase 6 — Report Writer
+  - Status: Not started
+
+- [ ] Phase 7 — Streamlit UI
+  - Status: Not started
+
+- [ ] Phase 8 — End-to-End Test Path
+  - Status: Not started
+
+- [ ] Phase 9 — Optional Enhancements After MVP
+  - Status: Not started
+
+---
+
 ## Guiding Principles
 
 1. Work in small phases we can review together.
