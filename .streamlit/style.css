@@ -1,28 +1,28 @@
 /* ═══════════════════════════════════════════════════════════
-   ReconIQ — Production Dark Theme (Linear-inspired)
+   ReconIQ — Clean Light Theme (Linear-inspired)
    ═══════════════════════════════════════════════════════════ */
 
 /* ── CSS Variables ──────────────────────────────────────────── */
 :root {
-    --bg-canvas: #0a0a0f;
-    --bg-panel: #12121a;
-    --bg-surface: #1a1a24;
-    --bg-elevated: #222230;
-    --text-primary: #e2e4e9;
-    --text-secondary: #8b8fa3;
-    --text-muted: #5c5f73;
+    --bg-canvas: #fafafa;
+    --bg-panel: #f0f0f5;
+    --bg-surface: #ffffff;
+    --bg-elevated: #f5f5fa;
+    --text-primary: #1a1a2e;
+    --text-secondary: #5c5f73;
+    --text-muted: #8b8fa3;
     --accent: #5e6ad2;
-    --accent-hover: #7173e8;
-    --accent-glow: rgba(94, 106, 210, 0.15);
-    --border: rgba(255, 255, 255, 0.06);
-    --border-hover: rgba(255, 255, 255, 0.12);
+    --accent-hover: #4d5bc4;
+    --accent-light: rgba(94, 106, 210, 0.08);
+    --accent-glow: rgba(94, 106, 210, 0.12);
+    --border: rgba(0, 0, 0, 0.08);
+    --border-hover: rgba(0, 0, 0, 0.15);
     --success: #10b981;
     --warning: #f59e0b;
     --error: #ef4444;
     --radius-sm: 6px;
     --radius-md: 10px;
     --radius-lg: 16px;
-    --radius-xl: 20px;
 }
 
 /* ── Base Resets ────────────────────────────────────────────── */
@@ -33,10 +33,6 @@ html, body, [class*="stApp"] {
 }
 
 /* ── Main App Container ────────────────────────────────────── */
-.stApp {
-    background: var(--bg-canvas) !important;
-}
-
 .block-container {
     padding-top: 2rem !important;
     padding-bottom: 4rem !important;
@@ -125,12 +121,12 @@ section[data-testid="stSidebar"] hr {
     letter-spacing: 0.01em !important;
     padding: 0.65rem 1.5rem !important;
     transition: all 0.2s ease !important;
-    box-shadow: 0 0 20px var(--accent-glow) !important;
+    box-shadow: 0 2px 8px var(--accent-glow) !important;
 }
 
 .stButton > button[kind="primary"]:hover {
     background: var(--accent-hover) !important;
-    box-shadow: 0 0 30px rgba(94, 106, 210, 0.3) !important;
+    box-shadow: 0 4px 16px rgba(94, 106, 210, 0.25) !important;
     transform: translateY(-1px) !important;
 }
 
@@ -183,7 +179,7 @@ section[data-testid="stSidebar"] hr {
 
 /* ── Progress Bar ──────────────────────────────────────────── */
 .stProgress > div > div > div {
-    background-color: var(--bg-surface) !important;
+    background-color: var(--bg-elevated) !important;
 }
 
 .stProgress > div > div > div > div {
@@ -211,55 +207,54 @@ section[data-testid="stSidebar"] hr {
     color: var(--text-secondary) !important;
 }
 
- details[open] > summary.streamlit-expanderHeader {
-    border-color: var(--accent) !important;
+details[open] > summary.streamlit-expanderHeader {
     border-color: rgba(94, 106, 210, 0.3) !important;
-    background-color: rgba(94, 106, 210, 0.05) !important;
+    background-color: var(--accent-light) !important;
 }
 
 /* ── Status Messages ───────────────────────────────────────── */
 .stSuccess {
-    background: rgba(16, 185, 129, 0.08) !important;
+    background: rgba(16, 185, 129, 0.06) !important;
     border: 1px solid rgba(16, 185, 129, 0.2) !important;
     border-radius: var(--radius-sm) !important;
     color: var(--success) !important;
 }
 
 .stSuccess p {
-    color: #6ee7b7 !important;
+    color: #059669 !important;
 }
 
 .stWarning {
-    background: rgba(245, 158, 11, 0.08) !important;
+    background: rgba(245, 158, 11, 0.06) !important;
     border: 1px solid rgba(245, 158, 11, 0.2) !important;
     border-radius: var(--radius-sm) !important;
     color: var(--warning) !important;
 }
 
 .stWarning p {
-    color: #fcd34d !important;
+    color: #d97706 !important;
 }
 
 .stError {
-    background: rgba(239, 68, 68, 0.08) !important;
+    background: rgba(239, 68, 68, 0.06) !important;
     border: 1px solid rgba(239, 68, 68, 0.2) !important;
     border-radius: var(--radius-sm) !important;
     color: var(--error) !important;
 }
 
 .stError p {
-    color: #fca5a5 !important;
+    color: #dc2626 !important;
 }
 
 .stInfo {
-    background: rgba(94, 106, 210, 0.08) !important;
+    background: var(--accent-light) !important;
     border: 1px solid rgba(94, 106, 210, 0.2) !important;
     border-radius: var(--radius-sm) !important;
     color: var(--accent) !important;
 }
 
 .stInfo p {
-    color: #a5b4fc !important;
+    color: var(--accent) !important;
 }
 
 /* ── Download Button ───────────────────────────────────────── */
@@ -273,7 +268,7 @@ section[data-testid="stSidebar"] hr {
 }
 
 .stDownloadButton > button:hover {
-    background: rgba(94, 106, 210, 0.1) !important;
+    background: var(--accent-light) !important;
     border-color: var(--accent) !important;
 }
 
@@ -325,7 +320,7 @@ section[data-testid="stSidebar"] hr {
 }
 
 .stMarkdown code {
-    background: var(--bg-surface) !important;
+    background: var(--bg-elevated) !important;
     color: var(--accent) !important;
     border: 1px solid var(--border) !important;
     border-radius: 4px !important;
@@ -340,6 +335,7 @@ section[data-testid="stSidebar"] hr {
     border-radius: var(--radius-lg) !important;
     padding: 2rem !important;
     margin-top: 1.5rem !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06) !important;
 }
 
 /* ── Hero Section ──────────────────────────────────────────── */
@@ -371,31 +367,12 @@ section[data-testid="stSidebar"] hr {
 
 .status-dot.connected {
     background: var(--success) !important;
-    box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+    box-shadow: 0 0 6px rgba(16, 185, 129, 0.4);
 }
 
 .status-dot.disconnected {
     background: var(--error) !important;
-    box-shadow: 0 0 8px rgba(239, 68, 68, 0.4);
-}
-
-/* ── Module Toggle Card ────────────────────────────────────── */
-.module-card {
-    background: var(--bg-surface);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-md);
-    padding: 1rem 1.2rem;
-    transition: all 0.2s ease;
-}
-
-.module-card:hover {
-    border-color: var(--border-hover);
-    background: var(--bg-elevated);
-}
-
-.module-card.active {
-    border-color: rgba(94, 106, 210, 0.4);
-    background: rgba(94, 106, 210, 0.05);
+    box-shadow: 0 0 6px rgba(239, 68, 68, 0.4);
 }
 
 /* ── Section Labels ────────────────────────────────────────── */
@@ -408,13 +385,7 @@ section[data-testid="stSidebar"] hr {
     margin-bottom: 0.5rem !important;
 }
 
-/* ── Glow Effects ──────────────────────────────────────────── */
-.glow-accent {
-    box-shadow: 0 0 40px var(--accent-glow), 0 0 80px rgba(94, 106, 210, 0.05) !important;
-}
-
 /* ── Prevent Sidebar Collapse ────────────────────────────────── */
-/* Hide the built-in collapse arrow so the sidebar cannot disappear */
 button[kind="header"] {
     display: none !important;
 }
@@ -427,11 +398,6 @@ button[kind="header"] {
 footer { visibility: hidden; }
 header { visibility: hidden; }
 
-/* ── Smooth Transitions ───────────────────────────────────── */
-* {
-    transition: background-color 0.15s ease;
-}
-
 /* ── Scrollbar ─────────────────────────────────────────────── */
 ::-webkit-scrollbar {
     width: 6px;
@@ -442,10 +408,10 @@ header { visibility: hidden; }
 }
 
 ::-webkit-scrollbar-thumb {
-    background: var(--bg-elevated);
+    background: #c8c8d4;
     border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: var(--text-muted);
+    background: #a0a0b0;
 }

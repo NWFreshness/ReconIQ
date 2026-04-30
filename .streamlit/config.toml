@@ -1,13 +1,10 @@
-[theme]
-primaryColor = "#5e6ad2"
-backgroundColor = "#0a0a0f"
-secondaryBackgroundColor = "#12121a"
-textColor = "#e2e4e9"
-font = "sans serif"
-
-[server]
-headless = true
-enableCORS = false
-
 [browser]
 gatherUsageStats = false
+
+[theme]
+base = "light"
+primaryColor = "#5e6ad2"
+backgroundColor = "#fafafa"
+secondaryBackgroundColor = "#f0f0f5"
+textColor = "#1a1a2e"
+font = "Inter"
