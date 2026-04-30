@@ -87,7 +87,11 @@ report/
 
 **Goal:** Add fallback scraping for JS-heavy sites that `requests + BeautifulSoup` cannot handle.
 
-**Status:** Not started
+**Status:** In progress — local implementation and verification complete; PR pending.
+
+**Branch:** `feat/phase-9b-playwright`
+
+**Local verification:** `108 passed`; focused Playwright checks `10 passed`; compile check passed; `git diff --check` passed.
 
 ### Files to Modify
 
@@ -333,7 +337,7 @@ An enhancement is complete when:
 | ID | Name | Status | PR | Branch |
 |----|------|--------|-----|--------|
 | 9A | FastAPI Migration | Not started | — | — |
-| 9B | Playwright JS Rendering | Not started | — | — |
+| 9B | Playwright JS Rendering | In progress | — | `feat/phase-9b-playwright` |
 | 9C | Competitor Search API | Not started | — | — |
 | 9D | Pydantic Schemas | Not started | — | — |
 | 9E | Cached Runs | Not started | — | — |
