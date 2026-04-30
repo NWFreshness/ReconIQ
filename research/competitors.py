@@ -1,8 +1,7 @@
 """Module 3: Competitor Intelligence — auto-discover and analyze competitors."""
 from __future__ import annotations
 
-import json
-import re
+from research.parsing import JSON_RESPONSE_RULES, JsonParsingError, extract_json_array, extract_json_object
 
 
 SYSTEM_PROMPT = (
@@ -16,7 +15,7 @@ SYSTEM_PROMPT = (
     "- key_messaging: their main marketing claim or tagline\n"
     "- weaknesses: 2-3 specific weaknesses or gaps\n"
     "- inferred_services: 3-5 services they likely offer\n\n"
-    "Return ONLY the JSON array, no preamble or explanation."
+    f"{JSON_RESPONSE_RULES}"
 )
 
 
@@ -45,23 +44,12 @@ def run(company_profile: dict, target_url: str, llm_complete) -> dict:
 
 
 def _parse_response(raw: str) -> dict:
-    # Try to extract JSON array
-    match = re.search(r"\[.*\]", raw, re.DOTALL)
-    if match:
-        try:
-            competitors = json.loads(match.group())
-            return {"competitors": competitors}
-        except json.JSONDecodeError:
-            pass
+    try:
+        data = extract_json_object(raw)
+    except JsonParsingError:
+        competitors = extract_json_array(raw)
+        return {"competitors": competitors}
 
-    # Try JSON object
-    match = re.search(r"\{.*\}", raw, re.DOTALL)
-    if match:
-        try:
-            data = json.loads(match.group())
-            if "competitors" in data:
-                return data
-        except json.JSONDecodeError:
-            pass
-
-    return {"competitors": [], "raw_error": raw}
+    if "competitors" not in data:
+        raise JsonParsingError("competitor analysis missing required keys: competitors")
+    return data
