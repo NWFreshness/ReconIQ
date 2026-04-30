@@ -76,7 +76,9 @@ Update rules for future agents/models:
   - Local verification: `93 passed`; focused app checks `15 passed`; compile check passed; `git diff --check` passed.
 
 - [ ] Phase 8 — End-to-End Test Path
-  - Status: Not started
+  - Status: In progress — local implementation and verification complete; not yet committed/pushed.
+  - Branch: `feat/phase-8-e2e-tests`
+  - Local verification: `98 passed`; focused E2E checks `5 passed`; compile check passed; `git diff --check` passed.
 
 - [ ] Phase 9 — Optional Enhancements After MVP
   - Status: Not started
