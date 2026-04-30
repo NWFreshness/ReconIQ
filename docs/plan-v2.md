@@ -43,7 +43,9 @@ Update rules for future agents/models:
   - Local verification: `28 passed`; compile check passed; `git diff --check` passed.
 
 - [ ] Phase 3 — Scraper
-  - Status: Not started
+  - Status: In progress — local implementation and verification complete; not yet committed/pushed.
+  - Branch: `feat/phase-3-scraper`
+  - Local verification: `37 passed`; scraper example.com smoke check passed; compile check passed; `git diff --check` passed.
 
 - [ ] Phase 4 — Research Modules
   - Status: Not started

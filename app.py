@@ -2,10 +2,7 @@
 from __future__ import annotations
 
 import os
-import sys
-
-# Ensure project root is in path
-sys.path.insert(0, os.path.expanduser("~/Documents/ai-automation-agency/ReconIQ"))
+from pathlib import Path
 
 import streamlit as st
 from llm.router import check_ollama, complete as llm_complete, get_config
@@ -47,7 +44,7 @@ with st.sidebar.expander("LLM Settings", expanded=True):
         st.sidebar.info(f"Using: {provider}/{default_model}")
 
 with st.sidebar.expander("Report Output", expanded=False):
-    output_dir = st.text_input("Output directory", value="~/Documents/ai-automation-agency/ReconIQ/reports")
+    output_dir = st.text_input("Output directory", value=str(Path.cwd() / "reports"))
 
 # ── Main ──────────────────────────────────────────────────────────────────────
 st.title("🎯 ReconIQ — Marketing Intelligence")
