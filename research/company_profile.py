@@ -1,10 +1,8 @@
 """Module 1: Company Profile — extract what the company does and how they present themselves."""
 from __future__ import annotations
 
-import json
-import re
-
 from scraper.scraper import scrape, extract_domain_name
+from research.parsing import JSON_RESPONSE_RULES, extract_json_object, require_keys
 
 
 SYSTEM_PROMPT = (
@@ -18,9 +16,24 @@ SYSTEM_PROMPT = (
     "- primary_cta: main call-to-action text\n"
     "- services_products: list of 3-8 specific offerings\n"
     "- marketing_channels: inferred channels they use (website, social, email, etc.)\n"
-    "If you cannot determine a field, use 'Not discernible from available data'.\n"
-    "Return ONLY the JSON object, no preamble."
+    "- data_confidence: 'low', 'medium', or 'high' with brief rationale\n"
+    "- data_limitations: list of key caveats about source quality\n"
+    "If you cannot determine a field, use 'Not discernible from available data'.\n\n"
+    f"{JSON_RESPONSE_RULES}"
 )
+
+REQUIRED_KEYS = [
+    "company_name",
+    "what_they_do",
+    "target_audience",
+    "value_proposition",
+    "brand_voice",
+    "primary_cta",
+    "services_products",
+    "marketing_channels",
+    "data_confidence",
+    "data_limitations",
+]
 
 
 def run(target_url: str, llm_complete) -> dict:
@@ -58,18 +71,5 @@ def run(target_url: str, llm_complete) -> dict:
 
 def _parse_response(raw: str) -> dict:
     """Parse the LLM text response into a structured dict."""
-    # Try JSON first
-    match = re.search(r"\{.*\}", raw, re.DOTALL)
-    if match:
-        try:
-            return json.loads(match.group())
-        except json.JSONDecodeError:
-            pass
-
-    # Fallback: parse as key-value lines
-    result = {}
-    for line in raw.splitlines():
-        if ":" in line:
-            key, _, val = line.partition(":")
-            result[key.strip().lower().replace(" ", "_")] = val.strip()
-    return result if result else {"error": raw}
+    data = extract_json_object(raw)
+    return require_keys(data, REQUIRED_KEYS, context="company profile")

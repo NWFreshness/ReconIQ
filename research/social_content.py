@@ -1,8 +1,7 @@
 """Module 4: Social & Content — infer social presence and content quality."""
 from __future__ import annotations
 
-import json
-import re
+from research.parsing import JSON_RESPONSE_RULES, extract_json_object
 
 
 SYSTEM_PROMPT = (
@@ -15,8 +14,8 @@ SYSTEM_PROMPT = (
     "- review_sites: list of review platforms they likely appear on (Google, Yelp, Trustpilot, etc.)\n"
     "- blog_or_resources: 'yes' or 'no' — do they maintain a blog or resource center\n"
     "- content_gaps: 3-4 types of content they likely don't produce well\n"
-    "- email_signals: 'prominent', 'present', or 'minimal' — how visible is their email list/CTAs\n"
-    "Return ONLY the JSON object, no preamble."
+    "- email_signals: 'prominent', 'present', or 'minimal' — how visible is their email list/CTAs\n\n"
+    f"{JSON_RESPONSE_RULES}"
 )
 
 
@@ -45,16 +44,4 @@ def run(company_profile: dict, target_url: str, llm_complete) -> dict:
 
 
 def _parse_response(raw: str) -> dict:
-    match = re.search(r"\{.*\}", raw, re.DOTALL)
-    if match:
-        try:
-            return json.loads(match.group())
-        except json.JSONDecodeError:
-            pass
-
-    result = {}
-    for line in raw.splitlines():
-        if ":" in line:
-            key, _, val = line.partition(":")
-            result[key.strip().lower().replace(" ", "_")] = val.strip()
-    return result if result else {"error": raw}
+    return extract_json_object(raw)

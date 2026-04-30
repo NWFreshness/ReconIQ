@@ -1,8 +1,7 @@
 """Module 2: SEO & Keywords — analyze search presence and content gaps."""
 from __future__ import annotations
 
-import json
-import re
+from research.parsing import JSON_RESPONSE_RULES, extract_json_object
 
 
 SYSTEM_PROMPT = (
@@ -13,8 +12,8 @@ SYSTEM_PROMPT = (
     "- seo_weaknesses: 4-5 specific weaknesses (technical, content, or backlink)\n"
     "- quick_wins: 3-4 SEO improvements they could make with moderate effort\n"
     "- estimated_traffic_tier: 'low', 'medium', or 'high' (explain briefly)\n"
-    "- local_seo_signals: 'strong', 'moderate', or 'weak' (Google Business Profile, local keywords)\n"
-    "Return ONLY the JSON object, no preamble."
+    "- local_seo_signals: 'strong', 'moderate', or 'weak' (Google Business Profile, local keywords)\n\n"
+    f"{JSON_RESPONSE_RULES}"
 )
 
 
@@ -43,16 +42,4 @@ def run(company_profile: dict, target_url: str, llm_complete) -> dict:
 
 
 def _parse_response(raw: str) -> dict:
-    match = re.search(r"\{.*\}", raw, re.DOTALL)
-    if match:
-        try:
-            return json.loads(match.group())
-        except json.JSONDecodeError:
-            pass
-
-    result = {}
-    for line in raw.splitlines():
-        if ":" in line:
-            key, _, val = line.partition(":")
-            result[key.strip().lower().replace(" ", "_")] = val.strip()
-    return result if result else {"error": raw}
+    return extract_json_object(raw)

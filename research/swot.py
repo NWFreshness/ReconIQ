@@ -2,7 +2,8 @@
 from __future__ import annotations
 
 import json
-import re
+
+from research.parsing import JSON_RESPONSE_RULES, extract_json_object
 
 
 SYSTEM_PROMPT = (
@@ -16,8 +17,8 @@ SYSTEM_PROMPT = (
     "- acquisition_angle: 2-3 sentence summary of the best way to pitch YOUR agency to them\n"
     "- talking_points: 4-6 specific talking points for outreach (what to say, what to offer)\n"
     "- recommended_next_steps: 3-5 specific tactical actions (email sequence, content, offer)\n"
-    "- competitive_advantage: 1-2 sentences on what you'd offer that their current provider lacks\n"
-    "Return ONLY the JSON object, no preamble."
+    "- competitive_advantage: 1-2 sentences on what you'd offer that their current provider lacks\n\n"
+    f"{JSON_RESPONSE_RULES}"
 )
 
 
@@ -79,16 +80,4 @@ def _format_dict(d: dict) -> str:
 
 
 def _parse_response(raw: str) -> dict:
-    match = re.search(r"\{.*\}", raw, re.DOTALL)
-    if match:
-        try:
-            return json.loads(match.group())
-        except json.JSONDecodeError:
-            pass
-
-    result = {}
-    for line in raw.splitlines():
-        if ":" in line:
-            key, _, val = line.partition(":")
-            result[key.strip().lower().replace(" ", "_")] = val.strip()
-    return result if result else {"error": raw}
+    return extract_json_object(raw)
