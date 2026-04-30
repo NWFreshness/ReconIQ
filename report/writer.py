@@ -91,14 +91,21 @@ def _swot_section(swot: dict) -> str:
 
     def format_items(items):
         if isinstance(items, list):
-            return "<br>".join(f"• {i}" for i in items)
+            return "\n".join(f"- {i}" for i in items)
         return str(items)
 
     lines = [
-        "| | Helpful | Harmful |",
-        "|---|---|---|",
-        f"| **Internal** | {format_items(sw.get('strengths', ['—']))} | {format_items(sw.get('weaknesses', ['—']))} |",
-        f"| **External** | {format_items(sw.get('opportunities', ['—']))} | {format_items(sw.get('threats', ['—']))} |",
+        "### Strengths (Internal, Helpful)",
+        format_items(sw.get("strengths", ["—"])),
+        "",
+        "### Weaknesses (Internal, Harmful)",
+        format_items(sw.get("weaknesses", ["—"])),
+        "",
+        "### Opportunities (External, Helpful)",
+        format_items(sw.get("opportunities", ["—"])),
+        "",
+        "### Threats (External, Harmful)",
+        format_items(sw.get("threats", ["—"])),
     ]
     return "\n".join(lines)
 

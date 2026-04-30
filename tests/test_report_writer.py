@@ -112,7 +112,7 @@ def test_renders_competitor_list_cleanly(tmp_path):
     assert "generic messaging" in content
 
 
-def test_renders_swot_without_broken_markdown_tables(tmp_path):
+def test_renders_swot_as_list_sections(tmp_path):
     report_path = writer.write_report(_results(), output_dir=str(tmp_path))
     content = Path(report_path).read_text(encoding="utf-8")
 
@@ -120,11 +120,13 @@ def test_renders_swot_without_broken_markdown_tables(tmp_path):
     swot_end = content.index("## 6. Client Acquisition Strategy")
     swot_section = content[swot_start:swot_end]
 
-    assert "|" in swot_section
-    lines = [line for line in swot_section.splitlines() if "|" in line]
-    for line in lines:
-        parts = line.split("|")
-        assert len(parts) == 5, f"Broken table row: {line}"
+    # SWOT should be rendered as heading-based sections, not broken table markdown
+    assert "### Strengths" in swot_section
+    assert "### Weaknesses" in swot_section
+    assert "### Opportunities" in swot_section
+    assert "### Threats" in swot_section
+    # No raw <br> tags should appear
+    assert "<br>" not in swot_section
 
 
 def test_handles_missing_module_data_gracefully(tmp_path):
