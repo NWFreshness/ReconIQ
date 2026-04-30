@@ -42,13 +42,17 @@ Update rules for future agents/models:
   - Merge commit: `54f6f45 Merge pull request #2 from NWFreshness/feat/phase-2-json-parser`
   - Local verification: `28 passed`; compile check passed; `git diff --check` passed.
 
-- [ ] Phase 3 — Scraper
-  - Status: In progress — local implementation and verification complete; not yet committed/pushed.
+- [x] Phase 3 — Scraper
+  - Status: Merged
+  - PR: https://github.com/NWFreshness/ReconIQ/pull/4
   - Branch: `feat/phase-3-scraper`
+  - Merge commit: `5da68ee Merge pull request #4 from NWFreshness/feat/phase-3-scraper`
   - Local verification: `37 passed`; scraper example.com smoke check passed; compile check passed; `git diff --check` passed.
 
 - [ ] Phase 4 — Research Modules
-  - Status: Not started
+  - Status: In progress — local implementation and verification complete; not yet committed/pushed.
+  - Branch: `feat/phase-4-research-modules`
+  - Local verification: `61 passed`; focused research module checks `29 passed`; compile check passed; `git diff --check` passed.
 
 - [ ] Phase 5 — Coordinator
   - Status: Not started
