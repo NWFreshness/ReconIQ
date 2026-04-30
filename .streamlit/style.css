@@ -1,0 +1,445 @@
+/* ═══════════════════════════════════════════════════════════
+   ReconIQ — Clean Light Theme (Linear-inspired)
+   ═══════════════════════════════════════════════════════════ */
+
+/* ── CSS Variables ──────────────────────────────────────────── */
+:root {
+    --bg-canvas: #fafafa;
+    --bg-panel: #f0f0f5;
+    --bg-surface: #ffffff;
+    --bg-elevated: #f5f5fa;
+    --text-primary: #1a1a2e;
+    --text-secondary: #5c5f73;
+    --text-muted: #8b8fa3;
+    --accent: #5e6ad2;
+    --accent-hover: #4d5bc4;
+    --accent-light: rgba(94, 106, 210, 0.08);
+    --accent-glow: rgba(94, 106, 210, 0.12);
+    --border: rgba(0, 0, 0, 0.08);
+    --border-hover: rgba(0, 0, 0, 0.15);
+    --success: #10b981;
+    --warning: #f59e0b;
+    --error: #ef4444;
+    --radius-sm: 6px;
+    --radius-md: 10px;
+    --radius-lg: 16px;
+}
+
+/* ── Base Resets ────────────────────────────────────────────── */
+html, body, [class*="stApp"] {
+    background-color: var(--bg-canvas) !important;
+    color: var(--text-primary) !important;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif !important;
+}
+
+/* ── Main App Container ────────────────────────────────────── */
+.block-container {
+    padding-top: 2rem !important;
+    padding-bottom: 4rem !important;
+    max-width: 960px !important;
+}
+
+/* ── Sidebar ───────────────────────────────────────────────── */
+section[data-testid="stSidebar"] {
+    background: var(--bg-panel) !important;
+    border-right: 1px solid var(--border) !important;
+}
+
+section[data-testid="stSidebar"] > div {
+    padding-top: 2rem !important;
+}
+
+section[data-testid="stSidebar"] h1,
+section[data-testid="stSidebar"] h2,
+section[data-testid="stSidebar"] h3 {
+    color: var(--text-primary) !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.02em !important;
+}
+
+section[data-testid="stSidebar"] label,
+section[data-testid="stSidebar"] .stMarkdown {
+    color: var(--text-secondary) !important;
+}
+
+/* Sidebar divider */
+section[data-testid="stSidebar"] hr {
+    border-color: var(--border) !important;
+    margin: 1.2rem 0 !important;
+}
+
+/* ── Input Fields ──────────────────────────────────────────── */
+.stTextInput > div > div > input,
+.stTextArea > div > div > textarea {
+    background-color: var(--bg-surface) !important;
+    color: var(--text-primary) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-sm) !important;
+    font-size: 0.9rem !important;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
+}
+
+.stTextInput > div > div > input:focus,
+.stTextArea > div > div > textarea:focus {
+    border-color: var(--accent) !important;
+    box-shadow: 0 0 0 3px var(--accent-glow) !important;
+    outline: none !important;
+}
+
+.stTextInput > div > div > input::placeholder {
+    color: var(--text-muted) !important;
+}
+
+.stTextInput > div > label,
+.stTextArea > div > label {
+    color: var(--text-secondary) !important;
+    font-size: 0.8rem !important;
+    font-weight: 500 !important;
+    letter-spacing: 0.02em !important;
+    text-transform: uppercase !important;
+}
+
+/* ── Select Box ────────────────────────────────────────────── */
+.stSelectbox > div > div {
+    background-color: var(--bg-surface) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-sm) !important;
+}
+
+.stSelectbox > div > div > div {
+    color: var(--text-primary) !important;
+}
+
+/* ── Buttons ───────────────────────────────────────────────── */
+.stButton > button[kind="primary"] {
+    background: var(--accent) !important;
+    color: #fff !important;
+    border: none !important;
+    border-radius: var(--radius-sm) !important;
+    font-weight: 600 !important;
+    font-size: 0.9rem !important;
+    letter-spacing: 0.01em !important;
+    padding: 0.65rem 1.5rem !important;
+    transition: all 0.2s ease !important;
+    box-shadow: 0 2px 8px var(--accent-glow) !important;
+}
+
+.stButton > button[kind="primary"]:hover {
+    background: var(--accent-hover) !important;
+    box-shadow: 0 4px 16px rgba(94, 106, 210, 0.25) !important;
+    transform: translateY(-1px) !important;
+}
+
+.stButton > button[kind="primary"]:active {
+    transform: translateY(0) !important;
+}
+
+.stButton > button[kind="primary"]:disabled {
+    opacity: 0.4 !important;
+    cursor: not-allowed !important;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+.stButton > button[kind="secondary"] {
+    background: var(--bg-surface) !important;
+    color: var(--text-secondary) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-sm) !important;
+    font-weight: 500 !important;
+    font-size: 0.9rem !important;
+    padding: 0.65rem 1.5rem !important;
+    transition: all 0.2s ease !important;
+}
+
+.stButton > button[kind="secondary"]:hover {
+    background: var(--bg-elevated) !important;
+    border-color: var(--border-hover) !important;
+    color: var(--text-primary) !important;
+}
+
+/* ── Checkboxes ────────────────────────────────────────────── */
+.stCheckbox {
+    color: var(--text-secondary) !important;
+}
+
+.stCheckbox > label > div {
+    color: var(--text-secondary) !important;
+}
+
+.stCheckbox > label > div[data-baseweb="checkbox"] > div {
+    background-color: var(--bg-surface) !important;
+    border-color: var(--border-hover) !important;
+}
+
+.stCheckbox > label > div[data-baseweb="checkbox"] > div[aria-checked="true"] {
+    background-color: var(--accent) !important;
+    border-color: var(--accent) !important;
+}
+
+/* ── Progress Bar ──────────────────────────────────────────── */
+.stProgress > div > div > div {
+    background-color: var(--bg-elevated) !important;
+}
+
+.stProgress > div > div > div > div {
+    background: linear-gradient(90deg, var(--accent), var(--accent-hover)) !important;
+    border-radius: 999px !important;
+}
+
+/* ── Expander ──────────────────────────────────────────────── */
+.streamlit-expanderHeader {
+    background-color: var(--bg-surface) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-sm) !important;
+    color: var(--text-secondary) !important;
+    font-weight: 500 !important;
+    font-size: 0.85rem !important;
+    transition: all 0.2s ease !important;
+}
+
+.streamlit-expanderHeader:hover {
+    border-color: var(--border-hover) !important;
+    color: var(--text-primary) !important;
+}
+
+.streamlit-expanderHeader p {
+    color: var(--text-secondary) !important;
+}
+
+details[open] > summary.streamlit-expanderHeader {
+    border-color: rgba(94, 106, 210, 0.3) !important;
+    background-color: var(--accent-light) !important;
+}
+
+/* ── Status Messages ───────────────────────────────────────── */
+.stSuccess {
+    background: rgba(16, 185, 129, 0.06) !important;
+    border: 1px solid rgba(16, 185, 129, 0.2) !important;
+    border-radius: var(--radius-sm) !important;
+    color: var(--success) !important;
+}
+
+.stSuccess p {
+    color: #059669 !important;
+}
+
+.stWarning {
+    background: rgba(245, 158, 11, 0.06) !important;
+    border: 1px solid rgba(245, 158, 11, 0.2) !important;
+    border-radius: var(--radius-sm) !important;
+    color: var(--warning) !important;
+}
+
+.stWarning p {
+    color: #d97706 !important;
+}
+
+.stError {
+    background: rgba(239, 68, 68, 0.06) !important;
+    border: 1px solid rgba(239, 68, 68, 0.2) !important;
+    border-radius: var(--radius-sm) !important;
+    color: var(--error) !important;
+}
+
+.stError p {
+    color: #dc2626 !important;
+}
+
+.stInfo {
+    background: var(--accent-light) !important;
+    border: 1px solid rgba(94, 106, 210, 0.2) !important;
+    border-radius: var(--radius-sm) !important;
+    color: var(--accent) !important;
+}
+
+.stInfo p {
+    color: var(--accent) !important;
+}
+
+/* ── Download Button ───────────────────────────────────────── */
+.stDownloadButton > button {
+    background: var(--bg-surface) !important;
+    color: var(--accent) !important;
+    border: 1px solid rgba(94, 106, 210, 0.3) !important;
+    border-radius: var(--radius-sm) !important;
+    font-weight: 500 !important;
+    transition: all 0.2s ease !important;
+}
+
+.stDownloadButton > button:hover {
+    background: var(--accent-light) !important;
+    border-color: var(--accent) !important;
+}
+
+/* ── Markdown ──────────────────────────────────────────────── */
+.stMarkdown h1 {
+    color: var(--text-primary) !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.03em !important;
+    font-size: 2.2rem !important;
+    margin-bottom: 0.3rem !important;
+}
+
+.stMarkdown h2 {
+    color: var(--text-primary) !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.02em !important;
+    font-size: 1.5rem !important;
+}
+
+.stMarkdown h3 {
+    color: var(--text-primary) !important;
+    font-weight: 600 !important;
+    letter-spacing: -0.01em !important;
+}
+
+.stMarkdown p, .stMarkdown li {
+    color: var(--text-secondary) !important;
+    line-height: 1.65 !important;
+}
+
+.stMarkdown strong {
+    color: var(--text-primary) !important;
+}
+
+.stMarkdown a {
+    color: var(--accent) !important;
+    text-decoration: none !important;
+    transition: color 0.15s ease !important;
+}
+
+.stMarkdown a:hover {
+    color: var(--accent-hover) !important;
+    text-decoration: underline !important;
+}
+
+.stMarkdown hr {
+    border-color: var(--border) !important;
+    margin: 2rem 0 !important;
+}
+
+.stMarkdown code {
+    background: var(--bg-elevated) !important;
+    color: var(--accent) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: 4px !important;
+    padding: 2px 6px !important;
+    font-size: 0.85em !important;
+}
+
+/* ── Report Card ───────────────────────────────────────────── */
+.report-card {
+    background: var(--bg-surface) !important;
+    border: 1px solid var(--border) !important;
+    border-radius: var(--radius-lg) !important;
+    padding: 2rem !important;
+    margin-top: 1.5rem !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06) !important;
+}
+
+/* ── Hero Section ──────────────────────────────────────────── */
+.hero-title {
+    font-size: 2.8rem !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.04em !important;
+    line-height: 1.1 !important;
+    color: var(--text-primary) !important;
+    margin-bottom: 0.5rem !important;
+}
+
+.hero-subtitle {
+    font-size: 1.1rem !important;
+    font-weight: 400 !important;
+    color: var(--text-secondary) !important;
+    line-height: 1.5 !important;
+}
+
+/* ── Status Indicator Dot ──────────────────────────────────── */
+.status-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+    vertical-align: middle;
+}
+
+.status-dot.connected {
+    background: var(--success) !important;
+    box-shadow: 0 0 6px rgba(16, 185, 129, 0.4);
+}
+
+.status-dot.disconnected {
+    background: var(--error) !important;
+    box-shadow: 0 0 6px rgba(239, 68, 68, 0.4);
+}
+
+/* ── Section Labels ────────────────────────────────────────── */
+.section-label {
+    font-size: 0.7rem !important;
+    font-weight: 600 !important;
+    letter-spacing: 0.08em !important;
+    text-transform: uppercase !important;
+    color: var(--text-muted) !important;
+    margin-bottom: 0.5rem !important;
+}
+
+/* ── Prevent Sidebar Collapse ────────────────────────────────── */
+/* Hide the collapse arrow button so the sidebar stays open */
+[data-testid="stSidebarCollapseButton"] {
+    display: none !important;
+}
+button[kind="header"] {
+    display: none !important;
+}
+button[kind="headerNoPadding"] {
+    display: none !important;
+}
+/* Force sidebar to always be visible */
+section[data-testid="stSidebar"] {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: relative !important;
+    min-width: 300px !important;
+    max-width: 300px !important;
+}
+section[data-testid="stSidebarContent"] {
+    display: block !important;
+    visibility: visible !important;
+}
+/* Prevent Streamlit from collapsing via transform or width tricks */
+section[data-testid="stSidebar"][aria-expanded="false"],
+section[data-testid="stSidebar"][class*="collapsed"] {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    min-width: 300px !important;
+    max-width: 300px !important;
+    transform: none !important;
+    width: 300px !important;
+}
+
+/* ── Hide Streamlit Branding ──────────────────────────────── */
+#MainMenu { visibility: hidden; }
+footer { visibility: hidden; }
+header { visibility: hidden; }
+
+/* ── Scrollbar ─────────────────────────────────────────────── */
+::-webkit-scrollbar {
+    width: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-canvas);
+}
+
+::-webkit-scrollbar-thumb {
+    background: #c8c8d4;
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #a0a0b0;
+}

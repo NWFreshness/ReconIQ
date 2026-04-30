@@ -246,7 +246,11 @@ report/
 
 **Goal:** Improve the Streamlit UI beyond the MVP barebones look.
 
-**Status:** Not started
+**Status:** In progress — local implementation and verification complete; not yet committed/pushed.
+
+**Branch:** `feat/phase-9g-ui-polish`
+
+**Local verification:** `108 passed`; compile check passed; `git diff --check` passed.
 
 ### Ideas
 
@@ -342,6 +346,6 @@ An enhancement is complete when:
 | 9D | Pydantic Schemas | Not started | — | — |
 | 9E | Cached Runs | Not started | — | — |
 | 9F | Export Formats | Not started | — | — |
-| 9G | UI Polish / Dark Mode | Not started | — | — |
+| 9G | UI Polish / Dark Mode | In progress | — | `feat/phase-9g-ui-polish` |
 | 9H | CLI Interface | Not started | — | — |
 | 9I | Batch Analysis | Not started | — | — |

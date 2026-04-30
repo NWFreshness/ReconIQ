@@ -12,7 +12,7 @@ providers:
     default_model: "llama3"
 
 scraper:
-  use_playwright_fallback: false  # Set to true to enable headless browser for JS-heavy sites
+  use_playwright_fallback: true  # Set to true to enable headless browser for JS-heavy sites
 
 defaults:
   provider: "deepseek"
