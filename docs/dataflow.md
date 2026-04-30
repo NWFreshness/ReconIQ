@@ -1,450 +1,628 @@
-# ReconIQ Dataflow
+# ReconIQ Dataflow — Every Function Call
 
-How a URL goes from the text input to a finished report.
-
----
-
-## 1. User Input → AnalysisRequest
-
-```
-┌─────────────────────────────────────────────────────────┐
-│  app.py  —  Streamlit UI                                │
-│                                                          │
-│  User types URL, toggles modules, picks provider/model   │
-│  Clicks [Analyze →]                                      │
-│                                                          │
-│  validate_url()  →  normalize_url()                      │
-│       ↓                                                  │
-│  build_analysis_request()                                │
-│       ↓                                                  │
-│  AnalysisRequest(                                        │
-│      target_url="https://acme.com",                     │
-│      enabled_modules={...},                              │
-│      provider_override="deepseek",                       │
-│      model_override=None,                                │
-│      output_dir="reports",                               │
-│      max_pages=5,                                        │
-│      max_depth=2,                                        │
-│  )                                                       │
-└──────────────────────┬──────────────────────────────────┘
-                       │
-                       ▼
-```
+Trace of every function call from button click to finished report.
 
 ---
 
-## 2. AnalysisRequest → run_analysis()
+## Stage 1: User Clicks [Analyze →]
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│  core/services.py  —  run_analysis()                     │
-│                                                          │
-│  1. Creates a closure over llm_complete() that injects   │
-│     the provider/model overrides from the request        │
-│                                                          │
-│  2. Calls coordinator.run_all(                           │
-│        target_url,                                       │
-│        llm_complete=closure,                             │
-│        enabled_modules,                                  │
-│        progress_callback,                                 │
-│     )                                                    │
-│                                                          │
-│  3. Writes the report: write_report(results, output_dir) │
-│                                                          │
-│  4. Returns AnalysisResult(results, report_path)           │
-└──────────────────────┬──────────────────────────────────┘
-                       │
-                       ▼
+app.py
+│
+├─ st.text_input("Target URL")  →  "https://acme.com"
+├─ st.button("Analyze →")       →  True
+├─ st.checkbox toggles          →  {"company_profile": True, "seo_keywords": True, ...}
+│
+├─ validate_url("https://acme.com")
+│   └─ normalize_url("https://acme.com")  →  "https://acme.com"
+│   └─ urlparse("https://acme.com")
+│   └─ returns (True, "https://acme.com")
+│
+├─ build_analysis_request(
+│      target_url="https://acme.com",
+│      enabled_modules={"company_profile": True, "seo_keywords": True, ...},
+│      provider="deepseek",
+│      model="",
+│      output_dir="/home/user/ReconIQ/reports",
+│  )
+│  └─ returns AnalysisRequest(
+│         target_url="https://acme.com",
+│         enabled_modules={...},
+│         provider_override=None,        # "deepseek" is default, so None
+│         model_override=None,
+│         output_dir="/home/user/ReconIQ/reports",
+│         max_pages=5,
+│         max_depth=2,
+│     )
 ```
 
 ---
 
-## 3. Coordinator Orchestrates Module Execution
+## Stage 2: run_analysis()
 
 ```
-┌──────────────────────────────────────────────────────────────────┐
-│  research/coordinator.py  —  run_all()                           │
-│                                                                   │
-│  Execution order:                                                 │
-│                                                                   │
-│  ┌─────────────────────┐                                          │
-│  │ Module 1:            │                                          │
-│  │ Company Profile      │  ← runs FIRST (scrapes the site)       │
-│  │ (10% → 25%)         │                                          │
-│  └────────┬────────────┘                                          │
-│           │ company_profile dict                                   │
-│           ▼                                                       │
-│  ┌──────────────────────────────────────────────┐                 │
-│  │ Modules 2-4 run IN PARALLEL (ThreadPoolExecutor)               │
-│  │                                                │                │
-│  │  ┌──────────────┐  ┌─────────────┐  ┌──────────────┐          │
-│  │  │ Module 2:    │  │ Module 3:   │  │ Module 4:    │          │
-│  │  │ SEO Keywords│  │ Competitors │  │ Social/Content│          │
-│  │  │ (30%→65%)   │  │ (30%→65%)  │  │ (30%→65%)    │          │
-│  │  └──────────────┘  └─────────────┘  └──────────────┘          │
-│  │        │                  │                 │                  │
-│  └────────┼──────────────────┼─────────────────┼──────────────────┘
-│           │                  │                 │
-│           ▼                  ▼                 ▼
-│  ┌─────────────────────────────────────────────┐
-│  │ Module 5: SWOT Synthesis                    │
-│  │ (85% → 95%)                                │
-│  │ Receives ALL upstream module outputs:        │
-│  │   company_profile, seo_keywords,            │
-│  │   competitors, social_content                │
-│  └──────────────────────┬──────────────────────┘
-│                         │
-│                         ▼
-│               results dict + metadata
-│               {                                          │
-│                 "metadata": {...},                        │
-│                 "company_profile": {...},                │
-│                 "seo_keywords": {...},                    │
-│                 "competitor": {...},                      │
-│                 "social_content": {...},                  │
-│                 "swot": {...}                             │
-│               }                                          │
-└──────────────────────┬───────────────────────────────────┘
-                       │
-                       ▼
+core/services.py  —  run_analysis(request, progress_callback)
+
+│
+├─ configured_llm_complete(prompt, module, system, max_tokens, temperature)
+│   │  └─ wraps llm_router.complete() with request.provider_override and model_override
+│   │
+│   │   llm/router.py  —  complete(prompt, module, system, max_tokens, temperature,
+│   │                            provider_override=None, model_override=None)
+│   │
+│   │   ├─ get_module_provider_model(module, config)
+│   │   │   └─ e.g. module="company_profile" → ("deepseek", None)
+│   │   │   └─ checks config.yaml → modules.company_profile.provider/model
+│   │   │
+│   │   ├─ resolve_model(provider="deepseek", model=None, config)
+│   │   │   └─ config["providers"]["deepseek"]["default_model"]  →  "deepseek-chat"
+│   │   │   └─ returns "deepseek/deepseek-chat"
+│   │   │
+│   │   ├─ build_completion_kwargs(provider, model, messages, config)
+│   │   │   └─ {"model": "deepseek/deepseek-chat", "messages": [...]}
+│   │   │
+│   │   ├─ litellm.completion(model="deepseek/deepseek-chat", messages=[...])
+│   │   │   └─ HTTP POST to DeepSeek API
+│   │   │   └─ returns LLM response text
+│   │   │
+│   │   └─ returns str  (raw LLM text)
+│
+├─ run_all(
+│      target_url="https://acme.com",
+│      llm_complete=configured_llm_complete,
+│      enabled_modules={"company_profile": True, ...},
+│      progress_callback=progress_callback,
+│  )
+│   │  (see Stage 3)
+│   └─ returns results dict
+│
+├─ write_report(results, output_dir="/home/user/ReconIQ/reports")
+│   │  (see Stage 8)
+│   └─ returns "/home/user/ReconIQ/reports/acme/2026-04-30-143022.md"
+│
+└─ returns AnalysisResult(
+       results={...},
+       report_path="/home/user/ReconIQ/reports/acme/2026-04-30-143022.md"
+   )
 ```
 
 ---
 
-## 4. Module 1: Company Profile (Scraping Layer)
+## Stage 3: coordinator.run_all()
 
 ```
-┌───────────────────────────────────────────────────────────┐
-│  research/company_profile.py  —  run(url, llm_complete)   │
-│                                                            │
-│  1. Scrape the target URL                                  │
-│     │                                                      │
-│     ▼                                                      │
-│  ┌─────────────────────────────────────────────────┐      │
-│  │  scraper/scraper.py  —  scrape(url)              │      │
-│  │                                                   │      │
-│  │  a. normalize_url() → add https:// if missing    │      │
-│  │  b. _scrape_with_requests()                       │      │
-│  │     └─ GET the URL with custom User-Agent         │      │
-│  │     └─ _clean_html() → strip scripts/styles,     │      │
-│  │        unwrap nav/header/footer → plain text      │      │
-│  │  c. If result is sparse (<200 chars) AND          │      │
-│  │     Playwright fallback is enabled:               │      │
-│  │     └─ scrape_with_playwright() → headless Chrome │      │
-│  │                                                   │      │
-│  │  Returns: raw text string (max 50,000 chars)      │      │
-│  └─────────────────────────────────────────────────┘      │
-│                                                            │
-│  2. If scrape failed: use domain name as hint              │
-│                                                            │
-│  3. Build prompt with scraped text                         │
-│     └─ LLM call: llm_complete(prompt, "company_profile")  │
-│                                                            │
-│  4. Parse JSON response → validate required keys            │
-│                                                            │
-│  Returns: {                                                │
-│    "company_name": "...",                                  │
-│    "what_they_do": "...",                                  │
-│    "target_audience": "...",                               │
-│    "value_proposition": "...",                             │
-│    "brand_voice": "...",                                   │
-│    "primary_cta": "...",                                   │
-│    "services_products": [...],                             │
-│    "marketing_channels": [...],                            │
-│    "data_confidence": "..."                                │
-│  }                                                         │
-└───────────────────────────────────────────────────────────┘
-```
+research/coordinator.py  —  run_all(target_url, llm_complete, enabled_modules, progress_callback)
 
-### Scraping Subsystem (Phase 9J-1 and 9J-2)
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│  scraper/scraper.py  —  scrape_structured(url)                  │
-│                                                                  │
-│  (Currently unused by company_profile, but available for 9J-3)  │
-│                                                                  │
-│  Same as scrape() but returns ScrapeResult with:                │
-│    title, meta_description, meta_keywords, og_tags,            │
-│    headings, internal_links, external_links, social_links,       │
-│    phone_numbers, emails, json_ld, body_text, pages[]            │
-│                                                                  │
-│  ┌──────────────────────────────────────────────────────┐       │
-│  │  scraper/extractors.py                               │       │
-│  │                                                       │       │
-│  │  extract_meta(soup)         → title, desc, keywords  │       │
-│  │  extract_links(soup, base)   → internal, external     │       │
-│  │  extract_social_links(soup) → SocialLink[]            │       │
-│  │  extract_contact_info(soup) → phones, emails          │       │
-│  │  extract_json_ld(soup)      → structured data dicts  │       │
-│  │  extract_headings(soup)     → {h1: [], h2: [], h3:[]}│      │
-│  └──────────────────────────────────────────────────────┘       │
-└─────────────────────────────────────────────────────────────────┘
-
-┌─────────────────────────────────────────────────────────────────┐
-│  scraper/crawler.py  —  crawl_site(url, max_pages, max_depth)   │
-│                                                                  │
-│  (Currently unused, ready for 9J-3 integration)                 │
-│                                                                  │
-│  1. Fetch homepage → extract all structured metadata             │
-│  2. Check robots.txt for disallowed paths                        │
-│  3. Try to fetch /sitemap.xml for seed URLs                     │
-│  4. Discover subpages from <nav>, <footer>, internal links,     │
-│     sitemap, and common paths (/about, /services, etc.)          │
-│  5. BFS crawl subpages (requests only, 1s polite delay)          │
-│  6. Merge emails, phones, social_links from subpages             │
-│  7. Return ScrapeResult with pages[] for each subpage            │
-└─────────────────────────────────────────────────────────────────┘
+│
+├─ _initial_metadata("https://acme.com", llm_complete)
+│   └─ returns {"target_url": "https://acme.com",
+│               "timestamp": "2026-04-30 14:30:22",
+│               "modules_run": [],
+│               "modules_skipped": [],
+│               "modules_failed": [],
+│               "data_limitations": []}
+│
+├─ progress_callback("Running Company Profile...", 10.0)
+│
+│  ─── MODULE 1: Company Profile (sequential, must finish first) ───
+│
+├─ company_profile.run("https://acme.com", llm_complete)
+│   │  (see Stage 4)
+│   └─ returns {"company_name": "Acme Corp", "what_they_do": "...", ...}
+│
+├─ progress_callback("✓ Company Profile complete", 25.0)
+│
+│  ─── MODULES 2-4: Parallel via ThreadPoolExecutor ───
+│
+├─ ThreadPoolExecutor(max_workers=3)
+│   │
+│   ├─ Future 1: seo_keywords.run(profile, "https://acme.com", llm_complete)
+│   │   │  (see Stage 5)
+│   │   └─ returns {"top_keywords": [...], "seo_weaknesses": [...], ...}
+│   │
+│   ├─ Future 2: competitors.run(profile, "https://acme.com", llm_complete)
+│   │   │  (see Stage 6)
+│   │   └─ returns {"competitors": [{name, url, ...}, ...], ...}
+│   │
+│   └─ Future 3: social_content.run(profile, "https://acme.com", llm_complete)
+│       │  (see Stage 7)
+│       └─ returns {"platforms": [...], "content_quality": "...", ...}
+│
+├─ progress_callback("✓ SEO Keywords complete", ~55%)
+├─ progress_callback("✓ Competitor Intel complete", ~70%)
+├─ progress_callback("✓ Social Content complete", ~75%)
+│
+│  ─── MODULE 5: SWOT (after all upstream modules) ───
+│
+├─ swot.run(profile, seo, competitor, social, "https://acme.com", llm_complete)
+│   │  (see Stage 8)
+│   └─ returns {"swot": {...}, "acquisition_angle": "...", ...}
+│
+├─ progress_callback("✓ SWOT Synthesis complete", 95.0)
+├─ progress_callback("All modules complete!", 100.0)
+│
+└─ returns {
+      "metadata": {...},
+      "company_profile": {...},
+      "seo_keywords": {...},
+      "competitor": {...},
+      "social_content": {...},
+      "swot": {...}
+   }
 ```
 
 ---
 
-## 5. Modules 2-4: Parallel Research (LLM-Only)
-
-Each receives `company_profile` + `target_url` and prompts the LLM.
+## Stage 4: Module 1 — company_profile.run()
 
 ```
-┌────────────────────────────────────────────────────────────────┐
-│  Module 2: research/seo_keywords.py                            │
-│                                                                │
-│  Input:  company_profile dict, target_url, llm_complete        │
-│  Prompt: "You are an expert SEO analyst..."                    │
-│  Output: {                                                     │
-│    "top_keywords": [...],                                       │
-│    "content_gaps": [...],                                       │
-│    "seo_weaknesses": [...],                                     │
-│    "quick_wins": [...],                                         │
-│    "estimated_traffic_tier": "...",                             │
-│    "local_seo_signals": "...",                                  │
-│  }                                                              │
-├────────────────────────────────────────────────────────────────┤
-│  Module 3: research/competitors.py                              │
-│                                                                │
-│  Input:  company_profile dict, target_url, llm_complete        │
-│  Prompt: "You are an expert competitive intelligence analyst…" │
-│  Output: {                                                     │
-│    "competitors": [                                             │
-│      {name, url, positioning, pricing_tier,                    │
-│       key_messaging, weaknesses, inferred_services},           │
-│      ...                                                       │
-│    ],                                                          │
-│  }                                                              │
-├────────────────────────────────────────────────────────────────┤
-│  Module 4: research/social_content.py                          │
-│                                                                │
-│  Input:  company_profile dict, target_url, llm_complete        │
-│  Prompt: "You are a content and social media analyst…"         │
-│  Output: {                                                     │
-│    "platforms": [...],                                          │
-│    "content_quality": "...",                                    │
-│    "content_frequency": "...",                                  │
-│    "engagement_signals": "...",                                 │
-│    "review_sites": [...],                                       │
-│    "blog_or_resources": "...",                                  │
-│    "content_gaps": [...],                                       │
-│    "email_signals": "...",                                      │
-│  }                                                              │
-└────────────────────────────────────────────────────────────────┘
-```
+research/company_profile.py  —  run("https://acme.com", llm_complete)
 
----
-
-## 6. Module 5: SWOT Synthesis
-
-```
-┌────────────────────────────────────────────────────────────────┐
-│  research/swot.py  —  run(all_results, target_url, llm)       │
-│                                                                │
-│  Input: ALL upstream module dicts + target_url                 │
-│  Prompt: "You are a senior marketing strategist at an          │
-│           AI automation agency..."                              │
-│                                                                │
-│  Output: {                                                     │
-│    "swot": {                                                   │
-│      "strengths": [...],     ← synthesized from profile + SEO │
-│      "weaknesses": [...],    ← from SEO gaps, content audit    │
-│      "opportunities": [...], ← from competitors' weaknesses    │
-│      "threats": [...]        ← from competitor strengths       │
-│    },                                                          │
-│    "acquisition_angle": "...",                                 │
-│    "talking_points": [...],                                    │
-│    "recommended_next_steps": [...],                            │
-│    "competitive_advantage": "...",                             │
-│    "lead_generation_strategy": "...",                          │
-│    "close_rate_strategy": "...",  ← AI-powered tactics        │
-│    "data_confidence": "...",                                   │
-│    "data_limitations": [...]                                   │
-│  }                                                              │
-└────────────────────────────────────────────────────────────────┘
+│
+├─ scraper.scraper.scrape("https://acme.com")
+│   │
+│   ├─ normalize_url("https://acme.com")  →  "https://acme.com"
+│   │
+│   ├─ _scrape_with_requests("https://acme.com", timeout=15)
+│   │   ├─ requests.get("https://acme.com", headers={...}, timeout=15)
+│   │   │   └─ HTML response (e.g. 50KB of HTML)
+│   │   ├─ response.encoding = response.apparent_encoding or "utf-8"
+│   │   └─ _clean_html(response.text)
+│   │       ├─ BeautifulSoup(html, "html.parser")
+│   │       ├─ decompose <script>, <style>, <noscript> tags
+│   │       ├─ unwrap <nav>, <header>, <footer>, <aside> tags
+│   │       ├─ soup.get_text(separator="\n", strip=True)
+│   │       └─ truncate to MAX_LENGTH (50,000 chars)
+│   │       └─ returns "Welcome to Acme Corp\nWe build widgets...\nContact us..."
+│   │
+│   ├─ IF text is sparse (<200 chars) AND should_use_playwright():
+│   │   └─ scrape_with_playwright("https://acme.com", timeout=25)
+│   │       ├─ sync_playwright().chromium.launch(headless=True)
+│   │       ├─ page.goto(url, wait_until="domcontentloaded")
+│   │       ├─ page.wait_for_timeout(3000)
+│   │       ├─ html = page.content()
+│   │       ├─ browser.close()
+│   │       └─ _clean_html(html)
+│   │       └─ returns richer text or ""
+│   │
+│   └─ returns str  (cleaned text, or "" on failure)
+│
+├─ IF content is empty:
+│   └─ extract_domain_name("https://acme.com")
+│       ├─ urlparse("https://acme.com")
+│       └─ "acme.com"
+│       └─ fallback prompt: "Could not access https://acme.com. The company's domain is: acme.com..."
+│
+├─ llm_complete(
+│      prompt=f"TARGET URL: https://acme.com\n\nWEBSITE CONTENT:\n{text}\n\nExtract company profile...",
+│      module="company_profile",
+│      system=SYSTEM_PROMPT,
+│      max_tokens=1500,
+│  )
+│  └─ returns raw LLM text containing JSON
+│
+├─ _parse_response(raw)
+│   ├─ extract_json_object(raw)
+│   │   └─ finds first {...} in LLM text → parses with json.JSONDecoder
+│   │   └─ returns dict
+│   └─ require_keys(data, REQUIRED_KEYS, context="Company profile")
+│       ├─ REQUIRED_KEYS = ["company_name", "what_they_do", "target_audience", ...]
+│       └─ raises JsonParsingError if any key missing
+│
+└─ returns {
+       "company_name": "Acme Corp",
+       "what_they_do": "Builds durable widgets for local businesses",
+       "target_audience": "Small to mid-size businesses",
+       "value_proposition": "Affordable, long-lasting widgets",
+       "brand_voice": "Professional, friendly",
+       "primary_cta": "Request a Quote",
+       "services_products": ["Custom Widgets", "Widget Repair", ...],
+       "marketing_channels": ["website", "Facebook", "Google Ads"],
+       "data_confidence": "medium",
+       "data_limitations": ["Single-page scrape only"],
+   }
 ```
 
 ---
 
-## 7. LLM Router (Every Module Call Goes Through This)
+## Stage 5: Module 2 — seo_keywords.run()
 
 ```
-┌──────────────────────────────────────────────────────────┐
-│  llm/router.py  —  complete(prompt, module, ...)         │
-│                                                           │
-│  1. Resolve provider + model for this module              │
-│     └─ config.yaml → modules.{module}.provider/model      │
-│        or defaults.provider/model                         │
-│     └─ Override if provider_override/model_override set    │
-│                                                           │
-│  2. Build messages:                                       │
-│     [{role: "system", content: SYSTEM_PROMPT},            │
-│      {role: "user",   content: prompt}]                   │
-│                                                           │
-│  3. Call LiteLLM completion()                              │
-│     └─ Routes to: OpenAI, DeepSeek, Anthropic,            │
-│        Groq, Ollama, etc.                                 │
-│                                                           │
-│  4. On failure: try next provider in fallback chain        │
-│                                                           │
-│  Returns: raw LLM text response                           │
-└──────────────────────────────────────────────────────────┘
-```
+research/seo_keywords.py  —  run(company_profile, "https://acme.com", llm_complete)
 
----
-
-## 8. Report Generation
-
-```
-┌──────────────────────────────────────────────────────────────┐
-│  report/writer.py  —  write_report(results, output_dir)      │
-│                                                               │
-│  1. Infer company name from profile dict                      │
-│  2. Slugify → "acme-widgets"                                  │
-│  3. Create reports/acme-widgets/ directory                     │
-│  4. Build Markdown from results dict:                         │
-│                                                               │
-│     ┌──────────────────────────────────────────────────┐     │
-│     │  # ReconIQ Report: Acme Widgets                    │     │
-│     │                                                     │     │
-│     │  ## 1. Company Overview                             │     │
-│     │     _section_content(profile)  → key/value lines   │     │
-│     │                                                     │     │
-│     │  ## 2. SEO & Keyword Analysis                      │     │
-│     │     _section_content(seo)                          │     │
-│     │                                                     │     │
-│     │  ## 3. Competitor Landscape                        │     │
-│     │     _competitor_section(competitor)                │     │
-│     │     └─ numbered list of competitor dicts          │     │
-│     │                                                     │     │
-│     │  ## 4. Social & Content Audit                     │     │
-│     │     _section_content(social)                       │     │
-│     │                                                     │     │
-│     │  ## 5. SWOT Analysis                               │     │
-│     │     ### Strengths (Internal, Helpful)              │     │
-│     │     - item 1                                       │     │
-│     │     - item 2                                       │     │
-│     │     ### Weaknesses (Internal, Harmful)              │     │
-│     │     ...                                            │     │
-│     │     ### Opportunities (External, Helpful)           │     │
-│     │     ...                                            │     │
-│     │     ### Threats (External, Harmful)                │     │
-│     │     ...                                            │     │
-│     │                                                     │     │
-│     │  ## 6. Client Acquisition Strategy                  │     │
-│     │     **Recommended Angle:** ...                      │     │
-│     │     **Your Competitive Edge:** ...                 │     │
-│     │     **Lead Generation Strategy:** ...              │     │
-│     │     **AI Close Rate Strategy:** ...                │     │
-│     │     **Talking Points:**                             │     │
-│     │     - ...                                           │     │
-│     │                                                     │     │
-│     │  ## 7. Next Steps                                  │     │
-│     │     1. ...                                          │     │
-│     │     2. ...                                          │     │
-│     │                                                     │     │
-│     │  ---                                                │     │
-│     │  *Report generated by ReconIQ | timestamp*          │     │
-│     └──────────────────────────────────────────────────┘     │
-│                                                               │
-│  5. Write to reports/acme-widgets/2026-04-30-143022.md        │
-│  6. Return absolute file path                                 │
-└──────────────────────────────────────────────────────────────┘
+│
+├─ _format_profile(company_profile)
+│   └─ "- company_name: Acme Corp\n- what_they_do: Builds widgets..."
+│
+├─ llm_complete(
+│      prompt=f"TARGET URL: https://acme.com\nCOMPANY PROFILE:\n{profile_text}\nInfer the SEO landscape...",
+│      module="seo_keywords",
+│      system=SYSTEM_PROMPT,
+│      max_tokens=1200,
+│  )
+│
+├─ _parse_response(raw)
+│   ├─ extract_json_object(raw)  →  dict
+│   └─ require_keys(data, REQUIRED_KEYS, context="SEO keywords")
+│       └─ REQUIRED_KEYS = ["top_keywords", "content_gaps", "seo_weaknesses", ...]
+│
+└─ returns {
+       "top_keywords": ["widgets", "custom widgets", "affordable widgets", ...],
+       "content_gaps": ["comparison pages", "case studies", ...],
+       "seo_weaknesses": ["thin service pages", "no blog", ...],
+       "quick_wins": ["add local landing pages", "optimize title tags", ...],
+       "estimated_traffic_tier": "low",
+       "local_seo_signals": "weak",
+       "data_confidence": "low",
+       "data_limitations": ["Keywords inferred from profile, not verified"],
+   }
 ```
 
 ---
 
-## 9. UI Renders the Report
+## Stage 6: Module 3 — competitors.run()
 
 ```
-┌──────────────────────────────────────────────────────────┐
-│  app.py  —  Report Display                                │
-│                                                           │
-│  1. Read the .md file from disk                           │
-│  2. Store in st.session_state.report_content              │
-│  3. Render as Streamlit markdown in a styled card         │
-│  4. Show download button (↓ Download .md)                 │
-│  5. Show "Open Folder" button (opens in file manager)    │
-│  6. Surface any failed/skipped modules as warnings        │
-│  7. Progress bar → 100%                                   │
-│  8. Status message: "Report saved to `reports/...`"      │
-└──────────────────────────────────────────────────────────┘
+research/competitors.py  —  run(company_profile, "https://acme.com", llm_complete)
+
+│
+├─ _format_profile(company_profile)
+│   └─ "- company_name: Acme Corp\n- what_they_do: Builds widgets..."
+│
+├─ llm_complete(
+│      prompt=f"TARGET URL: https://acme.com\nCOMPANY PROFILE:\n{profile_text}\nIdentify direct competitors...",
+│      module="competitor",
+│      system=SYSTEM_PROMPT,
+│      max_tokens=2500,
+│  )
+│
+├─ _parse_response(raw)
+│   ├─ extract_json_object(raw)  →  dict
+│   ├─ require_keys(data, ["competitors", "data_confidence", "data_limitations"])
+│   └─ for each competitor in data["competitors"]:
+│       └─ require_keys(comp, REQUIRED_COMPETITOR_KEYS)
+│           └─ ["name", "url", "positioning", "estimated_pricing_tier", ...]
+│
+└─ returns {
+       "competitors": [
+           {
+               "name": "WidgetWorld",
+               "url": "https://widgetworld.com",
+               "positioning": "Premium widget supplier for enterprise",
+               "estimated_pricing_tier": "premium",
+               "key_messaging": "Enterprise-grade widgets",
+               "weaknesses": ["Expensive", "No local focus"],
+               "inferred_services": ["Enterprise widgets", "Consulting", ...],
+           },
+           ...
+       ],
+       "data_confidence": "low",
+       "data_limitations": ["Competitors inferred, not scraped"],
+   }
 ```
 
 ---
 
-## 10. End-to-End Flow (Condensed)
+## Stage 7: Module 4 — social_content.run()
 
 ```
-User clicks [Analyze →]
-       │
-       ▼
-app.py: validate_url → build_analysis_request → AnalysisRequest
-       │
-       ▼
-core/services.py: run_analysis()
-       │
-       ├─→ coordinator.run_all()
-       │       │
-       │       ├─→ Module 1: Company Profile
-       │       │       └─→ scraper.scrape(url) → raw text
-       │       │       └─→ LLM call → {company_name, what_they_do, ...}
-       │       │
-       │       ├─→ Module 2: SEO Keywords ───┐
-       │       ├─→ Module 3: Competitors ─────┤  (parallel)
-       │       └─→ Module 4: Social Content ──┘
-       │               └─→ Each: LLM call with profile context
-       │               └─→ Each returns structured dict
-       │       │
-       │       └─→ Module 5: SWOT Synthesis
-       │               └─→ LLM call with ALL module outputs
-       │               └─→ {swot, acquisition_angle, talking_points, ...
-       │                    lead_generation_strategy, close_rate_strategy}
-       │
-       ├─→ report/writer.py: write_report(results)
-       │       └─→ Markdown → reports/{slug}/{timestamp}.md
-       │
-       └─→ AnalysisResult(results, report_path)
-               │
-               ▼
-app.py: Display report in Streamlit + download/open buttons
+research/social_content.py  —  run(company_profile, "https://acme.com", llm_complete)
+
+│
+├─ _format_profile(company_profile)
+│
+├─ llm_complete(
+│      prompt=f"TARGET URL: https://acme.com\nCOMPANY PROFILE:\n{profile_text}\nInfer social presence...",
+│      module="social_content",
+│      system=SYSTEM_PROMPT,
+│      max_tokens=1200,
+│  )
+│
+├─ _parse_response(raw)
+│   ├─ extract_json_object(raw)  →  dict
+│   └─ require_keys(data, REQUIRED_KEYS)
+│       └─ ["platforms", "content_quality", "content_frequency", ...]
+│
+└─ returns {
+       "platforms": ["Facebook", "Instagram"],
+       "content_quality": "low",
+       "content_frequency": "sporadic",
+       "engagement_signals": "weak",
+       "review_sites": ["Google Reviews"],
+       "blog_or_resources": "none",
+       "content_gaps": ["Video content", "Case studies"],
+       "email_signals": "newsletter signup present",
+       "data_confidence": "low",
+       "data_limitations": ["Inferred from limited signals"],
+   }
+```
+
+---
+
+## Stage 8: Module 5 — swot.run()
+
+```
+research/swot.py  —  run(company_profile, seo_keywords, competitor, social_content, target_url, llm_complete)
+
+│
+├─ _format_dict(company_profile)
+│   └─ "- company_name: Acme Corp\n  - what_they_do: Builds widgets..."
+│
+├─ _format_dict(seo_keywords)
+│   └─ "- top_keywords:\n  - widgets\n  - custom widgets..."
+│
+├─ _format_dict(competitor)
+│   └─ "- competitors:\n  - {\"name\": \"WidgetWorld\", ...}"
+│
+├─ _format_dict(social_content)
+│   └─ "- platforms:\n  - Facebook\n  - Instagram..."
+│
+├─ llm_complete(
+│      prompt=f"TARGET URL: https://acme.com\n\n--- COMPANY PROFILE ---\n...\n\n"
+│               f"--- SEO & KEYWORDS ---\n...\n\n"
+│               f"--- COMPETITOR INTELLIGENCE ---\n...\n\n"
+│               f"--- SOCIAL & CONTENT ---\n...\n\n"
+│               f"Synthesize into an acquisition strategy as instructed.",
+│      module="swot",
+│      system=SYSTEM_PROMPT,   # "You are a senior marketing strategist at an AI automation agency..."
+│      max_tokens=2000,
+│  )
+│
+├─ _parse_response(raw)
+│   ├─ extract_json_object(raw)  →  dict
+│   ├─ require_keys(data, REQUIRED_KEYS)
+│   │   └─ ["swot", "acquisition_angle", "talking_points", "recommended_next_steps",
+│   │       "competitive_advantage", "lead_generation_strategy", "close_rate_strategy",
+│   │       "data_confidence", "data_limitations"]
+│   ├─ require_keys(data["swot"], ["strengths", "weaknesses", "opportunities", "threats"])
+│   └─ returns validated dict
+│
+└─ returns {
+       "swot": {
+           "strengths": ["clear niche", "strong local presence"],
+           "weaknesses": ["thin content", "no blog"],
+           "opportunities": ["local SEO expansion", "content marketing"],
+           "threats": ["larger regional competitors", "price undercutting"],
+       },
+       "acquisition_angle": "Lead with a free local SEO audit...",
+       "talking_points": ["Your service pages could capture more intent", ...],
+       "recommended_next_steps": ["Build a local landing page plan", ...],
+       "competitive_advantage": "A focused AI automation agency can move faster...",
+       "lead_generation_strategy": "Target local businesses via Google Ads...",
+       "close_rate_strategy": "Use AI lead scoring to prioritize high-intent prospects...",
+       "data_confidence": "medium",
+       "data_limitations": ["Strategy inferred from module outputs"],
+   }
+```
+
+---
+
+## Stage 9: Report Generation
+
+```
+report/writer.py  —  write_report(results, output_dir="reports")
+
+│
+├─ _infer_company_name(results["company_profile"])
+│   └─ profile.get("company_name", "Unknown Company")  →  "Acme Corp"
+│
+├─ re.sub(r"[^a-z0-9]+", "-", "acme corp".lower()).strip("-")
+│   └─ "acme-corp"
+│
+├─ time.strftime("%Y-%m-%d-%H%M%S")
+│   └─ "2026-04-30-143022"
+│
+├─ Path("reports/acme-corp").mkdir(parents=True, exist_ok=True)
+│   └─ creates reports/acme-corp/ directory
+│
+├─ _build_markdown(results, "Acme Corp")
+│   │
+│   ├─ _section_content(company_profile)
+│   │   └─ "**Company Name:** Acme Corp\n**What They Do:** Builds widgets..."
+│   │
+│   ├─ _section_content(seo_keywords)
+│   │   └─ "**Top Keywords:**\n- widgets\n- custom widgets..."
+│   │
+│   ├─ _competitor_section(competitor)
+│   │   └─ "### 1. WidgetWorld\n- **Positioning:** Premium...\n- **Pricing Tier:** premium..."
+│   │
+│   ├─ _section_content(social_content)
+│   │   └─ "**Platforms:**\n- Facebook\n- Instagram..."
+│   │
+│   ├─ _swot_section(swot)
+│   │   └─ "### Strengths (Internal, Helpful)\n- clear niche\n..."
+│   │
+│   ├─ _acquisition_section(swot)
+│   │   └─ "**Recommended Angle:** ...\n**Your Competitive Edge:** ...\n"
+│   │      "**Lead Generation Strategy:** ...\n**AI Close Rate Strategy:** ...\n"
+│   │      "**Talking Points:**\n- ..."
+│   │
+│   ├─ _next_steps_section(swot)
+│   │   └─ "1. Build a local landing page plan\n2. ..."
+│   │
+│   └─ returns full Markdown string
+│
+├─ report_path.write_text(markdown, encoding="utf-8")
+│   └─ writes to reports/acme-corp/2026-04-30-143022.md
+│
+└─ returns "/home/user/ReconIQ/reports/acme-corp/2026-04-30-143022.md"
+```
+
+---
+
+## Stage 10: UI Renders the Report
+
+```
+app.py  (back in the Streamlit callback)
+
+│
+├─ open(report_path).read()  →  full Markdown string
+├─ st.session_state.report_path = report_path
+├─ st.session_state.report_content = markdown_string
+│
+├─ progress_bar.progress(100.0, text="Analysis complete")
+├─ status_container.success("Report saved to `reports/acme-corp/2026-04-30-143022.md`")
+│
+├─ IF modules_failed:
+│   └─ st.warning("Modules that failed: **competitor**")
+├─ IF modules_skipped:
+│   └─ st.info("Modules skipped: **social_content**")
+│
+├─ st.rerun()  ← triggers re-render with report_content available
+│
+│  ─── On re-render: ───
+│
+├─ st.markdown("---")
+├─ st.download_button("↓ Download .md", data=report_content, ...)
+├─ st.button("📁 Open Folder")  →  open_folder(reports/acme-corp/)
+├─ st.markdown(report_content)  ← renders the full report as Markdown
+```
+
+---
+
+## The Scraping Subsystem (Currently Unused by Main Flow, Available for 9J-3)
+
+These are called only if a module switches from `scrape()` to `scrape_structured()` or `crawl_site()`:
+
+```
+scraper/scraper.py  —  scrape_structured("https://acme.com")
+
+│
+├─ normalize_url("https://acme.com")
+├─ _fetch_html("https://acme.com", timeout=15)
+│   └─ requests.get(...)  →  raw HTML string
+│
+├─ IF html is empty AND should_use_playwright():
+│   └─ scrape_with_playwright("https://acme.com", timeout=25)
+│       └─ Playwright headless Chrome  →  JS-rendered HTML
+│
+├─ BeautifulSoup(html, "html.parser")  →  soup
+│
+├─ extract_meta(soup)
+│   └─ {"title": "Acme Corp", "meta_description": "...", "meta_keywords": [...], "og_tags": {...}}
+│
+├─ extract_links(soup, "https://acme.com")
+│   └─ (internal_links=[LinkData(href="/about", text="About Us"), ...],
+│       external_links=[LinkData(href="https://vendor.com", text="Vendor"), ...])
+│
+├─ extract_social_links(soup)
+│   └─ [SocialLink(platform="facebook", url="https://facebook.com/acme"), ...]
+│
+├─ extract_contact_info(soup)
+│   └─ (phones=["(555) 123-4567"], emails=["info@acme.com"])
+│
+├─ extract_json_ld(soup)
+│   └─ [{"@type": "LocalBusiness", "name": "Acme Corp", ...}]
+│
+├─ extract_headings(soup)
+│   └─ {"h1": ["Welcome to Acme"], "h2": ["Our Services", "Contact"]}
+│
+├─ _clean_html(html)  →  body_text string
+│
+└─ returns ScrapeResult(
+       url="https://acme.com",
+       title="Acme Corp",
+       meta_description="...",
+       meta_keywords=[...],
+       og_tags={...},
+       headings={...},
+       internal_links=[...],
+       external_links=[...],
+       social_links=[...],
+       phone_numbers=[...],
+       emails=[...],
+       json_ld=[...],
+       body_text="Welcome to Acme Corp...",
+       pages=[],
+       raw_html_length=50000,
+       crawl_duration_s=1.2,
+   )
+```
+
+```
+scraper/crawler.py  —  crawl_site("https://acme.com", max_pages=5, max_depth=2)
+
+│
+├─ normalize_url("https://acme.com")
+├─ _fetch_html("https://acme.com", timeout=15)  →  homepage_html
+│
+├─ [if homepage sparse AND should_use_playwright()]
+│   └─ scrape_with_playwright(...)
+│
+├─ BeautifulSoup(homepage_html)  →  homepage_soup
+├─ extract_meta(homepage_soup)  →  {...}
+├─ extract_links(homepage_soup, url)  →  (internal, external)
+├─ extract_social_links(homepage_soup)  →  [SocialLink(...), ...]
+├─ extract_contact_info(homepage_soup)  →  (phones, emails)
+├─ extract_json_ld(homepage_soup)  →  [...]
+├─ extract_headings(homepage_soup)  →  {...}
+├─ _clean_html(homepage_html)  →  body_text
+│
+├─ ScrapeResult(...)  ← homepage data assembled
+│
+├─ fetch_robots_txt("https://acme.com")
+│   └─ requests.get("https://acme.com/robots.txt")
+│   └─ RobotFileParser.parse()  →  parser or None
+│
+├─ fetch_sitemap_urls("https://acme.com")
+│   └─ requests.get("https://acme.com/sitemap.xml")
+│   └─ BeautifulSoup(xml, "xml").find_all("loc")  →  [url1, url2, ...]
+│
+├─ _discover_seed_urls(soup, url, robots_parser, sitemap_urls)
+│   ├─ soup.find_all(["nav", "footer"])  →  nav/footer links
+│   ├─ extract_links(soup, url)  →  all internal links
+│   ├─ sitemap URLs added
+│   └─ common paths: /about, /services, /contact, /blog probed
+│   └─ is_allowed_by_robots(parser, url) checked for each
+│   └─ returns prioritized list of subpage URLs
+│
+├─ FOR each subpage URL (BFS, max_pages=5, max_depth=2):
+│   ├─ _scrape_subpage(url, base_url, timeout=10)
+│   │   ├─ _fetch_html(url, timeout=10)  →  html
+│   │   ├─ BeautifulSoup(html)  →  soup
+│   │   ├─ extract_meta(soup)  →  {title, ...}
+│   │   ├─ extract_headings(soup)  →  {...}
+│   │   ├─ extract_contact_info(soup)  →  (phones, emails)
+│   │   ├─ extract_social_links(soup)  →  [SocialLink(...), ...]
+│   │   └─ returns _SubpageResult(page_data, emails, phones, social_links, ...)
+│   │
+│   ├─ time.sleep(1.0)  ← polite delay
+│   │
+│   ├─ merge emails into result.emails (dedup)
+│   ├─ merge phones into result.phone_numbers (dedup)
+│   ├─ merge social_links into result.social_links (dedup by URL)
+│   │
+│   └─ IF depth < max_depth:
+│       ├─ BeautifulSoup(sub_html)  →  sub_soup
+│       ├─ extract_links(sub_soup, url)  →  more internal links
+│       └─ append to BFS queue
+│
+├─ result.pages = [PageData(...), PageData(...), ...]
+├─ result.crawl_duration_s = elapsed time
+│
+└─ returns ScrapeResult (with pages populated + merged contact data)
 ```
 
 ---
 
 ## Key Files Quick Reference
 
-| File | Role |
-|------|------|
-| `app.py` | Streamlit UI — input, progress, report display |
-| `core/models.py` | `AnalysisRequest` / `AnalysisResult` dataclasses |
-| `core/services.py` | `run_analysis()` — wires request → coordinator → report |
-| `core/settings.py` | `load_config()` — reads `config.yaml` |
-| `llm/router.py` | `complete()` — LiteLLM routing to providers |
-| `scraper/scraper.py` | `scrape()` / `scrape_structured()` — fetch + extract |
-| `scraper/crawler.py` | `crawl_site()` — multi-page BFS crawler |
-| `scraper/extractors.py` | Structured extraction from HTML (meta, links, contacts, etc.) |
-| `scraper/models.py` | `ScrapeResult`, `PageData`, `LinkData`, `SocialLink` dataclasses |
-| `research/coordinator.py` | `run_all()` — dependency-aware module orchestration |
-| `research/company_profile.py` | Module 1 — scrape + LLM profile |
-| `research/seo_keywords.py` | Module 2 — SEO analysis via LLM |
-| `research/competitors.py` | Module 3 — competitor intelligence via LLM |
-| `research/social_content.py` | Module 4 — social/content audit via LLM |
-| `research/swot.py` | Module 5 — SWOT synthesis via LLM |
-| `research/parsing.py` | `extract_json_object()`, `require_keys()` — LLM output parsing |
-| `report/writer.py` | `write_report()` — results dict → Markdown file |
-| `config.yaml` | Provider defaults, module overrides, scraper settings |
+| File | Key Functions | Called By |
+|------|--------------|-----------|
+| `app.py` | `validate_url()`, `build_analysis_request()` | Streamlit runtime |
+| `core/services.py` | `run_analysis()` | app.py |
+| `core/models.py` | `AnalysisRequest`, `AnalysisResult` | services, app |
+| `llm/router.py` | `complete()`, `resolve_model()` | all research modules |
+| `scraper/scraper.py` | `scrape()`, `scrape_structured()`, `_fetch_html()`, `_clean_html()` | company_profile |
+| `scraper/crawler.py` | `crawl_site()`, `_discover_seed_urls()`, `fetch_robots_txt()`, `fetch_sitemap_urls()` | (9J-3 integration) |
+| `scraper/extractors.py` | `extract_meta()`, `extract_links()`, `extract_social_links()`, `extract_contact_info()`, `extract_json_ld()`, `extract_headings()` | scraper, crawler |
+| `scraper/models.py` | `ScrapeResult`, `PageData`, `LinkData`, `SocialLink` | scraper, crawler |
+| `research/coordinator.py` | `run_all()` | services |
+| `research/company_profile.py` | `run()`, `_parse_response()` | coordinator |
+| `research/seo_keywords.py` | `run()`, `_parse_response()` | coordinator |
+| `research/competitors.py` | `run()`, `_parse_response()` | coordinator |
+| `research/social_content.py` | `run()`, `_parse_response()` | coordinator |
+| `research/swot.py` | `run()`, `_parse_response()` | coordinator |
+| `research/parsing.py` | `extract_json_object()`, `require_keys()` | all modules |
+| `report/writer.py` | `write_report()`, `_build_markdown()`, `_swot_section()`, `_acquisition_section()` | services |
+| `config.yaml` | Provider/model/scraper settings | router, scraper |
