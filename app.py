@@ -135,30 +135,29 @@ if "running" not in st.session_state:
 # ── Sidebar ──────────────────────────────────────────────────────────────────────────────────
 
 with st.sidebar:
-    # Logo / brand
+    # Brand header — structured for design system
     st.markdown(
-        '<div style="display:flex;align-items:center;gap:10px;margin-bottom:0.3rem;">'
-        '<span style="font-size:1.6rem;">🎯</span>'
+        '<div class="sidebar-brand">'
+        '<span class="sidebar-brand-icon">🎯</span>'
         '<div>'
-        '<div style="font-size:1.3rem;font-weight:700;letter-spacing:-0.03em;color:var(--text-primary);">ReconIQ</div>'
-        '<div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.1em;color:var(--text-muted);margin-top:-2px;">Marketing Intelligence</div>'
+        '<div class="sidebar-brand-name">ReconIQ</div>'
+        '<div class="sidebar-brand-sub">Marketing Intelligence</div>'
         '</div>'
         '</div>',
         unsafe_allow_html=True,
     )
     st.markdown("---")
 
-    # Active provider status (reads from config)
+    # Provider status indicator
     from llm.router import get_config as _get_llm_config
     _cfg = _get_llm_config()
     _default_provider = _cfg.get("defaults", {}).get("provider", "deepseek")
     _default_model = _cfg.get("providers", {}).get(_default_provider, {}).get("default_model", "")
-    _provider_label = _default_model or _default_provider
     st.markdown(
-        f'<div style="display:flex;align-items:center;gap:8px;">'
+        f'<div class="status-indicator">'
         f'<span class="status-dot connected"></span>'
-        f'<span style="color:var(--text-secondary);font-size:0.85rem;">{_default_provider}</span>'
-        f'<span style="color:var(--text-muted);font-size:0.75rem;">({_default_model or "default"})</span>'
+        f'<span class="status-provider">{_default_provider}</span>'
+        f'<span class="status-model">{_default_model or "default"}</span>'
         '</div>',
         unsafe_allow_html=True,
     )
@@ -187,12 +186,14 @@ with st.sidebar:
     )
     output_dir = st.text_input("Report directory", value=str(Path.cwd() / "reports"), label_visibility="collapsed")
 
-# ── Hero Section ──────────────────────────────────────────────────────────────────────────────
+# ── Hero Section ──────────────────────────────────────────────────────────────────────────────────
 
 st.markdown(
     '<div class="hero-title">Marketing Intelligence</div>'
-    '<div class="hero-subtitle">Enter a company URL and get a full competitive analysis, '
-    'SWOT breakdown, and client acquisition strategy — powered by AI.</div>',
+    '<div class="hero-subtitle">'
+    'Enter a company URL and get a full competitive analysis, '
+    'SWOT breakdown, and client acquisition strategy — powered by AI.'
+    '</div>',
     unsafe_allow_html=True,
 )
 
@@ -222,15 +223,15 @@ st.markdown(
 
 m1, m2, m3, m4, m5 = st.columns(5)
 with m1:
-    toggle_profile = st.checkbox("Company Profile", value=True)
+    toggle_profile = st.checkbox("Profile", value=True)
 with m2:
-    toggle_seo = st.checkbox("SEO & Keywords", value=True)
+    toggle_seo = st.checkbox("SEO", value=True)
 with m3:
     toggle_competitor = st.checkbox("Competitors", value=True)
 with m4:
-    toggle_social = st.checkbox("Social & Content", value=True)
+    toggle_social = st.checkbox("Social", value=True)
 with m5:
-    toggle_swot = st.checkbox("SWOT Synthesis", value=True)
+    toggle_swot = st.checkbox("SWOT", value=True)
 
 enabled_modules = {
     "company_profile": toggle_profile,
