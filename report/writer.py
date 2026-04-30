@@ -33,7 +33,8 @@ def write_report(results: dict, output_dir: str = "reports") -> str:
 
 
 def _infer_company_name(profile: dict) -> str:
-    return profile.get("company_name", "Unknown Company")
+    name = profile.get("company_name", "Unknown Company")
+    return str(name) if name is not None else "Unknown Company"
 
 
 def _section_content(d: dict) -> str:
@@ -137,13 +138,24 @@ def _build_markdown(results: dict, company_name: str) -> str:
     swot = results.get("swot", {})
 
     modules_run = ", ".join(meta.get("modules_run", [])) or "None"
+    modules_skipped = ", ".join(meta.get("modules_skipped", [])) or "None"
+    modules_failed = ", ".join(meta.get("modules_failed", [])) or "None"
+    data_limitations = meta.get("data_limitations", [])
 
     lines = [
         f"# ReconIQ Report: {company_name}",
         "",
         f"**Target URL:** {target_url}",
         f"**Generated:** {timestamp}",
-        f"**Modules:** {modules_run}",
+        f"**Modules Run:** {modules_run}",
+        f"**Skipped:** {modules_skipped}",
+        f"**Failed:** {modules_failed}",
+        "",
+        "---",
+        "",
+        "## Metadata",
+        "",
+        f"**Data Limitations:** {', '.join(data_limitations) or 'None recorded'}",
         "",
         "---",
         "",
