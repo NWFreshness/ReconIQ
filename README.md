@@ -2,8 +2,6 @@
 
 > AI-powered competitive analysis, SWOT breakdown, and client acquisition strategy from a single URL.
 
-![ReconIQ Screenshot](docs/reconiq-screenshot.png)
-
 ## What It Does
 
 ReconIQ takes a company URL and produces a comprehensive marketing intelligence report covering:
