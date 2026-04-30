@@ -56,14 +56,18 @@ Update rules for future agents/models:
   - Merge commit: `870517a Merge pull request #5 from NWFreshness/feat/phase-4-research-modules`
   - Local verification: `61 passed`; focused research module checks `29 passed`; compile check passed; `git diff --check` passed.
 
-- [ ] Phase 5 — Coordinator
-  - Status: In progress — local implementation and verification complete; not yet committed/pushed.
+- [x] Phase 5 — Coordinator
+  - Status: Merged
+  - PR: https://github.com/NWFreshness/ReconIQ/pull/6
   - Branch: `feat/phase-5-coordinator`
+  - Merge commit: `493505f Merge pull request #6 from NWFreshness/feat/phase-5-coordinator`
   - Local verification: `69 passed`; focused coordinator checks `8 passed`; compile check passed; `git diff --check` passed.
 
-- [ ] Phase 6 — Report Writer
-  - Status: In progress — local implementation and verification complete; not yet committed/pushed.
+- [x] Phase 6 — Report Writer
+  - Status: Merged
+  - PR: https://github.com/NWFreshness/ReconIQ/pull/7
   - Branch: `feat/phase-6-report-writer`
+  - Merge commit: `9550048 Merge pull request #7 from NWFreshness/feat/phase-6-report-writer`
   - Local verification: `70 passed`; focused report writer checks `9 passed`; compile check passed; `git diff --check` passed.
 
 - [ ] Phase 7 — Streamlit UI
