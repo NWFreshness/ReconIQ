@@ -317,8 +317,9 @@ uv run python cli.py https://example.com \
 | 9A | 9D (Pydantic) + 9E (Cache) | Type safety + speed |
 | 9B | 9B (Playwright) + 9C (Search API) | Better data quality |
 | 9C | 9F (Exports) + 9G (UI polish) | Better deliverables |
-| 9D | 9H (CLI) + 9I (Batch) | Power-user features |
-| 9E | 9A (FastAPI migration) | Production readiness |
+| 9D | 9J (Deep Scraping) | Real data, not inference |
+| 9E | 9H (CLI) + 9I (Batch) | Power-user features |
+| 9F | 9A (FastAPI migration) | Production readiness |
 
 ---
 
@@ -336,6 +337,137 @@ An enhancement is complete when:
 
 ---
 
+## Sub-Phase 9J: Deep Scraping — Multi-Page Crawling & Structured Extraction
+
+**Goal:** Replace the current single-page text dump with a structured, multi-page crawl so research modules work from real data — not LLM guesswork. The core problems this solves:
+
+1. **Single-page scraping** — The scraper only fetches the top-level URL. Footer content (service area zip codes, social links, review site links) gets flattened into 50K chars of undifferentiated text and can be truncated or missed by the LLM.
+2. **No subpage crawling** — Interior pages (Services, About, Contact, Blog) are never scraped. The LLM only sees one page's worth of content.
+3. **Social media is pure inference** — The `social_content` module doesn't scrape; it asks the LLM to "infer" platforms. This produces wrong results (e.g. listing "Social Media" as a channel when the business has none).
+4. **Competitor URLs are made up** — The competitor module prompt says "use plausible URLs if unknown" — these are not real competitor sites.
+5. **Content truncation** — `company_profile.py` truncates scraped text to 8000 chars. Rich footer content (zips, service areas, social links) can be cut off.
+
+**Status:** Not started
+
+### Architecture: Two-Layer Scraper
+
+Replace the current flat `scrape()` → text dump approach with a structured crawler that:
+
+1. **Fetches the target URL's HTML** (using existing requests + Playwright fallback)
+2. **Parses structured metadata** from the HTML before flattening to text:
+   - `<title>`, `<meta>` description/keywords, Open Graph tags
+   - `<a>` links (internal + external) with link text
+   - Social media links (detected from URLs, not inferred)
+   - Phone numbers, email addresses (regex extraction)
+   - Structured data / JSON-LD (if present)
+3. **Discovers and queues subpages** (internal links from `<nav>`, footer, sitemap)
+4. **Crawls up to N subpages** (configurable, default 5) with depth limit
+5. **Returns a structured `ScrapeResult`** with separate fields instead of a raw string
+
+### Files to Create / Modify
+
+| File | Action | Description |
+|------|--------|-------------|
+| `scraper/models.py` | Create | `ScrapeResult`, `PageData`, `LinkData`, `SocialLink` dataclasses |
+| `scraper/crawler.py` | Create | `crawl_site(url, max_pages=5, max_depth=2) -> ScrapeResult` |
+| `scraper/extractors.py` | Create | Structured extractors: `extract_meta()`, `extract_links()`, `extract_social_links()`, `extract_contact_info()`, `extract_json_ld()` |
+| `scraper/scraper.py` | Modify | Add `scrape_structured(url) -> ScrapeResult` alongside existing `scrape()` for backward compat |
+| `research/company_profile.py` | Modify | Use `ScrapeResult` instead of raw text; pass structured data to LLM prompt |
+| `research/social_content.py` | Modify | Use extracted social links instead of pure LLM inference; only infer what wasn't found |
+| `research/competitors.py` | Modify | Scrape discovered competitor URLs (from links or search API); mark scraped vs. inferred |
+| `research/seo_keywords.py` | Modify | Use `<meta>` keywords, `<title>`, and `<h1>`-`<h3>` headings as real SEO signals |
+| `research/swot.py` | Modify | No major changes; benefits from richer upstream data |
+| `core/services.py` | Modify | Pass `ScrapeResult` through the coordinator |
+| `core/models.py` | Modify | Add `max_pages` and `max_depth` to `AnalysisRequest` |
+
+### Implementation Plan
+
+**Phase 9J-1: Structured Extraction (scraper/models.py + scraper/extractors.py)**
+
+1. Create `ScrapeResult` dataclass in `scraper/models.py`:
+   ```python
+   @dataclass
+   class ScrapeResult:
+       url: str
+       title: str
+       meta_description: str = ""
+       meta_keywords: list[str] = field(default_factory=list)
+       og_tags: dict[str, str] = field(default_factory=dict)
+       headings: dict[str, list[str]] = field(default_factory=dict)  # h1, h2, h3
+       internal_links: list[LinkData] = field(default_factory=list)
+       external_links: list[LinkData] = field(default_factory=list)
+       social_links: list[SocialLink] = field(default_factory=list)
+       phone_numbers: list[str] = field(default_factory=list)
+       emails: list[str] = field(default_factory=list)
+       json_ld: list[dict] = field(default_factory=list)
+       body_text: str = ""
+       pages: list[PageData] = field(default_factory=list)  # subpages
+       raw_html_length: int = 0
+       crawl_duration_s: float = 0.0
+   ```
+2. Create `extractors.py` with functions:
+   - `extract_meta(soup) -> dict` — pulls title, description, keywords, OG tags
+   - `extract_links(soup, base_url) -> tuple[list[LinkData], list[LinkData]]` — sorts internal vs. external
+   - `extract_social_links(soup) -> list[SocialLink]` — matches `<a href>` against known social URL patterns (linkedin.com, facebook.com, instagram.com, x.com/twitter.com, yelp.com, google.com/maps, etc.)
+   - `extract_contact_info(soup) -> tuple[list[str], list[str]]` — regex for phone and email
+   - `extract_json_ld(soup) -> list[dict]` — pulls `<script type="application/ld+json">` blocks
+   - `extract_headings(soup) -> dict[str, list[str]]` — h1, h2, h3 text
+
+**Phase 9J-2: Multi-Page Crawler (scraper/crawler.py)**
+
+1. Create `crawl_site(url, max_pages=5, max_depth=2, timeout=15) -> ScrapeResult`
+2. Use `requests` to fetch pages (no Playwright for subpages by default — too slow)
+3. Seed queue from:
+   - Links found in `<nav>`, `<footer>`, and sitemap.xml (if `/sitemap.xml` is reachable)
+   - Common subpage patterns: `/about`, `/services`, `/contact`, `/blog`
+4. Deduplicate URLs, respect `max_pages` limit
+5. Each subpage contributes its own `PageData(text, url, headings, links)`
+6. Incremental progress via existing `progress_callback` mechanism
+
+**Phase 9J-3: Integrate ScrapeResult into Research Modules**
+
+1. `company_profile.py`:
+   - Replace raw text with structured context in the LLM prompt
+   - Include: title, meta description, headings, contact info, social links, JSON-LD
+   - Increase truncation limit to 12K chars (we now know what's important)
+   - Still pass body_text but now with structured metadata prepended
+
+2. `social_content.py`:
+   - If `social_links` list is non-empty, pass real found social accounts to LLM
+   - LLM's job shifts from "infer which platforms they use" to "analyze presence on these verified accounts + identify any gaps"
+   - Add `verified_social_accounts` and `inferred_platforms` as separate fields in output
+
+3. `competitors.py`:
+   - If external links contain competitor-looking domains, verify them
+   - Separate `scraped_competitors` (verified URLs found on the target site) from `inferred_competitors` (LLM-only)
+   - Add a future hook for Phase 9C (search API) to discover real competitors
+
+4. `seo_keywords.py`:
+   - Include `<title>`, `<meta keywords>`, `<meta description>`, and `<h1>`-`<h3>` headings in the prompt
+   - LLM now works from actual on-page SEO signals, not just company profile text
+
+### Verification Checklist
+
+- [ ] `ScrapeResult` dataclass round-trips correctly through all research modules
+- [ ] Social links extracted from actual `<a>` tags (not LLM-inferred)
+- [ ] Footer content (zips, service areas) included in structured output
+- [ ] Subpage content visible to research modules
+- [ ] Existing `scrape()` function still works (backward compat)
+- [ ] `crawl_site()` respects `max_pages` and `max_depth` limits
+- [ ] Report output clearly labels `scraped` vs. `inferred` data
+- [ ] All 108 existing tests still pass
+- [ ] New extractor functions have unit tests
+
+### Design Decisions
+
+- **Backward compat**: Keep `scrape(url) -> str` working. Add `scrape_structured(url) -> ScrapeResult` as the new path. Research modules can call either.
+- **Playwright for subpages**: Off by default. Subpage crawling uses `requests` for speed. Playwright only for the initial target URL if the primary requests path returns sparse content.
+- **Rate limiting**: 1-second delay between subpage requests to be polite.
+- **Robots.txt**: Check `robots.txt` before crawling subpages. Skip disallowed paths.
+- **Sitemap discovery**: If `/sitemap.xml` exists, use it to prioritize important subpages instead of guessing.
+
+---
+
 ## Enhancement Quick Reference
 
 | ID | Name | Status | PR | Branch |
@@ -349,3 +481,4 @@ An enhancement is complete when:
 | 9G | UI Polish / Dark Mode | In progress | — | `feat/phase-9g-ui-polish` |
 | 9H | CLI Interface | Not started | — | — |
 | 9I | Batch Analysis | Not started | — | — |
+| 9J | Deep Scraping | Not started | — | — |
