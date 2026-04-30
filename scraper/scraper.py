@@ -11,7 +11,11 @@ from core.settings import load_config
 logger = logging.getLogger(__name__)
 
 MAX_LENGTH = 50_000  # chars
-NOISE_TAGS = ["script", "style", "nav", "header", "footer", "aside", "noscript"]
+# Tags to strip entirely (scripts, styles, metadata headers)
+NOISE_TAGS = ["script", "style", "noscript"]
+# Tags to unwrap (keep their text content, but remove the tag itself)
+# Navigation often contains valuable links like Blog, Services, etc.
+UNWRAP_TAGS = ["nav", "header", "footer", "aside"]
 
 # Lazy Playwright detection — only check once at module load
 _playwright_available: bool | None = None
@@ -60,10 +64,14 @@ def normalize_url(url: str) -> str:
 
 
 def _clean_html(html: str) -> str:
-    """Parse HTML, remove noise tags, and return clean text."""
+    """Parse HTML, remove noise tags, unwrap structural tags, and return clean text."""
     soup = BeautifulSoup(html, "html.parser")
+    # Remove noise tags entirely (script, style, noscript)
     for tag in soup.find_all(NOISE_TAGS):
         tag.decompose()
+    # Unwrap structural tags (nav, header, footer, aside) — keep their text content
+    for tag in soup.find_all(UNWRAP_TAGS):
+        tag.unwrap()
     text = soup.get_text(separator="\n", strip=True)
     lines = [line for line in text.splitlines() if line.strip()]
     return "\n".join(lines)[:MAX_LENGTH]
@@ -127,7 +135,7 @@ def _scrape_with_requests(url: str, timeout: int = 15) -> str:
         return ""
 
 
-def scrape_with_playwright(url: str, timeout: int = 20) -> str:
+def scrape_with_playwright(url: str, timeout: int = 25) -> str:
     """
     Scrape a URL using Playwright headless browser for JS-rendered content.
 
@@ -145,9 +153,11 @@ def scrape_with_playwright(url: str, timeout: int = 20) -> str:
             try:
                 page = browser.new_page()
                 page.set_default_timeout(timeout * 1000)
-                page.goto(url, wait_until="networkidle")
-                # Wait briefly for any late-loading content
-                page.wait_for_timeout(1500)
+                # Use domcontentloaded instead of networkidle — many sites
+                # have persistent connections that prevent networkidle from firing.
+                page.goto(url, wait_until="domcontentloaded")
+                # Wait for JS rendering to settle
+                page.wait_for_timeout(3000)
                 html = page.content()
             finally:
                 browser.close()

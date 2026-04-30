@@ -14,7 +14,8 @@ from scraper.scraper import (
 class TestShouldUsePlaywright:
     """Config toggle: when should Playwright be used?"""
 
-    def test_returns_false_by_default(self):
+    def test_returns_false_when_config_disabled(self, monkeypatch):
+        monkeypatch.setattr("scraper.scraper._config", {"scraper": {"use_playwright_fallback": False}})
         assert should_use_playwright() is False
 
     def test_returns_true_when_config_enabled(self, monkeypatch):
@@ -25,22 +26,13 @@ class TestShouldUsePlaywright:
         monkeypatch.setattr("scraper.scraper._config", {})
         assert should_use_playwright() is False
 
-    def test_returns_false_when_config_false(self, monkeypatch):
-        monkeypatch.setattr("scraper.scraper._config", {"scraper": {"use_playwright_fallback": False}})
-        assert should_use_playwright() is False
-
 
 class TestScrapeWithPlaywright:
     """Playwright scrape function behavior."""
 
     def test_returns_empty_string_when_playwright_not_installed(self, monkeypatch):
         """If playwright is not importable, return empty string gracefully."""
-        # Simulate ImportError by making the import fail
-        import sys
-        fake_modules = {m: v for m, v in sys.modules.items() if m != "playwright.sync_api"}
-        monkeypatch.setitem(sys.modules, "playwright.sync_api", None)
         monkeypatch.setattr("scraper.scraper._playwright_available", False)
-
         result = scrape_with_playwright("https://example.com")
         assert result == ""
 
@@ -123,3 +115,21 @@ class TestScrapeFallbackToPlaywright:
 
         # Should fall back to whatever requests gave us
         assert "Tiny" in text
+
+    def test_nav_content_preserved_after_unwrap(self, monkeypatch):
+        """Nav/links like Blog should be preserved when tags are unwrapped."""
+        import responses
+
+        html = """<html><body>
+            <nav><a href="/blog/">Blog</a> <a href="/services/">Services</a></nav>
+            <main><h1>Company Info</h1></main>
+        </body></html>"""
+
+        with responses.RequestsMock() as rsps:
+            rsps.add(responses.GET, "https://example.com", body=html, status=200)
+            monkeypatch.setattr("scraper.scraper.should_use_playwright", lambda: False)
+            text = scrape("https://example.com")
+
+        assert "Blog" in text
+        assert "Services" in text
+        assert "Company Info" in text

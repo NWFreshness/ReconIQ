@@ -1,10 +1,17 @@
 from __future__ import annotations
 
+import pytest
 import requests
 import responses
 
 from scraper import scraper
 from scraper.scraper import extract_domain_name, normalize_url, scrape
+
+
+# Disable Playwright fallback for all legacy scraper tests
+@pytest.fixture(autouse=True)
+def _disable_playwright(monkeypatch):
+    monkeypatch.setattr("scraper.scraper.should_use_playwright", lambda: False)
 
 
 def test_scrape_extracts_visible_text_from_simple_html():
@@ -33,11 +40,11 @@ def test_scrape_removes_noise_elements():
     html = """
     <html>
       <body>
-        <header>Header noise</header>
-        <nav>Navigation noise</nav>
-        <aside>Aside noise</aside>
+        <header>Header navigation text</header>
+        <nav>Blog Services Contact</nav>
+        <aside>Sidebar links</aside>
         <main><h1>Important content</h1></main>
-        <footer>Footer noise</footer>
+        <footer>Footer copyright</footer>
         <script>console.log('script noise')</script>
         <style>.noise { color: red; }</style>
         <noscript>Noscript noise</noscript>
@@ -50,11 +57,12 @@ def test_scrape_removes_noise_elements():
 
         text = scrape("https://example.com")
 
+    # Structural tags (nav, header, footer, aside) are unwrapped — text kept
     assert "Important content" in text
-    assert "Header noise" not in text
-    assert "Navigation noise" not in text
-    assert "Aside noise" not in text
-    assert "Footer noise" not in text
+    assert "Header navigation text" in text
+    assert "Blog Services Contact" in text
+    assert "Footer copyright" in text
+    # Noise tags (script, style, noscript) are fully removed
     assert "script noise" not in text
     assert "color: red" not in text
     assert "Noscript noise" not in text
