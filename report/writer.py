@@ -91,14 +91,21 @@ def _swot_section(swot: dict) -> str:
 
     def format_items(items):
         if isinstance(items, list):
-            return "<br>".join(f"• {i}" for i in items)
+            return "\n".join(f"- {i}" for i in items)
         return str(items)
 
     lines = [
-        "| | Helpful | Harmful |",
-        "|---|---|---|",
-        f"| **Internal** | {format_items(sw.get('strengths', ['—']))} | {format_items(sw.get('weaknesses', ['—']))} |",
-        f"| **External** | {format_items(sw.get('opportunities', ['—']))} | {format_items(sw.get('threats', ['—']))} |",
+        "### Strengths (Internal, Helpful)",
+        format_items(sw.get("strengths", ["—"])),
+        "",
+        "### Weaknesses (Internal, Harmful)",
+        format_items(sw.get("weaknesses", ["—"])),
+        "",
+        "### Opportunities (External, Helpful)",
+        format_items(sw.get("opportunities", ["—"])),
+        "",
+        "### Threats (External, Harmful)",
+        format_items(sw.get("threats", ["—"])),
     ]
     return "\n".join(lines)
 
@@ -111,6 +118,12 @@ def _acquisition_section(swot: dict) -> str:
     advantage = swot.get("competitive_advantage")
     if advantage:
         sections.append(f"**Your Competitive Edge:** {advantage}")
+    lead_gen = swot.get("lead_generation_strategy")
+    if lead_gen:
+        sections.append(f"**Lead Generation Strategy:** {lead_gen}")
+    close_rate = swot.get("close_rate_strategy")
+    if close_rate:
+        sections.append(f"**AI Close Rate Strategy:** {close_rate}")
     points = swot.get("talking_points", [])
     if points:
         sections.append("**Talking Points:**")

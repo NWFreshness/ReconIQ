@@ -13,6 +13,8 @@ providers:
 
 scraper:
   use_playwright_fallback: true  # Set to true to enable headless browser for JS-heavy sites
+  max_pages: 5                    # Max subpages to crawl (Phase 9J-2)
+  max_depth: 2                    # Max crawl depth from homepage (Phase 9J-2)
 
 defaults:
   provider: "deepseek"

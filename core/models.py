@@ -22,6 +22,9 @@ class AnalysisRequest:
     provider_override: str | None = None
     model_override: str | None = None
     output_dir: str | None = None
+    # Crawler settings (Phase 9J-2)
+    max_pages: int = 5       # max subpages to crawl (excluding homepage)
+    max_depth: int = 2       # max crawl depth from homepage
 
 
 @dataclass(slots=True)

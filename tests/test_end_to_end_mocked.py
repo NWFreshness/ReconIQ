@@ -90,6 +90,8 @@ def fake_llm_complete(prompt: str, module: str, system: str | None = None, max_t
             "talking_points": ["Easy onboarding", "Small business focus"],
             "recommended_next_steps": ["Start a blog", "Add case studies"],
             "competitive_advantage": "Price and simplicity",
+            "lead_generation_strategy": "Outreach via LinkedIn and cold email offering a free competitive analysis.",
+            "close_rate_strategy": "Offer a money-back guarantee on the first month and use AI-powered follow-up sequences that trigger based on prospect behavior signals.",
             "data_confidence": "medium",
             "data_limitations": ["Inferred from single page scrape"],
         },
