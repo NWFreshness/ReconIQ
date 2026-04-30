@@ -11,6 +11,9 @@ providers:
     endpoint: "http://localhost:11434"
     default_model: "llama3"
 
+scraper:
+  use_playwright_fallback: false  # Set to true to enable headless browser for JS-heavy sites
+
 defaults:
   provider: "deepseek"
   model: null
