@@ -7,7 +7,7 @@ import time
 from pathlib import Path
 
 
-def write_report(results: dict, output_dir: str = "~/Documents/ai-automation-agency/ReconIQ/reports") -> str:
+def write_report(results: dict, output_dir: str = "reports") -> str:
     """
     Convert research results dict into a formatted Markdown report.
 

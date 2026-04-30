@@ -25,11 +25,11 @@ modules:
     provider: "deepseek"
     model: null
   competitor:
-    provider: "anthropic"
+    provider: "deepseek"
     model: null
   social_content:
-    provider: "openai"
+    provider: "deepseek"
     model: null
   swot:
-    provider: "anthropic"
+    provider: "deepseek"
     model: null
