@@ -200,23 +200,18 @@ st.markdown("<br>", unsafe_allow_html=True)
 
 # ── Input Section ─────────────────────────────────────────────────────────────────────────────
 
-url_col, btn_col = st.columns([4, 1])
+target_url = st.text_input(
+    "Target URL",
+    placeholder="https://example.com",
+    label_visibility="collapsed",
+)
 
-with url_col:
-    target_url = st.text_input(
-        "Target URL",
-        placeholder="https://example.com",
-        label_visibility="collapsed",
-    )
-
-with btn_col:
-    st.markdown("<div style='height:1.7rem'></div>", unsafe_allow_html=True)
-    run_analysis_btn = st.button(
-        "Analyze →",
-        type="primary",
-        use_container_width=True,
-        disabled=st.session_state.running,
-    )
+run_analysis_btn = st.button(
+    "Analyze →",
+    type="primary",
+    use_container_width=True,
+    disabled=st.session_state.running,
+)
 
 # ── Module Toggles ────────────────────────────────────────────────────────────────────────────
 
