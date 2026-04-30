@@ -347,7 +347,23 @@ An enhancement is complete when:
 4. **Competitor URLs are made up** — The competitor module prompt says "use plausible URLs if unknown" — these are not real competitor sites.
 5. **Content truncation** — `company_profile.py` truncates scraped text to 8000 chars. Rich footer content (zips, service areas, social links) can be cut off.
 
-**Status:** Not started
+**Status:** In progress — 9J-1 (Structured Extraction) complete; 9J-2 (Multi-Page Crawler) and 9J-3 (Integration) not started.
+
+### Implementation — Phase 9J-1: Structured Extraction
+
+**Status:** Complete — local verification passed; PR pending.
+
+**Branch:** `feat/phase-9j1-structured-extraction`
+
+**Local verification:** `158 passed`; compile check passed; `git diff --check` passed.
+
+**Files Created:**
+- `scraper/models.py` — `ScrapeResult`, `PageData`, `LinkData`, `SocialLink` dataclasses
+- `scraper/extractors.py` — `extract_meta()`, `extract_links()`, `extract_social_links()`, `extract_contact_info()`, `extract_json_ld()`, `extract_headings()`
+- `tests/test_structured_extraction.py` — 50 tests covering all six extractors and all four dataclasses
+
+**Files Modified:**
+- `scraper/scraper.py` — Added `scrape_structured()` and `_fetch_html()`; added imports for extractors and models
 
 ### Architecture: Two-Layer Scraper
 
