@@ -1,5 +1,19 @@
-reports/
+# macOS
+.DS_Store
+
+# Python
 __pycache__/
-*.pyc
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+
+# Virtual environments
+.venv/
+
+# Local environment/secrets
 .env
 .env.local
+
+# Generated output
+reports/

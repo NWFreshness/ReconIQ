@@ -1,15 +1,11 @@
 providers:
   openai:
-    api_key: "${OPENAI_API_KEY}"
     default_model: "gpt-4o-mini"
   deepseek:
-    api_key: "${DEEPSEEK_API_KEY}"
     default_model: "deepseek-chat"
   anthropic:
-    api_key: "${ANTHROPIC_API_KEY}"
     default_model: "claude-3-5-sonnet-latest"
   groq:
-    api_key: "${GROQ_API_KEY}"
     default_model: "llama-3.3-70b-versatile"
   ollama:
     endpoint: "http://localhost:11434"
@@ -19,7 +15,7 @@ defaults:
   provider: "deepseek"
   model: null
 
-report_output_dir: "~/Documents/ai-automation-agency/ReconIQ/reports"
+report_output_dir: "reports"
 
 modules:
   company_profile:

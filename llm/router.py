@@ -1,130 +1,94 @@
-"""LLM Router — unified interface for all providers via litellm."""
+"""LLM Router — unified interface for all providers via LiteLLM."""
 from __future__ import annotations
 
-import os
-from typing import Optional
+from typing import Any
 
-import yaml
-from dotenv import load_dotenv
+import requests as http_requests
+from litellm import completion
 
-load_dotenv()
+from core.settings import load_config
 
-
-def _resolve_env(value: str) -> str:
-    """Resolve ${ENV_VAR} references in config values."""
-    if isinstance(value, str) and value.startswith("${") and value.endswith("}"):
-        env_var = value[2:-1]
-        return os.getenv(env_var, "")
-    return value
+config = load_config()
 
 
-def _load_config() -> dict:
-    config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "config.yaml")
-    if not os.path.exists(config_path):
-        # Try the project directory
-        config_path = os.path.expanduser("~/Documents/ai-automation-agency/ReconIQ/config.yaml")
-    with open(config_path) as f:
-        raw = yaml.safe_load(f)
-
-    def resolve(d):
-        if isinstance(d, dict):
-            return {k: resolve(v) for k, v in d.items()}
-        if isinstance(d, list):
-            return [resolve(v) for v in d]
-        return _resolve_env(d)
-
-    return resolve(raw)
-
-
-# Cache config on module load
-config = _load_config()
-
-
-def get_config() -> dict:
-    """Return the loaded config (useful for UI and testing)."""
+def get_config() -> dict[str, Any]:
+    """Return the loaded config for UI display and tests."""
     return config
 
 
-def _get_module_provider_model(module_name: str) -> tuple[str, Optional[str]]:
-    """Return (provider, model) for a given module."""
-    modules = config.get("modules", {})
-    mod = modules.get(module_name, {})
-    provider = mod.get("provider", config.get("defaults", {}).get("provider", "deepseek"))
-    model = mod.get("model")
+def get_module_provider_model(module_name: str, loaded_config: dict[str, Any] | None = None) -> tuple[str, str | None]:
+    """Return the configured provider and model for a module."""
+    cfg = loaded_config or config
+    defaults = cfg.get("defaults", {})
+    module_config = cfg.get("modules", {}).get(module_name, {})
+    provider = module_config.get("provider") or defaults.get("provider") or "deepseek"
+    model = module_config.get("model", defaults.get("model"))
     return provider, model
 
 
-def _build_model_string(provider: str, model: Optional[str]) -> str:
-    """Build the litellm-compatible model string."""
-    if model:
-        return f"{provider}/{model}"
-    # Use provider's default model from config
-    default_model = config.get("providers", {}).get(provider, {}).get("default_model")
-    if default_model:
-        return f"{provider}/{default_model}"
-    return f"{provider}/default"
+def resolve_model(provider: str, model: str | None, loaded_config: dict[str, Any] | None = None) -> str:
+    """Build a LiteLLM-compatible model string without using provider/default sentinels."""
+    cfg = loaded_config or config
+    resolved_model = model or cfg.get("providers", {}).get(provider, {}).get("default_model")
+    if not resolved_model:
+        raise ValueError(f"No model configured for provider '{provider}'")
+    return f"{provider}/{resolved_model}"
+
+
+def build_completion_kwargs(
+    provider: str,
+    model: str | None,
+    messages: list[dict[str, str]],
+    loaded_config: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Build LiteLLM completion kwargs for a provider/model pair."""
+    cfg = loaded_config or config
+    kwargs: dict[str, Any] = {
+        "model": resolve_model(provider, model, cfg),
+        "messages": messages,
+    }
+    if provider == "ollama":
+        kwargs["api_base"] = cfg.get("providers", {}).get("ollama", {}).get("endpoint", "http://localhost:11434")
+    return kwargs
+
+
+def _providers_to_try(provider: str) -> list[str]:
+    providers = [provider]
+    if provider != "deepseek":
+        providers.append("deepseek")
+    return providers
 
 
 def complete(
     prompt: str,
     module: str,
-    system: Optional[str] = None,
+    system: str | None = None,
     max_tokens: int = 2048,
     temperature: float = 0.7,
+    provider_override: str | None = None,
+    model_override: str | None = None,
 ) -> str:
-    """
-    Send a completion request to the appropriate LLM for a research module.
-
-    Args:
-        prompt: The user prompt.
-        module: Module name matching config keys (e.g. 'company_profile', 'competitor').
-        system: Optional system prompt override.
-        max_tokens: Max response tokens.
-        temperature: Sampling temperature.
-
-    Returns:
-        The raw text response from the LLM.
-
-    Raises:
-        RuntimeError: If all attempts fail.
-    """
-    from litellm import completion
-
-    messages = []
+    """Send a completion request to the configured LLM for a research module."""
+    messages: list[dict[str, str]] = []
     if system:
         messages.append({"role": "system", "content": system})
     messages.append({"role": "user", "content": prompt})
 
-    provider, model = _get_module_provider_model(module)
+    configured_provider, configured_model = get_module_provider_model(module, config)
+    provider = provider_override or configured_provider
+    model = model_override if model_override is not None else configured_model
 
-    # Build the list of providers to try (original, then fallback)
-    providers_to_try = [provider]
-    if provider != "deepseek":
-        providers_to_try.append("deepseek")
-
-    last_error = None
-    for current_provider in providers_to_try:
+    last_error: Exception | None = None
+    for current_provider in _providers_to_try(provider):
         current_model = model if current_provider == provider else None
-        model_string = _build_model_string(current_provider, current_model)
-
-        kwargs: dict = {
-            "model": model_string,
-            "messages": messages,
-            "max_tokens": max_tokens,
-            "temperature": temperature,
-        }
-
-        # Ollama needs api_base
-        if current_provider == "ollama":
-            endpoint = config.get("providers", {}).get("ollama", {}).get("endpoint", "http://localhost:11434")
-            kwargs["api_base"] = endpoint
-
+        kwargs = build_completion_kwargs(current_provider, current_model, messages, config)
+        kwargs["max_tokens"] = max_tokens
+        kwargs["temperature"] = temperature
         try:
             response = completion(**kwargs)
             return response.choices[0].message.content
         except Exception as exc:
             last_error = exc
-            continue
 
     raise RuntimeError(f"LLM call failed after fallback: {last_error}")
 
@@ -132,9 +96,8 @@ def complete(
 def check_ollama() -> bool:
     """Check if Ollama is reachable at its configured endpoint."""
     try:
-        import requests as http_requests
         endpoint = config.get("providers", {}).get("ollama", {}).get("endpoint", "http://localhost:11434")
-        r = http_requests.get(f"{endpoint}/api/tags", timeout=5)
-        return r.status_code == 200
+        response = http_requests.get(f"{endpoint}/api/tags", timeout=5)
+        return response.status_code == 200
     except Exception:
         return False
