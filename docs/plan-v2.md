@@ -62,7 +62,9 @@ Update rules for future agents/models:
   - Local verification: `69 passed`; focused coordinator checks `8 passed`; compile check passed; `git diff --check` passed.
 
 - [ ] Phase 6 — Report Writer
-  - Status: Not started
+  - Status: In progress — local implementation and verification complete; not yet committed/pushed.
+  - Branch: `feat/phase-6-report-writer`
+  - Local verification: `70 passed`; focused report writer checks `9 passed`; compile check passed; `git diff --check` passed.
 
 - [ ] Phase 7 — Streamlit UI
   - Status: Not started
