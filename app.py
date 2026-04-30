@@ -8,6 +8,7 @@ from pathlib import Path
 from urllib.parse import urlparse
 
 import streamlit as st
+import streamlit.components.v1 as components
 from core.models import AnalysisRequest
 from core.services import run_analysis
 
@@ -89,6 +90,38 @@ css_path = Path(__file__).parent / ".streamlit" / "style.css"
 if css_path.exists():
     with open(css_path, encoding="utf-8") as f:
         st.markdown(f"<style>\n{f.read()}\n</style>", unsafe_allow_html=True)
+
+# Force sidebar to stay open via JS (Streamlit's React can collapse it otherwise)
+components.html(
+    """<script>
+    // Revert any sidebar collapse and prevent future collapse
+    function forceSidebar() {
+        const sb = window.parent.document.querySelector('[data-testid="stSidebar"]');
+        if (sb) {
+            sb.setAttribute('aria-expanded', 'true');
+            sb.style.display = 'flex';
+            sb.style.visibility = 'visible';
+            sb.style.width = '300px';
+            sb.style.minWidth = '300px';
+            sb.style.maxWidth = '300px';
+            sb.style.opacity = '1';
+            sb.style.transform = 'none';
+        }
+        const sc = window.parent.document.querySelector('[data-testid="stSidebarContent"]');
+        if (sc) {
+            sc.style.display = 'block';
+            sc.style.visibility = 'visible';
+        }
+    }
+    forceSidebar();
+    // Re-apply after Streamlit re-renders
+    new MutationObserver(forceSidebar).observe(
+        window.parent.document.body, { childList: true, subtree: true }
+    );
+    </script>""",
+    height=0,
+    width=0,
+)
 
 # ── Init session state ──────────────────────────────────────────────────────────────────────────
 

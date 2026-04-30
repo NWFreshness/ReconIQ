@@ -386,11 +386,39 @@ details[open] > summary.streamlit-expanderHeader {
 }
 
 /* ── Prevent Sidebar Collapse ────────────────────────────────── */
+/* Hide the collapse arrow button so the sidebar stays open */
+[data-testid="stSidebarCollapseButton"] {
+    display: none !important;
+}
 button[kind="header"] {
     display: none !important;
 }
-[data-testid="stSidebarCollapse"] {
+button[kind="headerNoPadding"] {
     display: none !important;
+}
+/* Force sidebar to always be visible */
+section[data-testid="stSidebar"] {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    position: relative !important;
+    min-width: 300px !important;
+    max-width: 300px !important;
+}
+section[data-testid="stSidebarContent"] {
+    display: block !important;
+    visibility: visible !important;
+}
+/* Prevent Streamlit from collapsing via transform or width tricks */
+section[data-testid="stSidebar"][aria-expanded="false"],
+section[data-testid="stSidebar"][class*="collapsed"] {
+    display: flex !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    min-width: 300px !important;
+    max-width: 300px !important;
+    transform: none !important;
+    width: 300px !important;
 }
 
 /* ── Hide Streamlit Branding ──────────────────────────────── */
