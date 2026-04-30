@@ -18,6 +18,8 @@ SYSTEM_PROMPT = (
     "- talking_points: 4-6 specific talking points for outreach (what to say, what to offer)\n"
     "- recommended_next_steps: 3-5 specific tactical actions (email sequence, content, offer)\n"
     "- competitive_advantage: 1-2 sentences on what you'd offer that their current provider lacks\n"
+    "- lead_generation_strategy: 2-3 sentences on how to generate qualified leads for this prospect (channels, hooks, offer types)\n"
+    "- close_rate_strategy: 2-3 sentences on how to increase their close rate (objection handling, proof points, urgency levers)\n"
     "- data_confidence: 'low', 'medium', or 'high' with brief rationale\n"
     "- data_limitations: list of caveats about inferred strategy or incomplete module data\n\n"
     f"{JSON_RESPONSE_RULES}"
@@ -29,6 +31,8 @@ REQUIRED_KEYS = [
     "talking_points",
     "recommended_next_steps",
     "competitive_advantage",
+    "lead_generation_strategy",
+    "close_rate_strategy",
     "data_confidence",
     "data_limitations",
 ]

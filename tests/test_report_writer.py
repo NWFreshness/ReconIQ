@@ -50,6 +50,8 @@ def _results(**overrides) -> dict:
             "talking_points": ["Your service pages could capture more intent."],
             "recommended_next_steps": ["Build a local landing page plan."],
             "competitive_advantage": "Focused local agency.",
+            "lead_generation_strategy": "Target local businesses via Google Ads with a free audit hook.",
+            "close_rate_strategy": "Use case studies as proof points and offer a performance guarantee.",
             "data_confidence": "medium",
             "data_limitations": ["strategy inferred"],
         },
@@ -127,6 +129,19 @@ def test_renders_swot_as_list_sections(tmp_path):
     assert "### Threats" in swot_section
     # No raw <br> tags should appear
     assert "<br>" not in swot_section
+
+
+def test_includes_lead_generation_and_close_rate_in_acquisition_section(tmp_path):
+    report_path = writer.write_report(_results(), output_dir=str(tmp_path))
+    content = Path(report_path).read_text(encoding="utf-8")
+
+    acq_section_start = content.index("## 6. Client Acquisition Strategy")
+    # Read through the next section divider or end
+    next_section = content.find("## 7.", acq_section_start)
+    acq_section = content[acq_section_start:next_section] if next_section != -1 else content[acq_section_start:]
+
+    assert "Lead Generation Strategy" in acq_section
+    assert "Close Rate Strategy" in acq_section
 
 
 def test_handles_missing_module_data_gracefully(tmp_path):

@@ -118,6 +118,12 @@ def _acquisition_section(swot: dict) -> str:
     advantage = swot.get("competitive_advantage")
     if advantage:
         sections.append(f"**Your Competitive Edge:** {advantage}")
+    lead_gen = swot.get("lead_generation_strategy")
+    if lead_gen:
+        sections.append(f"**Lead Generation Strategy:** {lead_gen}")
+    close_rate = swot.get("close_rate_strategy")
+    if close_rate:
+        sections.append(f"**Close Rate Strategy:** {close_rate}")
     points = swot.get("talking_points", [])
     if points:
         sections.append("**Talking Points:**")

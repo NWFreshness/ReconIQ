@@ -72,6 +72,8 @@ SWOT_RESULT = {
     "talking_points": ["Your service pages could capture more local intent."],
     "recommended_next_steps": ["Build a local landing page plan."],
     "competitive_advantage": "A focused local automation agency can move faster than a generic vendor.",
+    "lead_generation_strategy": "Target local service businesses via Google Ads and LinkedIn outreach with a free SEO audit hook.",
+    "close_rate_strategy": "Use case studies from similar local businesses as proof points and offer a performance guarantee to remove risk.",
     "data_confidence": "medium",
     "data_limitations": ["Strategy is inferred from module outputs."],
 }
