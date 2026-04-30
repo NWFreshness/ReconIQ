@@ -36,10 +36,10 @@ Update rules for future agents/models:
   - Local verification: `13 passed`; compile check passed; `git diff --check` passed.
 
 - [x] Phase 2 — Shared JSON Parsing Utilities
-  - Status: PR open
+  - Status: Merged
   - PR: https://github.com/NWFreshness/ReconIQ/pull/2
   - Branch: `feat/phase-2-json-parser`
-  - Latest commit: `c462cf7 feat: add shared LLM JSON parsing`
+  - Merge commit: `54f6f45 Merge pull request #2 from NWFreshness/feat/phase-2-json-parser`
   - Local verification: `28 passed`; compile check passed; `git diff --check` passed.
 
 - [ ] Phase 3 — Scraper
