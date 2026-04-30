@@ -123,7 +123,7 @@ def _acquisition_section(swot: dict) -> str:
         sections.append(f"**Lead Generation Strategy:** {lead_gen}")
     close_rate = swot.get("close_rate_strategy")
     if close_rate:
-        sections.append(f"**Close Rate Strategy:** {close_rate}")
+        sections.append(f"**AI Close Rate Strategy:** {close_rate}")
     points = swot.get("talking_points", [])
     if points:
         sections.append("**Talking Points:**")

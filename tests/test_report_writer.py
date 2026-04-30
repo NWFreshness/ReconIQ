@@ -51,7 +51,7 @@ def _results(**overrides) -> dict:
             "recommended_next_steps": ["Build a local landing page plan."],
             "competitive_advantage": "Focused local agency.",
             "lead_generation_strategy": "Target local businesses via Google Ads with a free audit hook.",
-            "close_rate_strategy": "Use case studies as proof points and offer a performance guarantee.",
+            "close_rate_strategy": "Deploy an AI chatbot to handle initial objections and qualify leads 24/7, plus use predictive scoring to route only the hottest leads to the sales team.",
             "data_confidence": "medium",
             "data_limitations": ["strategy inferred"],
         },
@@ -141,7 +141,7 @@ def test_includes_lead_generation_and_close_rate_in_acquisition_section(tmp_path
     acq_section = content[acq_section_start:next_section] if next_section != -1 else content[acq_section_start:]
 
     assert "Lead Generation Strategy" in acq_section
-    assert "Close Rate Strategy" in acq_section
+    assert "AI Close Rate Strategy" in acq_section
 
 
 def test_handles_missing_module_data_gracefully(tmp_path):

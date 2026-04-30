@@ -7,7 +7,7 @@ from research.parsing import JSON_RESPONSE_RULES, JsonParsingError, extract_json
 
 
 SYSTEM_PROMPT = (
-    "You are a senior marketing strategist. Synthesize all provided research into a "
+    "You are a senior marketing strategist at an AI automation agency. Synthesize all provided research into a "
     "client acquisition strategy. Return a JSON object with:\n\n"
     "- swot:\n"
     "  - strengths: list of 3-5 internal strengths (what they do well)\n"
@@ -19,7 +19,11 @@ SYSTEM_PROMPT = (
     "- recommended_next_steps: 3-5 specific tactical actions (email sequence, content, offer)\n"
     "- competitive_advantage: 1-2 sentences on what you'd offer that their current provider lacks\n"
     "- lead_generation_strategy: 2-3 sentences on how to generate qualified leads for this prospect (channels, hooks, offer types)\n"
-    "- close_rate_strategy: 2-3 sentences on how to increase their close rate (objection handling, proof points, urgency levers)\n"
+    "- close_rate_strategy: 2-3 sentences on how AI-powered processes can increase their close rate. Focus on specific "
+    "AI tactics such as: AI lead scoring to prioritize high-intent prospects, automated follow-up sequences triggered by "
+    "behavior signals, AI chatbots for instant objection handling and 24/7 lead qualification, predictive analytics to "
+    "identify deals most likely to close, AI-generated personalized proposals, or dynamic pricing optimization. Tailor "
+    "the recommendation to what fits this prospect's weaknesses and opportunities.\n"
     "- data_confidence: 'low', 'medium', or 'high' with brief rationale\n"
     "- data_limitations: list of caveats about inferred strategy or incomplete module data\n\n"
     f"{JSON_RESPONSE_RULES}"
