@@ -48,6 +48,7 @@ def build_analysis_request(
     provider: str,
     model: str,
     output_dir: str | None,
+    fmt: str = "md",
 ) -> AnalysisRequest:
     """Build an AnalysisRequest from UI state, applying overrides only when non-default."""
     provider_override = provider if provider != "deepseek" else None
@@ -58,6 +59,7 @@ def build_analysis_request(
         provider_override=provider_override,
         model_override=model_override,
         output_dir=output_dir,
+        fmt=fmt,
     )
 
 
@@ -185,6 +187,12 @@ with st.sidebar:
         unsafe_allow_html=True,
     )
     output_dir = st.text_input("Report directory", value=str(Path.cwd() / "reports"), label_visibility="collapsed")
+    fmt = st.selectbox(
+        "Export format",
+        options=["md", "html", "pdf"],
+        index=0,
+        format_func=lambda x: {"md": "Markdown", "html": "HTML", "pdf": "PDF"}[x],
+    )
 
 # ── Hero Section ──────────────────────────────────────────────────────────────────────────────────
 
@@ -279,6 +287,7 @@ if run_analysis_btn and target_url:
                 provider=provider,
                 model=model,
                 output_dir=output_dir,
+                fmt=fmt,
             )
 
             status_container.info("🚀 Running research modules...")
@@ -319,11 +328,22 @@ if st.session_state.report_content:
     with header_col1:
         st.markdown("### Report Preview")
     with header_col2:
+        mime_types = {"md": "text/markdown", "html": "text/html", "pdf": "application/pdf"}
+        ext_map = {"md": "md", "html": "html", "pdf": "pdf"}
+        current_fmt = fmt if 'fmt' in locals() else "md"
+        report_path = st.session_state.report_path
+        if current_fmt == "md":
+            download_data = st.session_state.report_content
+        elif report_path and os.path.exists(report_path):
+            with open(report_path, "rb") as f:
+                download_data = f.read()
+        else:
+            download_data = st.session_state.report_content
         st.download_button(
-            "↓ Download .md",
-            data=st.session_state.report_content,
-            file_name="reconiq-report.md",
-            mime="text/markdown",
+            f"↓ Download .{ext_map.get(current_fmt, 'md')}",
+            data=download_data,
+            file_name=f"reconiq-report.{ext_map.get(current_fmt, 'md')}",
+            mime=mime_types.get(current_fmt, "text/markdown"),
             use_container_width=True,
         )
     with header_col3:

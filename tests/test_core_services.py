@@ -17,7 +17,7 @@ def test_run_analysis_uses_coordinator_and_report_writer(monkeypatch, tmp_path):
             progress_callback("done", 100.0)
         return {"metadata": {"target_url": target_url}, "company_profile": {"company_name": "Example"}}
 
-    def fake_write_report(results, output_dir):
+    def fake_write_report(results, output_dir, fmt="md"):
         calls["output_dir"] = output_dir
         assert results["metadata"]["target_url"] == "https://example.com"
         return str(tmp_path / "report.md")

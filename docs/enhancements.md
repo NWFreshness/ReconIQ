@@ -244,7 +244,17 @@ report/
 
 **Goal:** Add HTML and PDF exports after Markdown is stable.
 
-**Status:** Not started
+**Status:** Complete — merged to main.
+
+**Branch:** `feat/phase-9f-9h-9i-exports-cli-batch`
+
+**Files Modified:**
+- `report/writer.py` — added `write_html_report()`, `write_pdf_report()`, and `fmt` parameter to `write_report()`
+- `app.py` — added export format dropdown in sidebar
+- `requirements.txt` — added `markdown` and `weasyprint`
+
+**Verification:**
+- `223 passed`; HTML and PDF export tests pass; Playwright UI test passes.
 
 ### Files to Create / Modify
 
@@ -302,7 +312,22 @@ report/
 
 **Goal:** Run ReconIQ from the command line without launching Streamlit.
 
-**Status:** Not started
+**Status:** Complete — merged to main.
+
+**Branch:** `feat/phase-9f-9h-9i-exports-cli-batch`
+
+**Files Created:**
+- `cli.py` — argparse CLI with single-URL and batch modes
+
+**Verification:**
+- `223 passed`; CLI tests pass; Playwright UI test passes.
+
+### Interface
+
+```bash
+python cli.py https://example.com --modules company_profile,swot --provider deepseek --format pdf
+python cli.py --batch urls.txt --format html --quiet
+```
 
 ### Files to Create
 
@@ -330,7 +355,18 @@ uv run python cli.py https://example.com \
 
 **Goal:** Analyze multiple URLs in one run (e.g. a list of prospects).
 
-**Status:** Not started
+**Status:** Complete — merged to main.
+
+**Branch:** `feat/phase-9f-9h-9i-exports-cli-batch`
+
+**Files Created:**
+- `core/batch.py` — `run_batch()` with sequential and parallel execution
+
+**Files Modified:**
+- `cli.py` — `--batch` flag reads CSV/text files of URLs
+
+**Verification:**
+- `223 passed`; batch tests pass; Playwright UI test passes.
 
 ### Ideas
 
@@ -528,8 +564,8 @@ Replace the current flat `scrape()` → text dump approach with a structured cra
 | 9C | Competitor Search API | Complete — merged | Merged | `feat/phase-9j3-9c-9d-9e-integration` |
 | 9D | Pydantic Schemas | Complete — merged | Merged | `feat/phase-9j3-9c-9d-9e-integration` |
 | 9E | Cached Runs | Complete — merged | Merged | `feat/phase-9j3-9c-9d-9e-integration` |
-| 9F | Export Formats | Not started | — | — |
+| 9F | Export Formats | Complete — merged | Merged | `feat/phase-9f-9h-9i-exports-cli-batch` |
 | 9G | UI Polish / Dark Mode | Complete — merged | Merged | `feat/phase-9g-ui-polish` |
-| 9H | CLI Interface | Not started | — | — |
-| 9I | Batch Analysis | Not started | — | — |
+| 9H | CLI Interface | Complete — merged | Merged | `feat/phase-9f-9h-9i-exports-cli-batch` |
+| 9I | Batch Analysis | Complete — merged | Merged | `feat/phase-9f-9h-9i-exports-cli-batch` |
 | 9J | Deep Scraping | Complete — merged | Merged | `feat/phase-9j3-9c-9d-9e-integration` |

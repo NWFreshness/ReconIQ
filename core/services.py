@@ -39,5 +39,5 @@ def run_analysis(request: AnalysisRequest, progress_callback: ProgressCallback =
         max_pages=request.max_pages,
         max_depth=request.max_depth,
     )
-    report_path = write_report(results, output_dir=request.output_dir or "reports")
+    report_path = write_report(results, output_dir=request.output_dir or "reports", fmt=request.fmt)
     return AnalysisResult(results=results, report_path=report_path)
