@@ -22,7 +22,30 @@ Update rules for future agents/models:
 
 **Goal:** Convert the MVP architecture into a production-grade web app without rewriting the research engine.
 
-**Status:** Not started
+**Status:** Complete — merged to main.
+
+**Branch:** `feat/phase-9a-fastapi`
+
+**Files Created:**
+- `api/main.py` — FastAPI app with CORS, health check
+- `api/schemas.py` — Pydantic request/response models
+- `api/db.py` — SQLite persistence layer with SQLAlchemy
+- `api/auth.py` — API key authentication
+- `api/worker.py` — background analysis runner
+- `api/routes/analyses.py` — POST/GET analysis endpoints
+- `api/routes/reports.py` — report download endpoint
+- `tests/test_api.py` — 17 API tests
+
+**Endpoints:**
+- `POST /analyses` — create analysis job (returns 202 Accepted)
+- `GET /analyses` — list recent analyses
+- `GET /analyses/{id}` — get analysis status
+- `GET /analyses/{id}/results` — get analysis results
+- `GET /reports/{id}` — download report file
+- `GET /health` — health check
+
+**Verification:**
+- `240 passed`; API tests pass; Playwright UI test passes.
 
 ### Recommended Future Stack
 
@@ -559,7 +582,7 @@ Replace the current flat `scrape()` → text dump approach with a structured cra
 
 | ID | Name | Status | PR | Branch |
 |----|------|--------|-----|--------|
-| 9A | FastAPI Migration | Not started | — | — |
+| 9A | FastAPI Migration | Complete — merged | Merged | `feat/phase-9a-fastapi` |
 | 9B | Playwright JS Rendering | Complete — merged | Merged | `feat/phase-9b-playwright` |
 | 9C | Competitor Search API | Complete — merged | Merged | `feat/phase-9j3-9c-9d-9e-integration` |
 | 9D | Pydantic Schemas | Complete — merged | Merged | `feat/phase-9j3-9c-9d-9e-integration` |
