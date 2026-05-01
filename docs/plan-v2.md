@@ -81,9 +81,9 @@ Update rules for future agents/models:
   - Local verification: `98 passed`; focused E2E checks `5 passed`; compile check passed; `git diff --check` passed.
 
 - [x] Phase 9 — Optional Enhancements After MVP
-  - Status: Complete — 9B, 9C, 9D, 9E, 9F, 9G, 9H, 9I, 9J all merged to main.
-  - Branch: `feat/phase-9f-9h-9i-exports-cli-batch`
-  - Local verification: `223 passed`; Playwright UI smoke test passed; compile check passed; `git diff --check` passed.
+  - Status: Complete — 9A, 9B, 9C, 9D, 9E, 9F, 9G, 9H, 9I, 9J all merged to main.
+  - Branch: `feat/phase-9a-fastapi`
+  - Local verification: `240 passed`; Playwright UI smoke test passed; compile check passed; `git diff --check` passed.
 
 - [x] Phase 9F — Export Formats (HTML, PDF)
   - Status: Complete — merged to main.
@@ -94,6 +94,11 @@ Update rules for future agents/models:
   - Status: Complete — merged to main.
   - Branch: `feat/phase-9f-9h-9i-exports-cli-batch`
   - Local verification: `223 passed`; CLI tests pass.
+
+- [x] Phase 9A — FastAPI Migration
+  - Status: Complete — merged to main.
+  - Branch: `feat/phase-9a-fastapi`
+  - Local verification: `240 passed`; API tests pass; Playwright UI smoke test passes.
 
 - [x] Phase 9I — Batch Analysis
   - Status: Complete — merged to main.
