@@ -15,89 +15,96 @@ class ReconIQBaseModel(BaseModel):
         return self.model_dump(mode="python")
 
 
-class CompanyProfileSchema(ReconIQBaseModel):
-    company_name: str
-    what_they_do: str
-    target_audience: str
-    value_proposition: str
-    brand_voice: str | list[str]
-    primary_cta: str
-    services_products: list[str]
-    marketing_channels: list[str]
-    data_confidence: str
-    data_limitations: list[str]
-
-
 class SEOKeywordsSchema(ReconIQBaseModel):
-    top_keywords: list[str]
-    content_gaps: list[str]
-    seo_weaknesses: list[str]
-    quick_wins: list[str]
-    estimated_traffic_tier: str
-    local_seo_signals: str
-    data_confidence: str
-    data_limitations: list[str]
+    top_keywords: list[str] = []
+    content_gaps: list[str] = []
+    seo_weaknesses: list[str] = []
+    quick_wins: list[str] = []
+    estimated_traffic_tier: str = ""
+    local_seo_signals: str = ""
+    data_confidence: str = ""
+    data_limitations: list[str] = []
 
 
 class CompetitorItem(ReconIQBaseModel):
-    name: str
-    url: str
-    positioning: str
-    estimated_pricing_tier: str
-    key_messaging: str
-    weaknesses: list[str]
-    inferred_services: list[str]
+    name: str = ""
+    url: str = ""
+    positioning: str = ""
+    estimated_pricing_tier: str = ""
+    key_messaging: str = ""
+    weaknesses: list[str] = []
+    inferred_services: list[str] = []
 
 
 class CompetitorSchema(ReconIQBaseModel):
-    competitors: list[CompetitorItem]
+    competitors: list[CompetitorItem] = []
     scraped_competitors: list[CompetitorItem] = []
     inferred_competitors: list[CompetitorItem] = []
-    data_confidence: str
-    data_limitations: list[str]
+    data_confidence: str = ""
+    data_limitations: list[str] = []
 
 
 class SocialAccount(ReconIQBaseModel):
-    platform: str
-    url: str
+    platform: str = ""
+    url: str = ""
 
 
 class SocialContentSchema(ReconIQBaseModel):
-    platforms: list[str]
+    platforms: list[str] = []
     verified_social_accounts: list[SocialAccount] = []
     inferred_platforms: list[str] = []
-    content_quality: str
-    content_frequency: str
-    engagement_signals: str
-    review_sites: list[str]
-    blog_or_resources: str
-    content_gaps: list[str]
-    email_signals: str
-    data_confidence: str
-    data_limitations: list[str]
+    content_quality: str = ""
+    content_frequency: str = ""
+    engagement_signals: str = ""
+    review_sites: list[str] = []
+    blog_or_resources: str = ""
+    content_gaps: list[str] = []
+    email_signals: str = ""
+    data_confidence: str = ""
+    data_limitations: list[str] = []
 
 
 class SWOTQuadrants(ReconIQBaseModel):
-    strengths: list[str]
-    weaknesses: list[str]
-    opportunities: list[str]
-    threats: list[str]
+    strengths: list[str] = []
+    weaknesses: list[str] = []
+    opportunities: list[str] = []
+    threats: list[str] = []
 
 
 class SWOTSchema(ReconIQBaseModel):
-    swot: SWOTQuadrants
-    acquisition_angle: str
-    talking_points: list[str]
-    recommended_next_steps: list[str]
-    competitive_advantage: str
-    lead_generation_strategy: str
-    close_rate_strategy: str
-    data_confidence: str
-    data_limitations: list[str]
+    swot: SWOTQuadrants = SWOTQuadrants()
+    acquisition_angle: str = ""
+    talking_points: list[str] = []
+    recommended_next_steps: list[str] = []
+    competitive_advantage: str = ""
+    lead_generation_strategy: str = ""
+    close_rate_strategy: str = ""
+    data_confidence: str = ""
+    data_limitations: list[str] = []
+
+
+class CompanyProfileSchema(ReconIQBaseModel):
+    company_name: str = ""
+    what_they_do: str = ""
+    target_audience: str = ""
+    value_proposition: str = ""
+    brand_voice: str | list[str] = ""
+    primary_cta: str = ""
+    services_products: list[str] = []
+    marketing_channels: list[str] = []
+    location_city: str = ""
+    location_state: str = ""
+    location_zip: str = ""
+    service_area: list[str] = []
+    data_confidence: str = ""
+    data_limitations: list[str] = []
 
 
 def validate_module_output(data: dict[str, Any], schema_type: type[BaseModel], context: str) -> dict[str, Any]:
     """Validate module output and return a plain dict for existing callers."""
+    # Pre-clean: coerce list items to dicts where schemas expect objects
+    data = _coerce_competitor_lists(data)
+    data = _coerce_string_fields(data)
     try:
         model = schema_type.model_validate(data)
     except ValidationError as exc:
@@ -107,3 +114,38 @@ def validate_module_output(data: dict[str, Any], schema_type: type[BaseModel], c
         )
         raise JsonParsingError(f"{context} schema validation failed: {errors}") from exc
     return model.model_dump(mode="python")
+
+
+def _coerce_competitor_lists(data: dict[str, Any]) -> dict[str, Any]:
+    """Convert string items in competitor lists to placeholder dicts."""
+    for key in ("competitors", "scraped_competitors", "inferred_competitors"):
+        if key not in data:
+            continue
+        cleaned: list[dict[str, Any]] = []
+        for item in data[key]:
+            if isinstance(item, dict):
+                cleaned.append(item)
+            elif isinstance(item, str):
+                cleaned.append({"name": item, "url": "", "positioning": "", "estimated_pricing_tier": "", "key_messaging": "", "weaknesses": [], "inferred_services": []})
+            else:
+                cleaned.append({"name": str(item), "url": "", "positioning": "", "estimated_pricing_tier": "", "key_messaging": "", "weaknesses": [], "inferred_services": []})
+        data[key] = cleaned
+    return data
+
+
+def _coerce_string_fields(data: dict[str, Any]) -> dict[str, Any]:
+    """Ensure fields that should be strings are actually strings (not null/numbers)."""
+    string_fields = (
+        "estimated_traffic_tier", "local_seo_signals", "data_confidence",
+        "content_quality", "content_frequency", "engagement_signals",
+        "blog_or_resources", "email_signals", "acquisition_angle",
+        "competitive_advantage", "lead_generation_strategy", "close_rate_strategy",
+        "company_name", "what_they_do", "target_audience", "value_proposition",
+        "brand_voice", "primary_cta",
+    )
+    for field in string_fields:
+        if field in data and data[field] is not None and not isinstance(data[field], str):
+            data[field] = str(data[field])
+        if field in data and data[field] is None:
+            data[field] = ""
+    return data

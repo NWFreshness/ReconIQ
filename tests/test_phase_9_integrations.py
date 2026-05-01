@@ -54,6 +54,10 @@ COMPANY_RESPONSE = {
     "primary_cta": "Request a quote",
     "services_products": ["Rodent control"],
     "marketing_channels": ["website"],
+    "location_city": "Vancouver",
+    "location_state": "WA",
+    "location_zip": "98660",
+    "service_area": ["Battle Ground", "Camas"],
     "data_confidence": "high",
     "data_limitations": [],
 }
