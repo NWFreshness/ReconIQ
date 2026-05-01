@@ -18,15 +18,21 @@ SYSTEM_PROMPT = (
     "- primary_cta: main call-to-action text\n"
     "- services_products: list of 3-8 specific offerings\n"
     "- marketing_channels: inferred channels they use (website, social, email, etc.)\n"
+    "- location_city: city where the company is based (extract from address, footer, contact page; empty string if not found)\n"
+    "- location_state: state or province (extract from address; empty string if not found)\n"
+    "- location_zip: zip/postal code (extract from address; empty string if not found)\n"
+    "- service_area: list of cities/regions they serve (from footer, service area pages; empty list if not found)\n"
     "- data_confidence: 'low', 'medium', or 'high' with brief rationale\n"
     "- data_limitations: list of key caveats about source quality\n"
-    "If you cannot determine a field, use 'Not discernible from available data'.\n\n"
+    "If you cannot determine a field, use an empty string or empty list. Do not guess location — only extract what is explicitly stated on the site.\n\n"
     f"{JSON_RESPONSE_RULES}"
 )
 
 REQUIRED_KEYS = [
     "company_name", "what_they_do", "target_audience", "value_proposition", "brand_voice",
-    "primary_cta", "services_products", "marketing_channels", "data_confidence", "data_limitations",
+    "primary_cta", "services_products", "marketing_channels",
+    "location_city", "location_state", "location_zip", "service_area",
+    "data_confidence", "data_limitations",
 ]
 
 

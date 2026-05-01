@@ -18,3 +18,7 @@ __pycache__/
 # Generated output
 reports/
 .reconiq-cache/
+
+# Next.js build artifacts
+web/dist/
+web/.next/

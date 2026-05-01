@@ -66,4 +66,6 @@ export const api = {
     fetch(`${API_BASE}/reports/${id}`, {
       headers: { "X-API-Key": API_KEY },
     }),
+  deleteAnalysis: (id: string) =>
+    fetchJson<void>(`/analyses/${id}`, { method: "DELETE" }),
 };

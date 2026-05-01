@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { Trash2 } from "lucide-react";
 import { StatusBadge } from "./StatusBadge";
 import { ProgressBar } from "./ProgressBar";
 import type { AnalysisJob } from "@/lib/api";
 
-export function AnalysisCard({ job }: { job: AnalysisJob }) {
+export function AnalysisCard({ job, onDelete }: { job: AnalysisJob; onDelete?: (id: string) => void }) {
   const [expanded, setExpanded] = useState(false);
   const isRunning = job.status === "running" || job.status === "pending";
 
@@ -43,6 +44,15 @@ export function AnalysisCard({ job }: { job: AnalysisJob }) {
           >
             View
           </Link>
+          {onDelete && (
+            <button
+              onClick={() => onDelete(job.id)}
+              className="text-xs px-2 py-1.5 rounded-lg bg-red-400/5 text-red-400 border border-red-400/10 hover:bg-red-400/10 hover:border-red-400/30 transition-colors"
+              title="Delete analysis"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
       </div>
 

@@ -5,7 +5,20 @@ from datetime import datetime
 from enum import Enum
 from typing import Any
 
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, Field, field_validator
+from urllib.parse import urlparse
+
+
+def _normalize_url(url: str) -> str:
+    url = url.strip()
+    parsed = urlparse(url)
+    if not parsed.scheme:
+        # Only prepend https if no scheme present at all (allows bare domains)
+        url = "https://" + url
+        parsed = urlparse(url)
+    if parsed.netloc and not parsed.path:
+        url = url.rstrip("/") + "/"
+    return url
 
 
 class AnalysisStatus(str, Enum):
@@ -22,7 +35,7 @@ class ExportFormat(str, Enum):
 
 
 class AnalysisCreateRequest(BaseModel):
-    target_url: HttpUrl
+    target_url: str
     modules: list[str] = Field(default_factory=lambda: [
         "company_profile", "seo_keywords", "competitor", "social_content", "swot"
     ])
@@ -31,6 +44,17 @@ class AnalysisCreateRequest(BaseModel):
     fmt: ExportFormat = ExportFormat.md
     max_pages: int = Field(default=5, ge=1, le=20)
     max_depth: int = Field(default=2, ge=1, le=5)
+
+    @field_validator("target_url", mode="before")
+    @classmethod
+    def target_url_must_be_valid(cls, v: str) -> str:
+        url = _normalize_url(v)
+        parsed = urlparse(url)
+        if not parsed.scheme or not parsed.netloc:
+            raise ValueError("target_url must be a valid URL with a scheme and host")
+        if parsed.scheme not in ("http", "https"):
+            raise ValueError("target_url must use http or https scheme")
+        return url
 
 
 class AnalysisResponse(BaseModel):

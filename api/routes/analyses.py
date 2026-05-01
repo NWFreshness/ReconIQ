@@ -44,7 +44,7 @@ async def create_analysis(
 ) -> AnalysisResponse:
     db = get_db()
     record = db.create_job(
-        target_url=str(request.target_url),
+        target_url=request.target_url,  # Already normalized + validated by Pydantic
         modules=request.modules,
         provider=request.provider,
         model=request.model,
@@ -95,3 +95,14 @@ async def get_analysis_results(
         created_at=record.created_at or datetime.now(timezone.utc),
         completed_at=record.completed_at,
     )
+
+
+@router.delete("/{job_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_analysis(
+    job_id: str,
+    api_key: str = Depends(verify_api_key),
+) -> None:
+    db = get_db()
+    deleted = db.delete_job(job_id)
+    if not deleted:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Analysis not found")

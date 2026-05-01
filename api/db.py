@@ -137,6 +137,15 @@ class Database:
             session.commit()
             return self._to_record(job)
 
+    def delete_job(self, job_id: str) -> bool:
+        with self.get_session() as session:
+            job = session.get(AnalysisJob, job_id)
+            if not job:
+                return False
+            session.delete(job)
+            session.commit()
+            return True
+
     def list_jobs(self, limit: int = 50) -> list[AnalysisRecord]:
         with self.get_session() as session:
             stmt = select(AnalysisJob).order_by(AnalysisJob.created_at.desc()).limit(limit)

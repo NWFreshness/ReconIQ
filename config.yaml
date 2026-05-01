@@ -44,9 +44,9 @@ llm_cache:
   path: ".reconiq-cache/llm"
 
 search:
-  enabled: false
-  provider: "brave"
+  enabled: true
+  provider: "firecrawl"
   max_results: 5
-  brave:
-    endpoint: "https://api.search.brave.com/res/v1/web/search"
-    api_key: "${BRAVE_SEARCH_API_KEY}"
+  firecrawl:
+    api_url: "https://api.firecrawl.dev"
+    api_key: "${FIRECRAWL_API_KEY}"

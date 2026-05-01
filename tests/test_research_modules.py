@@ -16,6 +16,10 @@ COMPANY_PROFILE_RESULT = {
     "primary_cta": "Request a quote",
     "services_products": ["Custom widgets", "Widget maintenance"],
     "marketing_channels": ["website", "local search"],
+    "location_city": "",
+    "location_state": "",
+    "location_zip": "",
+    "service_area": [],
     "data_confidence": "high",
     "data_limitations": ["Only homepage content was available."],
 }
@@ -32,37 +36,17 @@ SEO_RESULT = {
 }
 
 COMPETITOR_RESULT = {
-    "competitors": [
-        {
-            "name": "WidgetCo",
-            "url": "https://widgetco.example",
-            "positioning": "Premium widgets for regional teams.",
-            "estimated_pricing_tier": "premium",
-            "key_messaging": "Widgets that scale.",
-            "weaknesses": ["generic local messaging"],
-            "inferred_services": ["widget consulting"],
-        }
-    ],
+    "competitors": [],
     "scraped_competitors": [],
-    "inferred_competitors": [
-        {
-            "name": "WidgetCo",
-            "url": "https://widgetco.example",
-            "positioning": "Premium widgets for regional teams.",
-            "estimated_pricing_tier": "premium",
-            "key_messaging": "Widgets that scale.",
-            "weaknesses": ["generic local messaging"],
-            "inferred_services": ["widget consulting"],
-        }
-    ],
+    "inferred_competitors": [],
     "data_confidence": "low",
-    "data_limitations": ["Competitors are inferred from market context.", "Live competitor search is disabled; competitors may be inferred."],
+    "data_limitations": ["Live competitor search is disabled.", "No verified competitors were found via search and homepage scrape."],
 }
 
 SOCIAL_RESULT = {
-    "platforms": ["LinkedIn", "Facebook"],
-    "verified_social_accounts": [{"platform": "LinkedIn", "url": "https://linkedin.com/company/acme"}],
-    "inferred_platforms": ["Twitter"],
+    "platforms": [],
+    "verified_social_accounts": [],
+    "inferred_platforms": [],
     "content_quality": "moderate — inferred from company profile",
     "content_frequency": "sporadic",
     "engagement_signals": "weak",
@@ -71,7 +55,7 @@ SOCIAL_RESULT = {
     "content_gaps": ["customer stories"],
     "email_signals": "minimal",
     "data_confidence": "low",
-    "data_limitations": ["No live social profile scrape was performed."],
+    "data_limitations": ["No live social profile scrape was performed.", "Live social search is disabled.", "No verified social media accounts were found on the website or via search."],
 }
 
 SWOT_RESULT = {
@@ -302,12 +286,13 @@ def test_competitor_module_requires_object_with_metadata_not_legacy_array():
         competitors.run(COMPANY_PROFILE_RESULT, "https://acme.example", RecordingLLM(legacy_array))
 
 
-def test_swot_module_requires_nested_swot_keys():
+def test_swot_module_fills_missing_nested_keys_with_defaults():
     incomplete = SWOT_RESULT.copy()
     incomplete["swot"] = {"strengths": [], "weaknesses": [], "opportunities": []}
 
-    with pytest.raises(JsonParsingError):
-        swot.run(
-            COMPANY_PROFILE_RESULT, SEO_RESULT, COMPETITOR_RESULT, SOCIAL_RESULT,
-            "https://acme.example", RecordingLLM(incomplete),
-        )
+    result = swot.run(
+        COMPANY_PROFILE_RESULT, SEO_RESULT, COMPETITOR_RESULT, SOCIAL_RESULT,
+        "https://acme.example", RecordingLLM(incomplete),
+    )
+    assert result["swot"]["threats"] == []
+    assert "data_confidence" in result
