@@ -66,7 +66,7 @@ class TestCreateAnalysis:
     def test_create_analysis_invalid_url(self) -> None:
         response = client.post(
             "/analyses",
-            json={"target_url": "not-a-url"},
+            json={"target_url": "ftp://not-a-url"},
             headers=HEADERS,
         )
         assert response.status_code == 422

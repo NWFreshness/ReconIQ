@@ -6,6 +6,15 @@ import { Radar, Plus, RefreshCw, Terminal, Zap, Globe, Shield } from "lucide-rea
 import { api, type AnalysisJob } from "@/lib/api";
 import { AnalysisCard } from "@/components/AnalysisCard";
 
+function normalizeUrl(url: string): string {
+  url = url.trim();
+  if (!url) return url;
+  if (!url.startsWith("http://") && !url.startsWith("https://")) {
+    url = "https://" + url;
+  }
+  return url;
+}
+
 export default function Home() {
   const [url, setUrl] = useState("");
   const [provider, setProvider] = useState("deepseek");
@@ -41,9 +50,20 @@ export default function Home() {
     setModules((m) => ({ ...m, [key]: !m[key as keyof typeof m] }));
   };
 
+  const handleDelete = async (id: string) => {
+    if (!confirm("Delete this analysis?")) return;
+    try {
+      await api.deleteAnalysis(id);
+      await loadJobs();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to delete");
+    }
+  };
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!url.trim()) return;
+    const normalized = normalizeUrl(url);
+    if (!normalized.trim()) return;
     setLoading(true);
     setError("");
     try {
@@ -51,7 +71,7 @@ export default function Home() {
         .filter(([, v]) => v)
         .map(([k]) => k);
       await api.createAnalysis({
-        target_url: url.trim(),
+        target_url: normalized,
         modules: enabled,
         provider,
         model: model || undefined,
@@ -129,7 +149,7 @@ export default function Home() {
                 type="url"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
-                placeholder="https://example.com"
+                placeholder="example.com"
                 className="w-full pl-10 pr-4 py-3 bg-background border border-border rounded-xl text-sm text-foreground placeholder:text-muted focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-all"
                 required
               />
@@ -271,7 +291,7 @@ export default function Home() {
                     exit={{ opacity: 0, y: -10 }}
                     transition={{ duration: 0.3 }}
                   >
-                    <AnalysisCard job={job} />
+                    <AnalysisCard job={job} onDelete={handleDelete} />
                   </motion.div>
                 ))}
               </div>
