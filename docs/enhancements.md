@@ -84,16 +84,40 @@ report/
 
 ### Migration Strategy
 
-1. Keep `core.services.run_analysis()` as the canonical entry point.
-2. Add `api/main.py` with a FastAPI app.
-3. Add `POST /analyses` to validate input and enqueue a background job.
-4. Add `GET /analyses/{id}` for status polling.
-5. Add `GET /reports/{id}` for report retrieval.
-6. Move long-running LLM work out of request/response into a worker.
-7. Store analysis status, metadata, and report paths in Postgres.
-8. Store report files in S3-compatible object storage.
-9. Add user accounts and per-user report ownership.
-10. Add rate limits, cost controls, provider quotas, and audit logs.
+1. Keep `core.services.run_analysis()` as the canonical entry point. ✓
+2. Add `api/main.py` with a FastAPI app. ✓
+3. Add `POST /analyses` to validate input and enqueue a background job. ✓
+4. Add `GET /analyses/{id}` for status polling. ✓
+5. Add `GET /reports/{id}` for report retrieval. ✓
+6. Move long-running LLM work out of request/response into a worker. ✓
+7. Store analysis status, metadata, and report paths in Postgres/SQLite. ✓
+8. Store report files in S3-compatible object storage. ← Deferred
+9. Add user accounts and per-user report ownership. ← Deferred
+10. Add rate limits, cost controls, provider quotas, and audit logs. ← Deferred
+11. Replace Streamlit frontend with Next.js React app. ✓
+
+### Next.js Frontend
+
+**Status:** Complete — merged to main.
+
+**Directory:** `web/`
+
+**Stack:** Next.js 16 + React 19 + TypeScript + Tailwind CSS v4 + Framer Motion
+
+**Design:** Dark operations-center aesthetic with amber/cyan accents, subtle scanlines, grid pattern background, animated progress bars, and real-time polling.
+
+**Pages:**
+- `/` — Dashboard with URL input, module toggles, provider selection, format dropdown, live job list with stats
+- `/analysis/[id]` — Detail view with progress, results JSON viewer, report download
+
+**Features:**
+- Real-time job polling (every 3s)
+- Animated status badges with color-coded states
+- Interactive module toggle chips
+- Export format selection (md/html/pdf)
+- Responsive layout
+
+**Build:** `cd web && npm run build`
 
 ### Design Requirements Already Preserved
 
