@@ -122,7 +122,7 @@ def test_core_services_passes_crawler_settings_to_coordinator(monkeypatch, tmp_p
         return {"metadata": {"target_url": target_url}, "company_profile": {"company_name": "Acme"}}
 
     monkeypatch.setattr(services, "run_all", fake_run_all)
-    monkeypatch.setattr(services, "write_report", lambda results, output_dir: str(tmp_path / "report.md"))
+    monkeypatch.setattr(services, "write_report", lambda results, output_dir, fmt="md": str(tmp_path / "report.md"))
     monkeypatch.setattr(services, "llm_complete", lambda **kwargs: "{}")
 
     services.run_analysis(AnalysisRequest(target_url="https://acme.example", max_pages=7, max_depth=3))

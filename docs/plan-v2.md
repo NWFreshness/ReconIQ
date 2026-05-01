@@ -81,9 +81,24 @@ Update rules for future agents/models:
   - Local verification: `98 passed`; focused E2E checks `5 passed`; compile check passed; `git diff --check` passed.
 
 - [x] Phase 9 — Optional Enhancements After MVP
-  - Status: Complete — 9B (Playwright), 9G (UI Polish), 9J-1/2/3 (Deep Scraping), 9C (Competitor Search), 9D (Pydantic Schemas), 9E (Cached Runs) all merged to main.
-  - Branch: `feat/phase-9j3-9c-9d-9e-integration`
-  - Local verification: `198 passed`; Playwright UI smoke test passed; compile check passed; `git diff --check` passed.
+  - Status: Complete — 9B, 9C, 9D, 9E, 9F, 9G, 9H, 9I, 9J all merged to main.
+  - Branch: `feat/phase-9f-9h-9i-exports-cli-batch`
+  - Local verification: `223 passed`; Playwright UI smoke test passed; compile check passed; `git diff --check` passed.
+
+- [x] Phase 9F — Export Formats (HTML, PDF)
+  - Status: Complete — merged to main.
+  - Branch: `feat/phase-9f-9h-9i-exports-cli-batch`
+  - Local verification: `223 passed`; export format tests pass.
+
+- [x] Phase 9H — CLI Interface
+  - Status: Complete — merged to main.
+  - Branch: `feat/phase-9f-9h-9i-exports-cli-batch`
+  - Local verification: `223 passed`; CLI tests pass.
+
+- [x] Phase 9I — Batch Analysis
+  - Status: Complete — merged to main.
+  - Branch: `feat/phase-9f-9h-9i-exports-cli-batch`
+  - Local verification: `223 passed`; batch tests pass.
 
 ---
 

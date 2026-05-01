@@ -42,5 +42,5 @@ def test_streamlit_ui_loads(streamlit_app):
         # Wait for Streamlit to render
         page.wait_for_selector("text=Marketing Intelligence", timeout=15000)
         assert "ReconIQ" in page.title()
-        assert page.locator("text=Analyze").count() >= 1
+        assert page.locator("text=Analyze ").count() >= 1
         browser.close()
