@@ -7,6 +7,7 @@ import requests as http_requests
 from litellm import completion
 
 from core.settings import load_config
+from llm.cache import build_llm_cache_payload, is_cache_enabled, make_cache_key, read_cached_response, write_cached_response
 
 config = load_config()
 
@@ -79,14 +80,34 @@ def complete(
     model = model_override if model_override is not None else configured_model
 
     last_error: Exception | None = None
+    cache_enabled = is_cache_enabled(config)
     for current_provider in _providers_to_try(provider):
         current_model = model if current_provider == provider else None
+        resolved_model_str = resolve_model(current_provider, current_model, config)
+        cache_key: str | None = None
+        if cache_enabled:
+            cache_payload = build_llm_cache_payload(
+                module=module,
+                provider=current_provider,
+                model=resolved_model_str,
+                system=system,
+                prompt=prompt,
+                max_tokens=max_tokens,
+                temperature=temperature,
+            )
+            cache_key = make_cache_key(cache_payload)
+            cached = read_cached_response(cache_key)
+            if cached is not None:
+                return cached
         kwargs = build_completion_kwargs(current_provider, current_model, messages, config)
         kwargs["max_tokens"] = max_tokens
         kwargs["temperature"] = temperature
         try:
             response = completion(**kwargs)
-            return response.choices[0].message.content
+            raw = response.choices[0].message.content
+            if cache_enabled and cache_key is not None:
+                write_cached_response(cache_key, raw)
+            return raw
         except Exception as exc:
             last_error = exc
 

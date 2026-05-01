@@ -31,6 +31,12 @@ def _response(content: str):
     )
 
 
+
+
+@pytest.fixture(autouse=True)
+def disable_llm_cache(monkeypatch):
+    monkeypatch.setattr("llm.router.is_cache_enabled", lambda _cfg=None: False)
+
 def test_get_module_provider_model_uses_module_config():
     provider, model = router.get_module_provider_model("competitor", BASE_CONFIG)
 

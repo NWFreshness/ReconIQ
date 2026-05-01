@@ -1,7 +1,10 @@
 """Module 3: Competitor Intelligence — auto-discover and analyze competitors."""
 from __future__ import annotations
 
-from research.parsing import JSON_RESPONSE_RULES, JsonParsingError, llm_json_call, require_keys
+from scraper.models import ScrapeResult
+from research.parsing import JSON_RESPONSE_RULES, llm_json_call
+from research.schemas import CompetitorSchema, validate_module_output
+from research.scrape_context import format_competitor_context
 
 SYSTEM_PROMPT = (
     "You are an expert competitive intelligence analyst. Based on the company profile and target URL, "
@@ -15,42 +18,45 @@ SYSTEM_PROMPT = (
     "- weaknesses: 2-3 specific weaknesses or gaps\n"
     "- inferred_services: 3-5 services they likely offer\n"
     "Also include top-level keys:\n"
+    "- scraped_competitors: competitors observed from crawl/search results\n"
+    "- inferred_competitors: competitors derived purely from market inference\n"
     "- data_confidence: 'low', 'medium', or 'high' with brief rationale\n"
     "- data_limitations: list of caveats, especially where competitors are inferred\n\n"
     f"{JSON_RESPONSE_RULES}"
 )
 
-REQUIRED_KEYS = ["competitors", "data_confidence", "data_limitations"]
-REQUIRED_COMPETITOR_KEYS = [
-    "name",
-    "url",
-    "positioning",
-    "estimated_pricing_tier",
-    "key_messaging",
-    "weaknesses",
-    "inferred_services",
+REQUIRED_KEYS = [
+    "competitors", "scraped_competitors", "inferred_competitors",
+    "data_confidence", "data_limitations",
 ]
 
 
-def run(company_profile: dict, target_url: str, llm_complete) -> dict:
-    """
-    Run the competitor intelligence module.
-
-    Args:
-        company_profile: Output from Module 1.
-        target_url: Original target URL.
-        llm_complete: LLM completion callable.
-
-    Returns:
-        Dict with 'competitors' key containing list of competitor dicts.
-    """
+def run(
+    company_profile: dict,
+    target_url: str,
+    llm_complete,
+    scrape_result: ScrapeResult | None = None,
+    search_discovery=None,
+) -> dict:
+    from research.search import discover_competitors as default_discovery
     profile_text = "\n".join(f"- {k}: {v}" for k, v in company_profile.items() if k != "error")
+    parts = [f"TARGET URL: {target_url}", f"COMPANY PROFILE:\n{profile_text}"]
 
-    prompt = (
-        f"TARGET URL: {target_url}\n"
-        f"COMPANY PROFILE:\n{profile_text}\n\n"
-        f"Identify direct competitors and analyze each as instructed."
-    )
+    if scrape_result is not None:
+        parts.append("OBSERVED EXTERNAL LINKS:\n" + format_competitor_context(scrape_result))
+
+    discover_fn = search_discovery or default_discovery
+    search_info = discover_fn(company_profile, target_url)
+    search_results = search_info.get("results", [])
+    if search_results:
+        lines = ["LIVE SEARCH RESULTS:\n"]
+        for r in search_results[:6]:
+            lines.append(f"- {r.get('title', 'Unknown')}: {r.get('url', '')}\n  {r.get('snippet', '')}")
+        parts.append("".join(lines))
+    else:
+        parts.append("LIVE SEARCH RESULTS: None available; competitors may be inferred only.")
+
+    prompt = "\n\n".join(parts) + "\n\nIdentify direct competitors and analyze each as instructed."
 
     data = llm_json_call(
         llm_complete=llm_complete,
@@ -61,14 +67,9 @@ def run(company_profile: dict, target_url: str, llm_complete) -> dict:
         context="competitor analysis",
         max_tokens=2000,
     )
-
-    # Extra validation: check competitor list structure
-    competitors = data.get("competitors")
-    if not isinstance(competitors, list):
-        raise JsonParsingError("competitor analysis field 'competitors' must be a list")
-    for index, competitor in enumerate(competitors, start=1):
-        if not isinstance(competitor, dict):
-            raise JsonParsingError(f"competitor analysis item {index} must be an object")
-        require_keys(competitor, REQUIRED_COMPETITOR_KEYS, context=f"competitor analysis item {index}")
-
-    return data
+    # Merge search limitations
+    limitations = data.setdefault("data_limitations", [])
+    for lim in search_info.get("data_limitations", []):
+        if lim and lim not in limitations:
+            limitations.append(lim)
+    return validate_module_output(data, CompetitorSchema, "competitor analysis")

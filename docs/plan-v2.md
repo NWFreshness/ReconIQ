@@ -70,18 +70,20 @@ Update rules for future agents/models:
   - Merge commit: `9550048 Merge pull request #7 from NWFreshness/feat/phase-6-report-writer`
   - Local verification: `70 passed`; focused report writer checks `9 passed`; compile check passed; `git diff --check` passed.
 
-- [ ] Phase 7 — Streamlit UI
-  - Status: In progress — local implementation and verification complete; not yet committed/pushed.
+- [x] Phase 7 — Streamlit UI
+  - Status: Complete — merged to main.
   - Branch: `feat/phase-7-streamlit-ui`
   - Local verification: `93 passed`; focused app checks `15 passed`; compile check passed; `git diff --check` passed.
 
-- [ ] Phase 8 — End-to-End Test Path
-  - Status: In progress — local implementation and verification complete; not yet committed/pushed.
+- [x] Phase 8 — End-to-End Test Path
+  - Status: Complete — merged to main.
   - Branch: `feat/phase-8-e2e-tests`
   - Local verification: `98 passed`; focused E2E checks `5 passed`; compile check passed; `git diff --check` passed.
 
-- [ ] Phase 9 — Optional Enhancements After MVP
-  - Status: Not started
+- [x] Phase 9 — Optional Enhancements After MVP
+  - Status: Complete — 9B (Playwright), 9G (UI Polish), 9J-1/2/3 (Deep Scraping), 9C (Competitor Search), 9D (Pydantic Schemas), 9E (Cached Runs) all merged to main.
+  - Branch: `feat/phase-9j3-9c-9d-9e-integration`
+  - Local verification: `198 passed`; Playwright UI smoke test passed; compile check passed; `git diff --check` passed.
 
 ---
 

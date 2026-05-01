@@ -36,6 +36,8 @@ def run_analysis(request: AnalysisRequest, progress_callback: ProgressCallback =
         llm_complete=configured_llm_complete,
         enabled_modules=request.enabled_modules,
         progress_callback=progress_callback,
+        max_pages=request.max_pages,
+        max_depth=request.max_depth,
     )
     report_path = write_report(results, output_dir=request.output_dir or "reports")
     return AnalysisResult(results=results, report_path=report_path)

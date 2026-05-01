@@ -7,9 +7,11 @@ from core import services
 def test_run_analysis_uses_coordinator_and_report_writer(monkeypatch, tmp_path):
     calls = {}
 
-    def fake_run_all(target_url, llm_complete, enabled_modules, progress_callback=None):
+    def fake_run_all(target_url, llm_complete, enabled_modules, progress_callback=None, max_pages=5, max_depth=2):
         calls["target_url"] = target_url
         calls["enabled_modules"] = enabled_modules
+        calls["max_pages"] = max_pages
+        calls["max_depth"] = max_depth
         calls["llm_result"] = llm_complete("prompt", module="company_profile")
         if progress_callback:
             progress_callback("done", 100.0)

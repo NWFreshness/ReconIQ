@@ -43,12 +43,26 @@ COMPETITOR_RESULT = {
             "inferred_services": ["widget consulting"],
         }
     ],
+    "scraped_competitors": [],
+    "inferred_competitors": [
+        {
+            "name": "WidgetCo",
+            "url": "https://widgetco.example",
+            "positioning": "Premium widgets for regional teams.",
+            "estimated_pricing_tier": "premium",
+            "key_messaging": "Widgets that scale.",
+            "weaknesses": ["generic local messaging"],
+            "inferred_services": ["widget consulting"],
+        }
+    ],
     "data_confidence": "low",
-    "data_limitations": ["Competitors are inferred from market context."],
+    "data_limitations": ["Competitors are inferred from market context.", "Live competitor search is disabled; competitors may be inferred."],
 }
 
 SOCIAL_RESULT = {
     "platforms": ["LinkedIn", "Facebook"],
+    "verified_social_accounts": [{"platform": "LinkedIn", "url": "https://linkedin.com/company/acme"}],
+    "inferred_platforms": ["Twitter"],
     "content_quality": "moderate — inferred from company profile",
     "content_frequency": "sporadic",
     "engagement_signals": "weak",

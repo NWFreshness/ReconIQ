@@ -10,7 +10,7 @@ from research.seo_keywords import run as run_seo_keywords
 from research.competitors import run as run_competitors
 from research.social_content import run as run_social_content
 from research.swot import run as run_swot
-from scraper.scraper import ScrapeCache, extract_domain_name, scrape
+from scraper.scraper import ScrapeCache, extract_domain_name
 
 
 ProgressCallback = Optional[Callable[[str, float], None]]
@@ -28,12 +28,14 @@ def run_all(
     llm_complete: Callable,
     enabled_modules: dict[str, bool],
     progress_callback: ProgressCallback = None,
+    max_pages: int = 5,
+    max_depth: int = 2,
 ) -> dict[str, Any]:
     """
     Run all enabled research modules and return a combined results dict.
 
     Execution order:
-    1. Company Profile runs first (scrapes the target URL once, shares content).
+    1. Company Profile runs first (crawls the target URL, shares structured data).
     2. SEO, Competitors, and Social/Content run in parallel after profile.
     3. SWOT runs after all available downstream module outputs are collected.
     """
@@ -70,35 +72,40 @@ def run_all(
         if not enabled_modules.get(module_name, True):
             mark_skipped(module_name)
 
-    # ── Phase 1: Scrape the homepage once ────────────────────────────────────
-    scraped_content: str | None = None
+    # —— Phase 0: Structured crawl ——————————————————————————————————————————————
+    scrape_result = None
     if enabled_modules.get("company_profile", True):
         log("Scraping target website...", 5.0)
-        scraped_content = scrape_cache.get_text(target_url)
-        if not scraped_content:
+        scrape_result = scrape_cache.get_structured(
+            target_url,
+            max_pages=max_pages,
+            max_depth=max_depth,
+            progress_callback=log,
+        )
+        if not scrape_result.body_text:
             # Fallback: use domain name as hint
             domain = extract_domain_name(target_url)
-            scraped_content = (
+            scrape_result.body_text = (
                 f"Could not access {target_url}. "
                 f"The company's domain is: {domain}. "
                 f"Analyze based on the domain name alone."
             )
         log("Website scraped", 10.0)
 
-    # ── Phase 2: Company Profile (must succeed for downstream modules) ───────
+    # —— Phase 1: Company Profile (must succeed for downstream modules) ——————
     company_profile_succeeded = False
     if enabled_modules.get("company_profile", True):
         log("Running Company Profile...", 12.0)
         try:
             profile = run_company_profile(
-                target_url, llm_complete, scraped_content=scraped_content
+                target_url, llm_complete, scraped_content=None, scrape_result=scrape_result
             )
             mark_run("company_profile", profile)
             company_profile_succeeded = True
-            log("✓ Company Profile complete", 25.0)
+            log("Company Profile complete", 25.0)
         except Exception as exc:
             mark_failed("company_profile", exc)
-            log(f"✗ Company Profile failed: {exc}", 25.0)
+            log(f"Company Profile failed: {exc}", 25.0)
     else:
         log("Company Profile skipped", 25.0)
 
@@ -112,6 +119,7 @@ def run_all(
             mark_run=mark_run,
             mark_failed=mark_failed,
             log=log,
+            scrape_result=scrape_result,
         )
     else:
         for module_name in ("seo_keywords", "competitor", "social_content"):
@@ -131,15 +139,23 @@ def run_all(
                 llm_complete=llm_complete,
             )
             mark_run("swot", swot)
-            log("✓ SWOT Synthesis complete", 95.0)
+            log("SWOT Synthesis complete", 95.0)
         except Exception as exc:
             mark_failed("swot", exc)
-            log(f"✗ SWOT Synthesis failed: {exc}", 95.0)
+            log(f"SWOT Synthesis failed: {exc}", 95.0)
     elif enabled_modules.get("swot", True):
         mark_skipped("swot")
         log("SWOT Synthesis skipped", 95.0)
 
     log("All modules complete!", 100.0)
+    if scrape_result is not None:
+        metadata["crawl"] = {
+            "max_pages": max_pages,
+            "max_depth": max_depth,
+            "pages_crawled": len(scrape_result.pages),
+            "raw_html_length": scrape_result.raw_html_length,
+            "crawl_duration_s": scrape_result.crawl_duration_s,
+        }
     return results
 
 
@@ -152,16 +168,17 @@ def _run_downstream_modules(
     mark_run: Callable[[str, Any], None],
     mark_failed: Callable[[str, Exception], None],
     log: Callable[[str, float], None],
+    scrape_result,
 ) -> None:
     tasks: dict[str, Callable[[], dict]] = {}
     profile = results.get("company_profile", {})
 
     if enabled_modules.get("seo_keywords", True):
-        tasks["seo_keywords"] = lambda: run_seo_keywords(profile, target_url, llm_complete)
+        tasks["seo_keywords"] = lambda: run_seo_keywords(profile, target_url, llm_complete, scrape_result=scrape_result)
     if enabled_modules.get("competitor", True):
-        tasks["competitor"] = lambda: run_competitors(profile, target_url, llm_complete)
+        tasks["competitor"] = lambda: run_competitors(profile, target_url, llm_complete, scrape_result=scrape_result)
     if enabled_modules.get("social_content", True):
-        tasks["social_content"] = lambda: run_social_content(profile, target_url, llm_complete)
+        tasks["social_content"] = lambda: run_social_content(profile, target_url, llm_complete, scrape_result=scrape_result)
 
     if not tasks:
         log("No downstream research modules enabled", 70.0)
@@ -181,10 +198,10 @@ def _run_downstream_modules(
             pct = 35.0 + (completed / len(tasks)) * 35.0
             try:
                 mark_run(module_name, future.result())
-                log(f"✓ {MODULE_LABELS[module_name]} complete", pct)
+                log(f"{MODULE_LABELS[module_name]} complete", pct)
             except Exception as exc:
                 mark_failed(module_name, exc)
-                log(f"✗ {MODULE_LABELS[module_name]} failed: {exc}", pct)
+                log(f"{MODULE_LABELS[module_name]} failed: {exc}", pct)
 
 
 def _initial_metadata(target_url: str, llm_complete: Callable) -> dict[str, Any]:

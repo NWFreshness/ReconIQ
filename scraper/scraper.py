@@ -41,7 +41,7 @@ class ScrapeCache:
 
     def __init__(self) -> None:
         self._text_cache: dict[str, str] = {}
-        self._structured_cache: dict[str, ScrapeResult] = {}
+        self._structured_cache: dict[tuple[str, int, int], "ScrapeResult"] = {}
 
     def get_text(self, url: str, timeout: int = 15) -> str:
         """Scrape and cache raw text for a URL. Returns cached result on subsequent calls."""
@@ -53,14 +53,30 @@ class ScrapeCache:
         self._text_cache[normalized] = result
         return result
 
-    def get_structured(self, url: str, timeout: int = 15) -> ScrapeResult:
-        """Scrape and cache structured data for a URL. Returns cached result on subsequent calls."""
+    def get_structured(
+        self,
+        url: str,
+        timeout: int = 15,
+        max_pages: int = 5,
+        max_depth: int = 2,
+        progress_callback=None,
+    ) -> "ScrapeResult":
+        """Crawl and cache structured data for a URL. Uses crawl_site if available."""
         normalized = normalize_url(url) if url else url
-        if normalized in self._structured_cache:
+        key = (normalized or url, max_pages, max_depth)
+        if key in self._structured_cache:
             logger.debug("ScrapeCache hit (structured) for %s", normalized)
-            return self._structured_cache[normalized]
-        result = scrape_structured(normalized or url, timeout=timeout)
-        self._structured_cache[normalized] = result
+            return self._structured_cache[key]
+        # Lazy import to avoid circular dependency
+        from scraper.crawler import crawl_site
+        result = crawl_site(
+            normalized or url,
+            max_pages=max_pages,
+            max_depth=max_depth,
+            timeout=timeout,
+            progress_callback=progress_callback,
+        )
+        self._structured_cache[key] = result
         return result
 
 

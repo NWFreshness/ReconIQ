@@ -3,7 +3,8 @@ from __future__ import annotations
 
 import json
 
-from research.parsing import JSON_RESPONSE_RULES, JsonParsingError, llm_json_call, require_keys
+from research.parsing import JSON_RESPONSE_RULES, llm_json_call
+from research.schemas import SWOTSchema, validate_module_output
 
 SYSTEM_PROMPT = (
     "You are a senior marketing strategist at an AI automation agency. Synthesize all provided research into a "
@@ -83,13 +84,7 @@ def run(
         max_tokens=2000,
     )
 
-    # Extra validation: check nested swot structure
-    swot = data.get("swot")
-    if not isinstance(swot, dict):
-        raise JsonParsingError("SWOT synthesis field 'swot' must be an object")
-    require_keys(swot, REQUIRED_SWOT_KEYS, context="SWOT synthesis swot")
-
-    return data
+    return validate_module_output(data, SWOTSchema, "SWOT synthesis")
 
 
 def _format_dict(d: dict) -> str:
