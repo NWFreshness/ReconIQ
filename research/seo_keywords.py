@@ -1,7 +1,10 @@
 """Module 2: SEO & Keywords — analyze search presence and content gaps."""
 from __future__ import annotations
 
+from scraper.models import ScrapeResult
 from research.parsing import JSON_RESPONSE_RULES, llm_json_call
+from research.schemas import SEOKeywordsSchema, validate_module_output
+from research.scrape_context import format_seo_context
 
 SYSTEM_PROMPT = (
     "You are an expert SEO analyst. Based on the provided company profile and target URL, "
@@ -18,38 +21,19 @@ SYSTEM_PROMPT = (
 )
 
 REQUIRED_KEYS = [
-    "top_keywords",
-    "content_gaps",
-    "seo_weaknesses",
-    "quick_wins",
-    "estimated_traffic_tier",
-    "local_seo_signals",
-    "data_confidence",
-    "data_limitations",
+    "top_keywords", "content_gaps", "seo_weaknesses", "quick_wins",
+    "estimated_traffic_tier", "local_seo_signals", "data_confidence", "data_limitations",
 ]
 
 
-def run(company_profile: dict, target_url: str, llm_complete) -> dict:
-    """
-    Run the SEO & keywords module.
-
-    Args:
-        company_profile: Output from Module 1.
-        target_url: Original target URL.
-        llm_complete: LLM completion callable.
-
-    Returns:
-        Dict with SEO analysis fields.
-    """
+def run(company_profile: dict, target_url: str, llm_complete, scrape_result: ScrapeResult | None = None) -> dict:
     profile_text = "\n".join(f"- {k}: {v}" for k, v in company_profile.items() if k != "error")
+    parts = [f"TARGET URL: {target_url}", f"COMPANY PROFILE:\n{profile_text}"]
+    if scrape_result is not None:
+        parts.append("REAL ON-PAGE SEO SIGNALS:\n" + format_seo_context(scrape_result))
+    prompt = "\n\n".join(parts) + "\n\nInfer the SEO landscape as instructed."
 
-    prompt = (
-        f"TARGET URL: {target_url}\n"
-        f"COMPANY PROFILE:\n{profile_text}\n\n"
-        f"Infer the SEO landscape as instructed."
-    )
-
-    return llm_json_call(
+    data = llm_json_call(
         llm_complete=llm_complete,
         prompt=prompt,
         module="seo_keywords",
@@ -58,3 +42,4 @@ def run(company_profile: dict, target_url: str, llm_complete) -> dict:
         context="SEO keywords",
         max_tokens=1200,
     )
+    return validate_module_output(data, SEOKeywordsSchema, "SEO keywords")

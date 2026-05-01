@@ -17,3 +17,4 @@ __pycache__/
 
 # Generated output
 reports/
+.reconiq-cache/

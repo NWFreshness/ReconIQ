@@ -87,11 +87,13 @@ report/
 
 **Goal:** Add fallback scraping for JS-heavy sites that `requests + BeautifulSoup` cannot handle.
 
-**Status:** In progress — local implementation and verification complete; PR pending.
+**Status:** Complete — merged to main.
 
 **Branch:** `feat/phase-9b-playwright`
 
 **Local verification:** `108 passed`; focused Playwright checks `10 passed`; compile check passed; `git diff --check` passed.
+
+**PR:** Merged.
 
 ### Files to Modify
 
@@ -122,7 +124,15 @@ report/
 
 **Goal:** Use live search APIs instead of pure LLM inference for competitor data.
 
-**Status:** Not started
+**Status:** Complete — merged to main. Brave Search API support added with graceful fallback when disabled or unconfigured.
+
+**Branch:** `feat/phase-9j3-9c-9d-9e-integration`
+
+**Files Created:**
+- `research/search.py` — Brave Search wrapper with fallback/no-op behavior
+
+**Files Modified:**
+- `research/competitors.py` — integrates live search results into prompt and labels scraped vs inferred competitors
 
 ### Possible Tools
 
@@ -155,7 +165,16 @@ report/
 
 **Goal:** Replace lightweight JSON validation with typed Pydantic schemas for stronger guarantees and IDE support.
 
-**Status:** Not started
+**Status:** Complete — merged to main.
+
+**Branch:** `feat/phase-9j3-9c-9d-9e-integration`
+
+**Files Created:**
+- `research/schemas.py` — Pydantic v2 models for all module outputs
+
+**Files Modified:**
+- All `research/*.py` modules validate via `validate_module_output()` and return plain dicts for backward compatibility
+- `requirements.txt` — added `pydantic>=2.0.0`
 
 ### Files to Create / Modify
 
@@ -185,7 +204,17 @@ report/
 
 **Goal:** Avoid repeating expensive LLM calls for the same URL + module + prompt.
 
-**Status:** Not started
+**Status:** Complete — merged to main.
+
+**Branch:** `feat/phase-9j3-9c-9d-9e-integration`
+
+**Files Created:**
+- `llm/cache.py` — local raw-response cache with SHA256 keys
+
+**Files Modified:**
+- `llm/router.py` — reads/writes cache around provider calls
+- `config.yaml` — added `llm_cache` section
+- `.gitignore` — added `.reconiq-cache/`
 
 ### Files to Create / Modify
 
@@ -246,11 +275,13 @@ report/
 
 **Goal:** Improve the Streamlit UI beyond the MVP barebones look.
 
-**Status:** In progress — local implementation and verification complete; not yet committed/pushed.
+**Status:** Complete — merged to main.
 
 **Branch:** `feat/phase-9g-ui-polish`
 
 **Local verification:** `108 passed`; compile check passed; `git diff --check` passed.
+
+**PR:** Merged.
 
 ### Ideas
 
@@ -347,7 +378,11 @@ An enhancement is complete when:
 4. **Competitor URLs are made up** — The competitor module prompt says "use plausible URLs if unknown" — these are not real competitor sites.
 5. **Content truncation** — `company_profile.py` truncates scraped text to 8000 chars. Rich footer content (zips, service areas, social links) can be cut off.
 
-**Status:** In progress — 9J-1 (Structured Extraction) complete; 9J-2 (Multi-Page Crawler) and 9J-3 (Integration) not started.
+**Status:** Complete — 9J-1 (Structured Extraction), 9J-2 (Multi-Page Crawler), and 9J-3 (Integration) all merged to main.
+
+**Branch:** `feat/phase-9j3-9c-9d-9e-integration`
+
+**Local verification:** `198 passed`; Playwright UI smoke test passed; compile check passed; `git diff --check` passed.
 
 ### Implementation — Phase 9J-1: Structured Extraction
 
@@ -489,12 +524,12 @@ Replace the current flat `scrape()` → text dump approach with a structured cra
 | ID | Name | Status | PR | Branch |
 |----|------|--------|-----|--------|
 | 9A | FastAPI Migration | Not started | — | — |
-| 9B | Playwright JS Rendering | In progress | — | `feat/phase-9b-playwright` |
-| 9C | Competitor Search API | Not started | — | — |
-| 9D | Pydantic Schemas | Not started | — | — |
-| 9E | Cached Runs | Not started | — | — |
+| 9B | Playwright JS Rendering | Complete — merged | Merged | `feat/phase-9b-playwright` |
+| 9C | Competitor Search API | Complete — merged | Merged | `feat/phase-9j3-9c-9d-9e-integration` |
+| 9D | Pydantic Schemas | Complete — merged | Merged | `feat/phase-9j3-9c-9d-9e-integration` |
+| 9E | Cached Runs | Complete — merged | Merged | `feat/phase-9j3-9c-9d-9e-integration` |
 | 9F | Export Formats | Not started | — | — |
-| 9G | UI Polish / Dark Mode | In progress | — | `feat/phase-9g-ui-polish` |
+| 9G | UI Polish / Dark Mode | Complete — merged | Merged | `feat/phase-9g-ui-polish` |
 | 9H | CLI Interface | Not started | — | — |
 | 9I | Batch Analysis | Not started | — | — |
-| 9J | Deep Scraping | Not started | — | — |
+| 9J | Deep Scraping | Complete — merged | Merged | `feat/phase-9j3-9c-9d-9e-integration` |

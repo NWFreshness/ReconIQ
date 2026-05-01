@@ -27,6 +27,16 @@ FAKE_HTML = """\
 """
 
 
+
+from scraper.models import ScrapeResult
+
+def _fake_scrape_result() -> ScrapeResult:
+    return ScrapeResult(
+        url="https://acme.example.com",
+        title="Acme Corp",
+        body_text=FAKE_HTML,
+    )
+
 def fake_llm_complete(prompt: str, module: str, system: str | None = None, max_tokens: int = 2048, temperature: float = 0.7, **kwargs) -> str:
     """Return canned JSON responses per module."""
     responses = {
@@ -65,6 +75,8 @@ def fake_llm_complete(prompt: str, module: str, system: str | None = None, max_t
                 }
             ],
             "data_confidence": "low",
+            "scraped_competitors": [],
+            "inferred_competitors": [],
             "data_limitations": ["Inferred from LLM, not live search"],
         },
         "social_content": {
@@ -77,6 +89,8 @@ def fake_llm_complete(prompt: str, module: str, system: str | None = None, max_t
             "content_gaps": ["Video content", "Case studies"],
             "email_signals": "newsletter signup present",
             "data_confidence": "low",
+            "verified_social_accounts": [],
+            "inferred_platforms": [],
             "data_limitations": ["Inferred from limited signals"],
         },
         "swot": {
@@ -106,7 +120,7 @@ def tmp_reports_dir(tmp_path: Path) -> str:
 
 class TestMockedEndToEnd:
     @patch("core.services.llm_complete", side_effect=fake_llm_complete)
-    @patch("scraper.scraper.scrape", return_value=FAKE_HTML)
+    @patch("scraper.scraper.ScrapeCache.get_structured", return_value=_fake_scrape_result())
     def test_full_pipeline_writes_report_with_all_sections(self, _mock_scrape, _mock_llm, tmp_reports_dir: str):
         request = AnalysisRequest(
             target_url="https://acme.example.com",
@@ -150,7 +164,7 @@ class TestMockedEndToEnd:
         assert "data limitations" in content.lower()
 
     @patch("core.services.llm_complete", side_effect=fake_llm_complete)
-    @patch("scraper.scraper.scrape", return_value="")
+    @patch("scraper.scraper.ScrapeCache.get_structured", return_value=_fake_scrape_result())
     def test_pipeline_with_failed_scrape_still_completes(self, _mock_scrape, _mock_llm, tmp_reports_dir: str):
         """If scraping fails, the pipeline should fall back to domain-only inference and still produce a report."""
         request = AnalysisRequest(
@@ -173,7 +187,7 @@ class TestMockedEndToEnd:
         assert "swot" in result.results
 
     @patch("core.services.llm_complete", side_effect=fake_llm_complete)
-    @patch("scraper.scraper.scrape", return_value=FAKE_HTML)
+    @patch("scraper.scraper.ScrapeCache.get_structured", return_value=_fake_scrape_result())
     def test_disabled_modules_are_skipped(self, _mock_scrape, _mock_llm, tmp_reports_dir: str):
         request = AnalysisRequest(
             target_url="https://acme.example.com",
@@ -197,7 +211,7 @@ class TestMockedEndToEnd:
         assert "social_content" in metadata["modules_skipped"]
 
     @patch("core.services.llm_complete", side_effect=fake_llm_complete)
-    @patch("scraper.scraper.scrape", return_value=FAKE_HTML)
+    @patch("scraper.scraper.ScrapeCache.get_structured", return_value=_fake_scrape_result())
     def test_swot_skipped_when_company_profile_disabled(self, _mock_scrape, _mock_llm, tmp_reports_dir: str):
         request = AnalysisRequest(
             target_url="https://acme.example.com",
@@ -219,7 +233,7 @@ class TestMockedEndToEnd:
         assert "seo_keywords" not in metadata["modules_run"]  # skipped because profile didn't run
 
     @patch("core.services.llm_complete", side_effect=fake_llm_complete)
-    @patch("scraper.scraper.scrape", return_value=FAKE_HTML)
+    @patch("scraper.scraper.ScrapeCache.get_structured", return_value=_fake_scrape_result())
     def test_progress_callback_receives_updates(self, _mock_scrape, _mock_llm, tmp_reports_dir: str):
         messages: list[tuple[str, float]] = []
 

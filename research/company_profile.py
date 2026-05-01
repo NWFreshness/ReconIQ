@@ -1,9 +1,11 @@
 """Module 1: Company Profile — extract what the company does and how they present themselves."""
 from __future__ import annotations
 
-from scraper.scraper import scrape, extract_domain_name
+from scraper.models import ScrapeResult
+from scraper.scraper import extract_domain_name, scrape
 from research.parsing import JSON_RESPONSE_RULES, llm_json_call
-
+from research.schemas import CompanyProfileSchema, validate_module_output
+from research.scrape_context import format_company_context
 
 SYSTEM_PROMPT = (
     "You are an expert marketing analyst. Analyze the following website content "
@@ -23,38 +25,29 @@ SYSTEM_PROMPT = (
 )
 
 REQUIRED_KEYS = [
-    "company_name",
-    "what_they_do",
-    "target_audience",
-    "value_proposition",
-    "brand_voice",
-    "primary_cta",
-    "services_products",
-    "marketing_channels",
-    "data_confidence",
-    "data_limitations",
+    "company_name", "what_they_do", "target_audience", "value_proposition", "brand_voice",
+    "primary_cta", "services_products", "marketing_channels", "data_confidence", "data_limitations",
 ]
 
 
-def run(target_url: str, llm_complete, scraped_content: str | None = None) -> dict:
-    """
-    Run the company profile module.
-
-    Args:
-        target_url: URL to analyze.
-        llm_complete: Callable(prompt, module, system, max_tokens) -> str.
-        scraped_content: Pre-scraped page content. If None, scrapes the URL.
-
-    Returns:
-        Dict with company profile fields.
-    """
-    if scraped_content is not None:
+def run(
+    target_url: str,
+    llm_complete,
+    scraped_content: str | None = None,
+    scrape_result: ScrapeResult | None = None,
+) -> dict:
+    """Run the company profile module."""
+    if scrape_result is not None:
+        content = format_company_context(scrape_result, max_chars=12_000)
+        content_label = "WEBSITE STRUCTURED CRAWL DATA"
+    elif scraped_content is not None:
         content = scraped_content
+        content_label = "WEBSITE CONTENT"
     else:
         content = scrape(target_url)
+        content_label = "WEBSITE CONTENT"
 
     if not content:
-        # Fallback: use domain name as hint
         domain = extract_domain_name(target_url)
         content = (
             f"Could not access {target_url}. "
@@ -64,11 +57,11 @@ def run(target_url: str, llm_complete, scraped_content: str | None = None) -> di
 
     prompt = (
         f"TARGET URL: {target_url}\n\n"
-        f"WEBSITE CONTENT:\n{content[:8000]}\n\n"
+        f"{content_label}:\n{content[:12000]}\n\n"
         f"Extract the company profile as instructed."
     )
 
-    return llm_json_call(
+    data = llm_json_call(
         llm_complete=llm_complete,
         prompt=prompt,
         module="company_profile",
@@ -77,3 +70,4 @@ def run(target_url: str, llm_complete, scraped_content: str | None = None) -> di
         context="company profile",
         max_tokens=1500,
     )
+    return validate_module_output(data, CompanyProfileSchema, "company profile")
