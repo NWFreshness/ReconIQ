@@ -1,0 +1,766 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ReconIQ — Architecture Map</title>
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  :root{
+    --bg:#0a0a0f;--surface:#12121a;--border:#1e1e2e;--text:#e2e2f0;
+    --muted:#6b6b8d;--accent:#3b82f6;--cyan:#06b6d4;--green:#22c55e;
+    --amber:#f59e0b;--red:#ef4444;--purple:#a855f7;--pink:#ec4899;
+  }
+  body{background:var(--bg);color:var(--text);font-family:'Segoe UI',system-ui,-apple-system,sans-serif;line-height:1.6;overflow-x:hidden}
+  .container{max-width:1400px;margin:0 auto;padding:2rem}
+  
+  /* Header */
+  header{text-align:center;padding:3rem 0 2rem;border-bottom:1px solid var(--border);margin-bottom:3rem}
+  header h1{font-size:2.5rem;background:linear-gradient(135deg,var(--accent),var(--cyan));-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:.5rem}
+  header p{color:var(--muted);font-size:1rem}
+  header .meta{margin-top:1rem;display:flex;gap:1rem;justify-content:center;flex-wrap:wrap}
+  header .meta span{font-size:.75rem;padding:.25rem .75rem;border:1px solid var(--border);border-radius:9999px;color:var(--muted)}
+
+  /* Flow Arrow */
+  .flow-arrow{text-align:center;padding:1rem 0;color:var(--muted);font-size:.85rem;position:relative}
+  .flow-arrow::after{content:'▼';display:block;font-size:1.2rem;color:var(--accent);margin-top:.25rem}
+
+  /* Layer */
+  .layer{margin-bottom:2rem;border:1px solid var(--border);border-radius:16px;overflow:hidden;background:var(--surface)}
+  .layer-header{padding:1.25rem 1.5rem;background:linear-gradient(90deg,rgba(59,130,246,.08),transparent);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:1rem;cursor:pointer;user-select:none}
+  .layer-header h2{font-size:1.25rem;font-weight:700}
+  .layer-header .badge{font-size:.7rem;padding:.15rem .5rem;border-radius:4px;font-weight:600;text-transform:uppercase}
+  .layer-header .desc{color:var(--muted);font-size:.85rem;margin-top:.25rem}
+  .layer-body{padding:1.25rem 1.5rem}
+  
+  .badge-blue{background:rgba(59,130,246,.15);color:var(--accent)}
+  .badge-green{background:rgba(34,197,94,.15);color:var(--green)}
+  .badge-amber{background:rgba(245,158,11,.15);color:var(--amber)}
+  .badge-purple{background:rgba(168,85,247,.15);color:var(--purple)}
+  .badge-pink{background:rgba(236,72,153,.15);color:var(--pink)}
+  .badge-cyan{background:rgba(6,182,212,.15);color:var(--cyan)}
+  .badge-red{background:rgba(239,68,68,.15);color:var(--red)}
+
+  /* Component Grid */
+  .comp-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:1rem}
+  .comp{border:1px solid var(--border);border-radius:10px;padding:1rem;transition:border-color .2s}
+  .comp:hover{border-color:var(--accent)}
+  .comp h3{font-size:.95rem;font-weight:600;margin-bottom:.35rem;display:flex;align-items:center;gap:.5rem}
+  .comp h3 .file{font-size:.7rem;color:var(--muted);font-family:monospace;font-weight:400}
+  .comp p{font-size:.8rem;color:var(--muted);margin-bottom:.5rem}
+  .comp .tags{display:flex;gap:.35rem;flex-wrap:wrap}
+  .comp .tag{font-size:.65rem;padding:.1rem .45rem;border-radius:4px;background:rgba(59,130,246,.08);color:var(--accent);border:1px solid rgba(59,130,246,.15)}
+  .comp .tag.green{background:rgba(34,197,94,.08);color:var(--green);border-color:rgba(34,197,94,.15)}
+  .comp .tag.amber{background:rgba(245,158,11,.08);color:var(--amber);border-color:rgba(245,158,11,.15)}
+  .comp .tag.purple{background:rgba(168,85,247,.08);color:var(--purple);border-color:rgba(168,85,247,.15)}
+  .comp .tag.cyan{background:rgba(6,182,212,.08);color:var(--cyan);border-color:rgba(6,182,212,.15)}
+
+  /* Execution Order */
+  .exec-order{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;padding:1rem 1.5rem;background:rgba(59,130,246,.03);border-top:1px solid var(--border)}
+  .exec-step{font-size:.8rem;padding:.4rem .75rem;border-radius:8px;background:var(--surface);border:1px solid var(--border)}
+  .exec-step.active{border-color:var(--accent);background:rgba(59,130,246,.08);color:var(--accent)}
+  .exec-arrow{color:var(--muted);font-size:1rem}
+  .exec-group{display:flex;align-items:center;gap:.35rem}
+  .exec-group .bracket{font-size:.7rem;color:var(--cyan)}
+
+  /* Progress Stages */
+  .progress-stages{display:flex;flex-direction:column;gap:.5rem;padding:1rem 1.5rem}
+  .stage{display:flex;align-items:center;gap:1rem;font-size:.8rem}
+  .stage .pct{font-family:monospace;font-weight:700;min-width:3rem;color:var(--accent)}
+  .stage .bar{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+  .stage .bar-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--cyan));border-radius:3px}
+  .stage .label{min-width:250px;color:var(--muted)}
+
+  /* Data Flow */
+  .data-flow{padding:1.5rem}
+  .flow-step{display:flex;gap:1rem;padding:.5rem 0;font-size:.85rem}
+  .flow-step .num{min-width:2rem;height:2rem;border-radius:50%;background:rgba(59,130,246,.1);color:var(--accent);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.75rem;flex-shrink:0}
+  .flow-step .text{color:var(--muted);padding-top:.15rem}
+  .flow-step .text strong{color:var(--text)}
+
+  /* Footer */
+  footer{text-align:center;padding:2rem 0;color:var(--muted);font-size:.75rem;border-top:1px solid var(--border);margin-top:3rem}
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+  <h1>ReconIQ Architecture</h1>
+  <p>Marketing Intelligence Platform — AI-powered prospect research and outreach generation</p>
+  <div class="meta">
+    <span>FastAPI :8000</span>
+    <span>Next.js :3000</span>
+    <span>Python 3.11</span>
+    <span>SQLite</span>
+    <span>litellm</span>
+    <span>Firecrawl</span>
+    <span>7 Modules</span>
+    <span>330 Tests</span>
+  </div>
+</header>
+
+<!-- ARCHITECTURE DIAGRAM -->
+<div style="margin:2rem 0;border:1px solid var(--border);border-radius:16px;overflow:hidden;background:var(--surface)">
+  <div class="layer-header" style="cursor:default">
+    <span class="badge badge-blue">Diagram</span>
+    <div>
+      <h2>System Architecture</h2>
+      <div class="desc">Visual map of all layers, components, and data flows</div>
+    </div>
+  </div>
+  <div style="padding:1.5rem;overflow-x:auto">
+    <svg viewBox="0 0 1220 1120" style="width:100%;min-width:900px;display:block" font-family="sans-serif">
+      <defs>
+        <marker id="aC" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,10 3.5,0 7" fill="#22d3ee"/></marker>
+        <marker id="aG" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,10 3.5,0 7" fill="#34d399"/></marker>
+        <marker id="aA" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,10 3.5,0 7" fill="#fbbf24"/></marker>
+        <marker id="aP" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,10 3.5,0 7" fill="#a855f7"/></marker>
+        <marker id="aS" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,10 3.5,0 7" fill="#64748b"/></marker>
+        <marker id="aK" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,10 3.5,0 7" fill="#ec4899"/></marker>
+        <marker id="aW" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto"><polygon points="0 0,10 3.5,0 7" fill="#a78bfa"/></marker>
+        <pattern id="dg" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1e1e2e" stroke-width="0.5"/></pattern>
+      </defs>
+      <rect width="100%" height="100%" fill="url(#dg)"/>
+
+      <!-- ====== ARROWS (behind everything) ====== -->
+      <!-- User -> Frontend -->
+      <line x1="310" y1="58" x2="310" y2="76" stroke="#64748b" stroke-width="1.5" marker-end="url(#aS)"/>
+      <!-- Frontend -> API -->
+      <line x1="310" y1="180" x2="310" y2="196" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#aC)"/>
+      <text x="325" y="191" fill="#64748b" font-size="8">REST</text>
+      <!-- API -> Core -->
+      <line x1="310" y1="300" x2="310" y2="316" stroke="#34d399" stroke-width="1.5" marker-end="url(#aG)"/>
+      <!-- Core -> LLM -->
+      <line x1="310" y1="380" x2="310" y2="396" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#aA)"/>
+      <!-- LLM -> Providers -->
+      <line x1="380" y1="428" x2="588" y2="428" stroke="#a855f7" stroke-width="1.5" marker-end="url(#aP)"/>
+      <!-- Core -> Research (curved) -->
+      <path d="M 380 350 Q 600 350 600 480" fill="none" stroke="#a855f7" stroke-width="1.5" marker-end="url(#aP)"/>
+      <text x="500" y="375" fill="#64748b" font-size="8">orchestrates</text>
+      <!-- Research -> Scraper -->
+      <line x1="720" y1="960" x2="720" y2="978" stroke="#ec4899" stroke-width="1.5" marker-end="url(#aK)"/>
+      <!-- Research -> Report -->
+      <path d="M 1020 960 Q 1020 968 998 978" fill="none" stroke="#ec4899" stroke-width="1.5" marker-end="url(#aK)"/>
+      <!-- Firecrawl -> Search -->
+      <line x1="1080" y1="1005" x2="1110" y2="978" stroke="#64748b" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#aS)"/>
+      <!-- Worker <-> DB -->
+      <line x1="430" y1="250" x2="470" y2="250" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#aW)"/>
+
+      <!-- ====== USER ====== -->
+      <rect x="250" y="20" width="120" height="38" rx="6" fill="#0f172a" stroke="#64748b" stroke-width="1.5"/>
+      <text x="310" y="38" fill="#e2e2f0" font-size="11" font-weight="600" text-anchor="middle">User</text>
+      <text x="310" y="50" fill="#64748b" font-size="8" text-anchor="middle">Browser</text>
+
+      <!-- ====== FRONTEND (cyan) Y=76-178 ====== -->
+      <rect x="20" y="76" width="560" height="102" rx="10" fill="rgba(8,51,68,0.3)" stroke="#22d3ee" stroke-width="1" stroke-dasharray="6,3"/>
+      <text x="32" y="92" fill="#22d3ee" font-size="10" font-weight="600">FRONTEND — Next.js (:3000)</text>
+      <rect x="30" y="102" width="100" height="60" rx="6" fill="#0f172a" stroke="#22d3ee" stroke-width="1.5"/>
+      <text x="80" y="122" fill="#e2e2f0" font-size="10" font-weight="600" text-anchor="middle">Dashboard</text>
+      <text x="80" y="136" fill="#64748b" font-size="8" text-anchor="middle">page.tsx</text>
+      <text x="80" y="148" fill="#64748b" font-size="8" text-anchor="middle">+ score badges</text>
+      <rect x="140" y="102" width="110" height="60" rx="6" fill="#0f172a" stroke="#22d3ee" stroke-width="1.5"/>
+      <text x="195" y="122" fill="#e2e2f0" font-size="10" font-weight="600" text-anchor="middle">Analysis Detail</text>
+      <text x="195" y="136" fill="#64748b" font-size="8" text-anchor="middle">analysis/[id]/page</text>
+      <text x="195" y="148" fill="#64748b" font-size="8" text-anchor="middle">+ score grid UI</text>
+      <rect x="260" y="102" width="100" height="60" rx="6" fill="#0f172a" stroke="#22d3ee" stroke-width="1.5"/>
+      <text x="310" y="122" fill="#e2e2f0" font-size="10" font-weight="600" text-anchor="middle">API Client</text>
+      <text x="310" y="136" fill="#64748b" font-size="8" text-anchor="middle">lib/api.ts</text>
+      <text x="310" y="148" fill="#64748b" font-size="8" text-anchor="middle">7 endpoints</text>
+      <rect x="370" y="102" width="100" height="60" rx="6" fill="#0f172a" stroke="#22d3ee" stroke-width="1.5"/>
+      <text x="420" y="122" fill="#e2e2f0" font-size="10" font-weight="600" text-anchor="middle">Components</text>
+      <text x="420" y="136" fill="#64748b" font-size="8" text-anchor="middle">Card, Outreach</text>
+      <text x="420" y="148" fill="#64748b" font-size="8" text-anchor="middle">Matrix, Evidence</text>
+      <rect x="480" y="102" width="90" height="60" rx="6" fill="#0f172a" stroke="#22d3ee" stroke-width="1.5"/>
+      <text x="525" y="122" fill="#e2e2f0" font-size="10" font-weight="600" text-anchor="middle">Tailwind CSS</text>
+      <text x="525" y="136" fill="#64748b" font-size="8" text-anchor="middle">Dark theme</text>
+      <text x="525" y="148" fill="#64748b" font-size="8" text-anchor="middle">Framer Motion</text>
+
+      <!-- ====== API (green) Y=198-300 ====== -->
+      <rect x="20" y="198" width="560" height="102" rx="10" fill="rgba(6,78,59,0.3)" stroke="#34d399" stroke-width="1" stroke-dasharray="6,3"/>
+      <text x="32" y="214" fill="#34d399" font-size="10" font-weight="600">API LAYER — FastAPI (:8000)</text>
+      <rect x="30" y="224" width="85" height="60" rx="6" fill="#0f172a" stroke="#34d399" stroke-width="1.5"/>
+      <text x="72" y="244" fill="#e2e2f0" font-size="10" font-weight="600" text-anchor="middle">Routes</text>
+      <text x="72" y="258" fill="#64748b" font-size="8" text-anchor="middle">analyses, reports</text>
+      <text x="72" y="270" fill="#64748b" font-size="7" text-anchor="middle">REST CRUD</text>
+      <rect x="125" y="224" width="85" height="60" rx="6" fill="#0f172a" stroke="#34d399" stroke-width="1.5"/>
+      <text x="167" y="244" fill="#e2e2f0" font-size="10" font-weight="600" text-anchor="middle">Schemas</text>
+      <text x="167" y="258" fill="#64748b" font-size="8" text-anchor="middle">Pydantic models</text>
+      <text x="167" y="270" fill="#64748b" font-size="7" text-anchor="middle">VALID_MODULES</text>
+      <rect x="220" y="224" width="85" height="60" rx="6" fill="#0f172a" stroke="#34d399" stroke-width="1.5"/>
+      <text x="262" y="244" fill="#e2e2f0" font-size="10" font-weight="600" text-anchor="middle">Auth</text>
+      <text x="262" y="258" fill="#64748b" font-size="8" text-anchor="middle">X-API-Key</text>
+      <text x="262" y="270" fill="#64748b" font-size="7" text-anchor="middle">middleware</text>
+      <rect x="315" y="224" width="85" height="60" rx="6" fill="#0f172a" stroke="#34d399" stroke-width="1.5"/>
+      <text x="357" y="244" fill="#e2e2f0" font-size="10" font-weight="600" text-anchor="middle">Worker</text>
+      <text x="357" y="258" fill="#64748b" font-size="8" text-anchor="middle">threading bg</text>
+      <text x="357" y="270" fill="#64748b" font-size="7" text-anchor="middle">daemon thread</text>
+      <rect x="410" y="224" width="85" height="60" rx="6" fill="rgba(76,29,149,0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+      <text x="452" y="244" fill="#e2e2f0" font-size="10" font-weight="600" text-anchor="middle">SQLite DB</text>
+      <text x="452" y="258" fill="#64748b" font-size="8" text-anchor="middle">jobs table</text>
+      <text x="452" y="270" fill="#64748b" font-size="7" text-anchor="middle">CRUD ops</text>
+      <rect x="505" y="224" width="65" height="60" rx="6" fill="#0f172a" stroke="#34d399" stroke-width="1.5"/>
+      <text x="537" y="244" fill="#e2e2f0" font-size="10" font-weight="600" text-anchor="middle">main.py</text>
+      <text x="537" y="258" fill="#64748b" font-size="8" text-anchor="middle">entry point</text>
+      <text x="537" y="270" fill="#64748b" font-size="7" text-anchor="middle">CORS + routes</text>
+
+      <!-- ====== CORE (amber) Y=318-376 ====== -->
+      <rect x="20" y="318" width="560" height="58" rx="10" fill="rgba(245,158,11,0.1)" stroke="#fbbf24" stroke-width="1" stroke-dasharray="6,3"/>
+      <text x="32" y="334" fill="#fbbf24" font-size="10" font-weight="600">CORE SERVICES</text>
+      <rect x="30" y="342" width="80" height="24" rx="4" fill="#0f172a" stroke="#fbbf24" stroke-width="1"/>
+      <text x="70" y="358" fill="#e2e2f0" font-size="9" font-weight="500" text-anchor="middle">services.py</text>
+      <rect x="120" y="342" width="70" height="24" rx="4" fill="#0f172a" stroke="#fbbf24" stroke-width="1"/>
+      <text x="155" y="358" fill="#e2e2f0" font-size="9" font-weight="500" text-anchor="middle">models.py</text>
+      <rect x="200" y="342" width="80" height="24" rx="4" fill="#0f172a" stroke="#fbbf24" stroke-width="1"/>
+      <text x="240" y="358" fill="#e2e2f0" font-size="9" font-weight="500" text-anchor="middle">settings.py</text>
+      <rect x="290" y="342" width="65" height="24" rx="4" fill="#0f172a" stroke="#fbbf24" stroke-width="1"/>
+      <text x="322" y="358" fill="#e2e2f0" font-size="9" font-weight="500" text-anchor="middle">batch.py</text>
+
+      <!-- ====== LLM (purple) Y=396-454 ====== -->
+      <rect x="20" y="396" width="360" height="58" rx="10" fill="rgba(168,85,247,0.1)" stroke="#a855f7" stroke-width="1" stroke-dasharray="6,3"/>
+      <text x="32" y="412" fill="#a855f7" font-size="10" font-weight="600">LLM — litellm</text>
+      <rect x="30" y="420" width="90" height="24" rx="4" fill="#0f172a" stroke="#a855f7" stroke-width="1"/>
+      <text x="75" y="436" fill="#e2e2f0" font-size="9" font-weight="500" text-anchor="middle">router.py</text>
+      <rect x="130" y="420" width="80" height="24" rx="4" fill="#0f172a" stroke="#a855f7" stroke-width="1"/>
+      <text x="170" y="436" fill="#e2e2f0" font-size="9" font-weight="500" text-anchor="middle">cache.py</text>
+
+      <!-- Providers Y=396-454 ====== -->
+      <rect x="590" y="396" width="610" height="58" rx="10" fill="rgba(168,85,247,0.05)" stroke="#a855f7" stroke-width="1" stroke-dasharray="6,3"/>
+      <text x="602" y="412" fill="#a855f7" font-size="10" font-weight="600">LLM PROVIDERS</text>
+      <rect x="600" y="420" width="100" height="24" rx="4" fill="#0f172a" stroke="#a855f7" stroke-width="1"/>
+      <text x="650" y="436" fill="#e2e2f0" font-size="9" font-weight="500" text-anchor="middle">DeepSeek</text>
+      <rect x="710" y="420" width="90" height="24" rx="4" fill="#0f172a" stroke="#a855f7" stroke-width="1"/>
+      <text x="755" y="436" fill="#e2e2f0" font-size="9" font-weight="500" text-anchor="middle">OpenAI</text>
+      <rect x="810" y="420" width="100" height="24" rx="4" fill="#0f172a" stroke="#a855f7" stroke-width="1"/>
+      <text x="860" y="436" fill="#e2e2f0" font-size="9" font-weight="500" text-anchor="middle">Anthropic</text>
+      <rect x="920" y="420" width="70" height="24" rx="4" fill="#0f172a" stroke="#a855f7" stroke-width="1"/>
+      <text x="955" y="436" fill="#e2e2f0" font-size="9" font-weight="500" text-anchor="middle">Groq</text>
+      <rect x="1000" y="420" width="180" height="24" rx="4" fill="#0f172a" stroke="#a855f7" stroke-width="1"/>
+      <text x="1090" y="436" fill="#e2e2f0" font-size="9" font-weight="500" text-anchor="middle">via litellm proxy layer</text>
+
+      <!-- ====== RESEARCH MODULES (cyan panel) Y=474-940 ====== -->
+      <rect x="590" y="474" width="610" height="466" rx="10" fill="rgba(6,182,212,0.06)" stroke="#06b6d4" stroke-width="1" stroke-dasharray="6,3"/>
+      <text x="602" y="490" fill="#06b6d4" font-size="10" font-weight="600">RESEARCH MODULES — coordinator.py</text>
+
+      <!-- Step 1: Company Profile Y=504-560 -->
+      <rect x="600" y="504" width="130" height="56" rx="6" fill="#0f172a" stroke="#22c55e" stroke-width="1.5"/>
+      <text x="665" y="524" fill="#e2e2f0" font-size="10" font-weight="600" text-anchor="middle">1. Company Profile</text>
+      <text x="665" y="538" fill="#64748b" font-size="8" text-anchor="middle">company_profile.py</text>
+      <text x="665" y="552" fill="#fbbf24" font-size="7" text-anchor="middle">LLM + required</text>
+
+      <!-- Step 2: Parallel group Y=576-658 -->
+      <rect x="600" y="576" width="590" height="82" rx="8" fill="transparent" stroke="#22d3ee" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="612" y="590" fill="#22d3ee" font-size="8">PARALLEL (ThreadPoolExecutor)</text>
+      <rect x="610" y="596" width="100" height="50" rx="6" fill="#0f172a" stroke="#22d3ee" stroke-width="1.5"/>
+      <text x="660" y="616" fill="#e2e2f0" font-size="9" font-weight="600" text-anchor="middle">2a. SEO</text>
+      <text x="660" y="630" fill="#64748b" font-size="8" text-anchor="middle">seo_keywords.py</text>
+      <rect x="720" y="596" width="100" height="50" rx="6" fill="#0f172a" stroke="#22d3ee" stroke-width="1.5"/>
+      <text x="770" y="616" fill="#e2e2f0" font-size="9" font-weight="600" text-anchor="middle">2b. Competitors</text>
+      <text x="770" y="630" fill="#64748b" font-size="8" text-anchor="middle">competitors.py</text>
+      <rect x="830" y="596" width="100" height="50" rx="6" fill="#0f172a" stroke="#22d3ee" stroke-width="1.5"/>
+      <text x="880" y="616" fill="#e2e2f0" font-size="9" font-weight="600" text-anchor="middle">2c. Social</text>
+      <text x="880" y="630" fill="#64748b" font-size="8" text-anchor="middle">social_content.py</text>
+      <rect x="940" y="596" width="100" height="50" rx="6" fill="#0f172a" stroke="#22d3ee" stroke-width="1.5"/>
+      <text x="990" y="616" fill="#e2e2f0" font-size="9" font-weight="600" text-anchor="middle">2d. Comp Matrix</text>
+      <text x="990" y="630" fill="#64748b" font-size="8" text-anchor="middle">competitor_matrix</text>
+      <rect x="1050" y="596" width="120" height="50" rx="6" fill="#0f172a" stroke="#22d3ee" stroke-width="1.5"/>
+      <text x="1110" y="616" fill="#e2e2f0" font-size="9" font-weight="600" text-anchor="middle">2e. Evidence</text>
+      <text x="1110" y="630" fill="#64748b" font-size="8" text-anchor="middle">evidence.py</text>
+
+      <!-- Step 3: SWOT Y=678-730 -->
+      <rect x="600" y="678" width="130" height="52" rx="6" fill="#0f172a" stroke="#fbbf24" stroke-width="1.5"/>
+      <text x="665" y="698" fill="#e2e2f0" font-size="10" font-weight="600" text-anchor="middle">3. SWOT Analysis</text>
+      <text x="665" y="712" fill="#64748b" font-size="8" text-anchor="middle">swot.py</text>
+      <text x="665" y="724" fill="#fbbf24" font-size="7" text-anchor="middle">needs: profile</text>
+
+      <!-- Step 4: Outreach Y=746-798 -->
+      <rect x="600" y="746" width="130" height="52" rx="6" fill="#0f172a" stroke="#a855f7" stroke-width="1.5"/>
+      <text x="665" y="766" fill="#e2e2f0" font-size="10" font-weight="600" text-anchor="middle">4. Outreach Pack</text>
+      <text x="665" y="780" fill="#64748b" font-size="8" text-anchor="middle">outreach.py</text>
+      <text x="665" y="792" fill="#fbbf24" font-size="7" text-anchor="middle">needs: profile+swot</text>
+
+      <!-- Step 5: Prospect Score Y=814-866 -->
+      <rect x="600" y="814" width="130" height="52" rx="6" fill="rgba(34,197,94,0.15)" stroke="#22c55e" stroke-width="1.5"/>
+      <text x="665" y="834" fill="#e2e2f0" font-size="10" font-weight="600" text-anchor="middle">5. Prospect Score</text>
+      <text x="665" y="848" fill="#64748b" font-size="8" text-anchor="middle">prospect_score.py</text>
+      <text x="665" y="860" fill="#22c55e" font-size="7" text-anchor="middle">NO LLM — deterministic</text>
+
+      <!-- Flow arrows within research -->
+      <line x1="665" y1="560" x2="665" y2="574" stroke="#22c55e" stroke-width="1" marker-end="url(#aG)"/>
+      <line x1="665" y1="658" x2="665" y2="676" stroke="#fbbf24" stroke-width="1" marker-end="url(#aA)"/>
+      <line x1="665" y1="730" x2="665" y2="744" stroke="#fbbf24" stroke-width="1" marker-end="url(#aA)"/>
+      <line x1="665" y1="798" x2="665" y2="812" stroke="#a855f7" stroke-width="1" marker-end="url(#aP)"/>
+      <!-- parallel outputs -> SWOT -->
+      <line x1="770" y1="646" x2="710" y2="676" stroke="#22d3ee" stroke-width="1" marker-end="url(#aC)"/>
+      <line x1="880" y1="646" x2="730" y2="676" stroke="#22d3ee" stroke-width="1" marker-end="url(#aC)"/>
+
+      <!-- Supporting modules (right side of research) -->
+      <rect x="745" y="678" width="105" height="24" rx="4" fill="#0f172a" stroke="#64748b" stroke-width="1"/>
+      <text x="797" y="694" fill="#e2e2f0" font-size="8" font-weight="500" text-anchor="middle">schemas.py</text>
+      <rect x="860" y="678" width="100" height="24" rx="4" fill="#0f172a" stroke="#64748b" stroke-width="1"/>
+      <text x="910" y="694" fill="#e2e2f0" font-size="8" font-weight="500" text-anchor="middle">search.py</text>
+      <rect x="970" y="678" width="90" height="24" rx="4" fill="#0f172a" stroke="#64748b" stroke-width="1"/>
+      <text x="1015" y="694" fill="#e2e2f0" font-size="8" font-weight="500" text-anchor="middle">parsing.py</text>
+      <rect x="1070" y="678" width="120" height="24" rx="4" fill="#0f172a" stroke="#64748b" stroke-width="1"/>
+      <text x="1130" y="694" fill="#e2e2f0" font-size="8" font-weight="500" text-anchor="middle">scrape_context.py</text>
+
+      <!-- Supporting row 2 -->
+      <rect x="745" y="746" width="105" height="24" rx="4" fill="#0f172a" stroke="#64748b" stroke-width="1"/>
+      <text x="797" y="762" fill="#e2e2f0" font-size="8" font-weight="500" text-anchor="middle">evidence.py</text>
+      <rect x="860" y="746" width="100" height="24" rx="4" fill="#0f172a" stroke="#64748b" stroke-width="1"/>
+      <text x="910" y="762" fill="#e2e2f0" font-size="8" font-weight="500" text-anchor="middle">parsing.py</text>
+
+      <!-- Pipeline info box Y=814-900 -->
+      <rect x="745" y="814" width="445" height="86" rx="6" fill="#0f172a" stroke="#64748b" stroke-width="1"/>
+      <text x="967" y="832" fill="#e2e2f0" font-size="8" font-weight="600" text-anchor="middle">Pipeline Rules</text>
+      <text x="967" y="846" fill="#64748b" font-size="7" text-anchor="middle">company -> [parallel] -> swot -> outreach -> score</text>
+      <text x="967" y="858" fill="#64748b" font-size="7" text-anchor="middle">Progress: 5% -> 100% callback chain</text>
+      <text x="967" y="870" fill="#64748b" font-size="7" text-anchor="middle">Failure: mark_failed, skip downstream deps</text>
+      <text x="967" y="882" fill="#64748b" font-size="7" text-anchor="middle">7 modules, 6 LLM calls, 1 deterministic</text>
+      <text x="967" y="894" fill="#64748b" font-size="7" text-anchor="middle">330 tests covering orchestration</text>
+
+      <!-- ====== SCRAPER (pink) Y=980-1048 ====== -->
+      <rect x="20" y="980" width="380" height="68" rx="10" fill="rgba(236,72,153,0.08)" stroke="#ec4899" stroke-width="1" stroke-dasharray="6,3"/>
+      <text x="32" y="996" fill="#ec4899" font-size="10" font-weight="600">SCRAPER</text>
+      <rect x="30" y="1004" width="80" height="22" rx="4" fill="#0f172a" stroke="#ec4899" stroke-width="1"/>
+      <text x="70" y="1019" fill="#e2e2f0" font-size="8" font-weight="500" text-anchor="middle">scraper.py</text>
+      <rect x="120" y="1004" width="70" height="22" rx="4" fill="#0f172a" stroke="#ec4899" stroke-width="1"/>
+      <text x="155" y="1019" fill="#e2e2f0" font-size="8" font-weight="500" text-anchor="middle">crawler.py</text>
+      <rect x="200" y="1004" width="80" height="22" rx="4" fill="#0f172a" stroke="#ec4899" stroke-width="1"/>
+      <text x="240" y="1019" fill="#e2e2f0" font-size="8" font-weight="500" text-anchor="middle">extractors.py</text>
+      <rect x="290" y="1004" width="70" height="22" rx="4" fill="#0f172a" stroke="#ec4899" stroke-width="1"/>
+      <text x="325" y="1019" fill="#e2e2f0" font-size="8" font-weight="500" text-anchor="middle">models.py</text>
+      <rect x="30" y="1030" width="75" height="16" rx="3" fill="#0f172a" stroke="#ec4899" stroke-width="1"/>
+      <text x="67" y="1041" fill="#e2e2f0" font-size="7" font-weight="500" text-anchor="middle">ScrapeCache</text>
+
+      <!-- ====== REPORT (red) Y=980-1048 ====== -->
+      <rect x="420" y="980" width="340" height="68" rx="10" fill="rgba(239,68,68,0.08)" stroke="#ef4444" stroke-width="1" stroke-dasharray="6,3"/>
+      <text x="432" y="996" fill="#ef4444" font-size="10" font-weight="600">REPORT GENERATION</text>
+      <rect x="430" y="1004" width="110" height="38" rx="6" fill="#0f172a" stroke="#ef4444" stroke-width="1.5"/>
+      <text x="485" y="1024" fill="#e2e2f0" font-size="10" font-weight="600" text-anchor="middle">writer.py</text>
+      <text x="485" y="1038" fill="#64748b" font-size="8" text-anchor="middle">9 sections + evidence</text>
+      <rect x="550" y="1004" width="100" height="38" rx="6" fill="#0f172a" stroke="#ef4444" stroke-width="1.5"/>
+      <text x="600" y="1024" fill="#e2e2f0" font-size="10" font-weight="600" text-anchor="middle">Formats</text>
+      <text x="600" y="1038" fill="#64748b" font-size="8" text-anchor="middle">Markdown + HTML</text>
+
+      <!-- ====== EXTERNAL (slate) Y=980-1048 ====== -->
+      <rect x="780" y="980" width="420" height="68" rx="10" fill="rgba(30,41,59,0.5)" stroke="#94a3b8" stroke-width="1.5"/>
+      <text x="792" y="996" fill="#94a3b8" font-size="10" font-weight="600">EXTERNAL SERVICES</text>
+      <rect x="790" y="1004" width="120" height="38" rx="6" fill="#0f172a" stroke="#94a3b8" stroke-width="1.5"/>
+      <text x="850" y="1024" fill="#e2e2f0" font-size="10" font-weight="600" text-anchor="middle">Firecrawl API</text>
+      <text x="850" y="1038" fill="#64748b" font-size="8" text-anchor="middle">web crawl + search</text>
+      <rect x="920" y="1004" width="120" height="38" rx="6" fill="#0f172a" stroke="#94a3b8" stroke-width="1.5"/>
+      <text x="980" y="1024" fill="#e2e2f0" font-size="10" font-weight="600" text-anchor="middle">Config Files</text>
+      <text x="980" y="1038" fill="#64748b" font-size="8" text-anchor="middle">config.yaml + .env</text>
+      <rect x="1050" y="1004" width="130" height="38" rx="6" fill="#0f172a" stroke="#94a3b8" stroke-width="1.5"/>
+      <text x="1115" y="1024" fill="#e2e2f0" font-size="10" font-weight="600" text-anchor="middle">330 Tests</text>
+      <text x="1115" y="1038" fill="#64748b" font-size="8" text-anchor="middle">pytest, fully mocked</text>
+
+      <!-- ====== LEGEND ====== -->
+      <text x="20" y="1080" fill="#e2e2f0" font-size="9" font-weight="600">Legend:</text>
+      <rect x="70" y="1074" width="12" height="9" rx="2" fill="#0f172a" stroke="#22d3ee" stroke-width="1"/>
+      <text x="87" y="1082" fill="#64748b" font-size="8">Frontend</text>
+      <rect x="150" y="1074" width="12" height="9" rx="2" fill="#0f172a" stroke="#34d399" stroke-width="1"/>
+      <text x="167" y="1082" fill="#64748b" font-size="8">Backend</text>
+      <rect x="225" y="1074" width="12" height="9" rx="2" fill="#0f172a" stroke="#fbbf24" stroke-width="1"/>
+      <text x="242" y="1082" fill="#64748b" font-size="8">Core</text>
+      <rect x="278" y="1074" width="12" height="9" rx="2" fill="#0f172a" stroke="#a855f7" stroke-width="1"/>
+      <text x="295" y="1082" fill="#64748b" font-size="8">LLM</text>
+      <rect x="330" y="1074" width="12" height="9" rx="2" fill="#0f172a" stroke="#ec4899" stroke-width="1"/>
+      <text x="347" y="1082" fill="#64748b" font-size="8">Scraper</text>
+      <rect x="398" y="1074" width="12" height="9" rx="2" fill="#0f172a" stroke="#ef4444" stroke-width="1"/>
+      <text x="415" y="1082" fill="#64748b" font-size="8">Report</text>
+      <rect x="458" y="1074" width="12" height="9" rx="2" fill="rgba(34,197,94,0.15)" stroke="#22c55e" stroke-width="1"/>
+      <text x="475" y="1082" fill="#64748b" font-size="8">Deterministic</text>
+      <rect x="558" y="1074" width="12" height="9" rx="2" fill="#0f172a" stroke="#94a3b8" stroke-width="1"/>
+      <text x="575" y="1082" fill="#64748b" font-size="8">External</text>
+      <text x="630" y="1082" fill="#64748b" font-size="8">▸ arrow = data flow</text>
+    </svg>
+  </div>
+</div>
+
+<!-- LAYER 1: Frontend -->
+<div class="layer">
+  <div class="layer-header">
+    <span class="badge badge-blue">Layer 1</span>
+    <div>
+      <h2>Frontend — Next.js</h2>
+      <div class="desc">React SPA on port 3000. Communicates with FastAPI via REST. Dark theme, Framer Motion animations.</div>
+    </div>
+  </div>
+  <div class="layer-body">
+    <div class="comp-grid">
+      <div class="comp">
+        <h3>Dashboard <span class="file">web/src/app/page.tsx</span></h3>
+        <p>URL input form, module toggles (7 modules), provider/model selection, recent analyses list. Fetches prospect scores for completed jobs and renders grade badges on cards.</p>
+        <div class="tags"><span class="tag">React</span><span class="tag">useState</span><span class="tag">polling 3s</span><span class="tag">score fetching</span></div>
+      </div>
+      <div class="comp">
+        <h3>Analysis Detail <span class="file">web/src/app/analysis/[id]/page.tsx</span></h3>
+        <p>Dynamic route: job status, progress bar, results rendering. Special UI blocks for prospect score (7-dim grid), module errors (red cards), outreach assets, competitor matrix, evidence list.</p>
+        <div class="tags"><span class="tag">dynamic route</span><span class="tag">polling</span><span class="tag">score grid</span><span class="tag">error states</span></div>
+      </div>
+      <div class="comp">
+        <h3>API Client <span class="file">web/src/lib/api.ts</span></h3>
+        <p>Thin fetch wrapper: X-API-Key header, 204 no-content guard, JSON parsing. Typed interface for all 7 endpoints.</p>
+        <div class="tags"><span class="tag">fetch</span><span class="tag">typed</span><span class="tag">7 endpoints</span></div>
+      </div>
+      <div class="comp">
+        <h3>AnalysisCard <span class="file">web/src/components/AnalysisCard.tsx</span></h3>
+        <p>Reusable card: status badge, grade badge (color-coded: A=emerald, B=cyan, C=yellow, D=orange, F=red), job ID, download link, delete button.</p>
+        <div class="tags"><span class="tag">grade badge</span><span class="tag">color-coded</span><span class="tag">reusable</span></div>
+      </div>
+      <div class="comp">
+        <h3>OutreachBlock <span class="file">web/src/components/OutreachBlock.tsx</span></h3>
+        <p>Copy-friendly UI: cold email, LinkedIn DM, discovery call opener, proposal outline, follow-up sequence. navigator.clipboard with fallback.</p>
+        <div class="tags"><span class="tag">clipboard API</span><span class="tag">copy buttons</span><span class="tag">fallback</span></div>
+      </div>
+      <div class="comp">
+        <h3>Shared Components</h3>
+        <p>CompetitorMatrix (comparison table), EvidenceList (source audit trail), StatusBadge (color-coded status), ProgressBar (animated with % + message).</p>
+        <div class="tags"><span class="tag green">CompetitorMatrix</span><span class="tag green">EvidenceList</span><span class="tag green">StatusBadge</span><span class="tag green">ProgressBar</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="flow-arrow">HTTP / REST (X-API-Key header)</div>
+
+<!-- LAYER 2: API -->
+<div class="layer">
+  <div class="layer-header">
+    <span class="badge badge-green">Layer 2</span>
+    <div>
+      <h2>API Layer — FastAPI</h2>
+      <div class="desc">REST API on port 8000. Job queue, background execution, SQLite persistence, API key auth.</div>
+    </div>
+  </div>
+  <div class="layer-body">
+    <div class="comp-grid">
+      <div class="comp">
+        <h3>FastAPI App <span class="file">api/main.py</span></h3>
+        <p>Entry point. Registers routes (/health, /analyses, /reports), CORS middleware, startup/shutdown events. Mounts analysis and report routers.</p>
+        <div class="tags"><span class="tag green">FastAPI</span><span class="tag">CORS</span><span class="tag">routers</span></div>
+      </div>
+      <div class="comp">
+        <h3>Analyses Routes <span class="file">api/routes/analyses.py</span></h3>
+        <p>POST /analyses (create job), GET /analyses (list), GET /analyses/{id} (detail), GET /analyses/{id}/results, DELETE /analyses/{id}. API key validation, module name validation against VALID_MODULES.</p>
+        <div class="tags"><span class="tag">CRUD</span><span class="tag">API key</span><span class="tag">validation</span></div>
+      </div>
+      <div class="comp">
+        <h3>Reports Routes <span class="file">api/routes/reports.py</span></h3>
+        <p>GET /reports/{id} serves generated files (md/html/pdf) with proper Content-Type headers and streaming response.</p>
+        <div class="tags"><span class="tag">file serving</span><span class="tag">streaming</span><span class="tag">multi-format</span></div>
+      </div>
+      <div class="comp">
+        <h3>API Schemas <span class="file">api/schemas.py</span></h3>
+        <p>Pydantic models: AnalysisCreateRequest (target_url, modules list, provider, model, fmt). VALID_MODULES from core.models. Default modules include all 7.</p>
+        <div class="tags"><span class="tag">Pydantic</span><span class="tag">validation</span><span class="tag">defaults</span></div>
+      </div>
+      <div class="comp">
+        <h3>Database <span class="file">api/db.py</span></h3>
+        <p>SQLite wrapper with thread-safe connections. Table: jobs (id, target_url, status, modules, provider, model, fmt, progress_pct, progress_msg, report_path, results JSON, error, timestamps). CRUD ops.</p>
+        <div class="tags"><span class="tag">SQLite</span><span class="tag">thread-safe</span><span class="tag">CRUD</span></div>
+      </div>
+      <div class="comp">
+        <h3>Background Worker <span class="file">api/worker.py</span></h3>
+        <p>Threading-based executor. run_analysis_job(): pending -> running -> completed/failed. Calls core.services.run_analysis(). Progress callbacks via DB updates. start_analysis_job() launches daemon thread.</p>
+        <div class="tags"><span class="tag">threading</span><span class="tag">daemon</span><span class="tag">progress</span></div>
+      </div>
+      <div class="comp">
+        <h3>Auth <span class="file">api/auth.py</span></h3>
+        <p>API key middleware. Checks X-API-Key header against dev key or environment variable.</p>
+        <div class="tags"><span class="tag">middleware</span><span class="tag">X-API-Key</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="flow-arrow">calls</div>
+
+<!-- LAYER 3: Core -->
+<div class="layer">
+  <div class="layer-header">
+    <span class="badge badge-amber">Layer 3</span>
+    <div>
+      <h2>Core Services</h2>
+      <div class="desc">Business logic bridging API and research. Provider resolution, analysis orchestration, configuration.</div>
+    </div>
+  </div>
+  <div class="layer-body">
+    <div class="comp-grid">
+      <div class="comp">
+        <h3>Services <span class="file">core/services.py</span></h3>
+        <p>run_analysis(): resolves LLM provider via llm.router, calls research.coordinator.run_all(), generates report via report.writer. Returns AnalysisResult (report_path, results dict).</p>
+        <div class="tags"><span class="tag amber">orchestration</span><span class="tag">provider resolve</span><span class="tag">report gen</span></div>
+      </div>
+      <div class="comp">
+        <h3>Models <span class="file">core/models.py</span></h3>
+        <p>Dataclasses: AnalysisRequest, DEFAULT_ENABLED_MODULES (7 modules), VALID_MODULE_NAMES tuple. Framework-neutral data structures.</p>
+        <div class="tags"><span class="tag">dataclass</span><span class="tag">7 modules</span><span class="tag">constants</span></div>
+      </div>
+      <div class="comp">
+        <h3>Settings <span class="file">core/settings.py</span></h3>
+        <p>Config loader: config.yaml + .env + env vars. Provider blocks (deepseek, openai, anthropic, groq) with model, api_key, base_url, timeout.</p>
+        <div class="tags"><span class="tag">yaml</span><span class="tag">dotenv</span><span class="tag">multi-provider</span></div>
+      </div>
+      <div class="comp">
+        <h3>Batch <span class="file">core/batch.py</span></h3>
+        <p>Sequential multi-URL analysis runner. Same pipeline with aggregated results output.</p>
+        <div class="tags"><span class="tag">batch</span><span class="tag">sequential</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="flow-arrow">calls</div>
+
+<!-- LAYER 4: LLM -->
+<div class="layer">
+  <div class="layer-header">
+    <span class="badge badge-purple">Layer 4</span>
+    <div>
+      <h2>LLM Integration</h2>
+      <div class="desc">Multi-provider abstraction via litellm. Caching for dev/testing.</div>
+    </div>
+  </div>
+  <div class="layer-body">
+    <div class="comp-grid">
+      <div class="comp">
+        <h3>Router <span class="file">llm/router.py</span></h3>
+        <p>Resolves provider name to litellm model string (e.g. deepseek/deepseek-chat). Reads API key from env. Returns callable completion function. Supports: deepseek, openai, anthropic, groq.</p>
+        <div class="tags"><span class="tag purple">litellm</span><span class="tag">multi-provider</span><span class="tag">env keys</span></div>
+      </div>
+      <div class="comp">
+        <h3>Cache <span class="file">llm/cache.py</span></h3>
+        <p>File-based LLM response cache keyed by prompt hash. Avoids redundant API calls during development/testing.</p>
+        <div class="tags"><span class="tag">file cache</span><span class="tag">prompt hash</span><span class="tag">dev/testing</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="flow-arrow">calls</div>
+
+<!-- LAYER 5: Research Modules -->
+<div class="layer">
+  <div class="layer-header">
+    <span class="badge badge-cyan">Layer 5</span>
+    <div>
+      <h2>Research Modules</h2>
+      <div class="desc">Seven independent analysis modules with dependency-aware orchestration. Each takes company profile + target URL + LLM callable, returns structured dict.</div>
+    </div>
+  </div>
+  <div class="exec-order">
+    <span style="font-size:.8rem;color:var(--muted);margin-right:.5rem">Execution:</span>
+    <div class="exec-step active">1. Company Profile</div>
+    <span class="exec-arrow">→</span>
+    <div class="exec-group">
+      <span class="bracket">[parallel]</span>
+      <div class="exec-step active">2a. SEO</div>
+      <div class="exec-step active">2b. Competitors</div>
+      <div class="exec-step active">2c. Social</div>
+    </div>
+    <span class="exec-arrow">→</span>
+    <div class="exec-step active">3. SWOT</div>
+    <span class="exec-arrow">→</span>
+    <div class="exec-step active">4. Outreach</div>
+    <span class="exec-arrow">→</span>
+    <div class="exec-step active">5. Prospect Score</div>
+  </div>
+  <div class="layer-body">
+    <div class="comp-grid">
+      <div class="comp">
+        <h3>Coordinator <span class="file">research/coordinator.py</span></h3>
+        <p>Orchestrates all modules with dependency awareness, progress callbacks, parallel execution (ThreadPoolExecutor), graceful failure handling. MODULE_LABELS dict. mark_run/mark_failed/mark_skipped.</p>
+        <div class="tags"><span class="tag cyan">orchestrator</span><span class="tag">parallel</span><span class="tag">progress</span><span class="tag">error handling</span></div>
+      </div>
+      <div class="comp">
+        <h3>Company Profile <span class="file">research/company_profile.py</span></h3>
+        <p>First module. Extracts: name, industry, description, services, location, employees, revenue, year founded, tech stack, digital channels. Required for all downstream.</p>
+        <div class="tags"><span class="tag">LLM call</span><span class="tag">11 output keys</span><span class="tag amber">required</span></div>
+      </div>
+      <div class="comp">
+        <h3>SEO Keywords <span class="file">research/seo_keywords.py</span></h3>
+        <p>On-page SEO analysis: meta tags, headings, keyword density, content gaps, estimated traffic tier, local SEO signals, optimization recommendations.</p>
+        <div class="tags"><span class="tag">LLM call</span><span class="tag">10 output keys</span></div>
+      </div>
+      <div class="comp">
+        <h3>Competitors <span class="file">research/competitors.py</span></h3>
+        <p>Identifies competitors via Firecrawl search API. Analyzes positioning, market gaps, differentiation opportunities. Includes competitor_matrix submodule.</p>
+        <div class="tags"><span class="tag">LLM call</span><span class="tag">Firecrawl</span><span class="tag">5 output keys</span></div>
+      </div>
+      <div class="comp">
+        <h3>Social Content <span class="file">research/social_content.py</span></h3>
+        <p>Social media audit: platform detection, verified accounts, content quality, posting frequency, engagement signals, review sites. Deterministic sorted() platform ordering.</p>
+        <div class="tags"><span class="tag">LLM call</span><span class="tag">12 output keys</span><span class="tag">sorted output</span></div>
+      </div>
+      <div class="comp">
+        <h3>SWOT Analysis <span class="file">research/swot.py</span></h3>
+        <p>Synthesizes all module outputs into Strengths, Weaknesses, Opportunities, Threats. Requires company_profile. Produces client acquisition strategy recommendations.</p>
+        <div class="tags"><span class="tag">LLM call</span><span class="tag">6 output keys</span><span class="tag amber">depends: profile</span></div>
+      </div>
+      <div class="comp">
+        <h3>Outreach Pack <span class="file">research/outreach.py</span></h3>
+        <p>Ready-to-copy assets: cold email, LinkedIn DM, discovery call opener, proposal outline, follow-up sequence. Requires company_profile AND swot to succeed. Validates via OutreachPackSchema.</p>
+        <div class="tags"><span class="tag">LLM call</span><span class="tag">7 output keys</span><span class="tag amber">depends: profile+swot</span><span class="tag purple">schema</span></div>
+      </div>
+      <div class="comp">
+        <h3>Prospect Score <span class="file">research/prospect_score.py</span></h3>
+        <p>DETERMINISTIC — no LLM call. 7 weighted dimensions from structured outputs. Returns ProspectScore dataclass: overall (0-100) + letter grade (A+ to F). Weights: marketing gap 25%, AI fit 25%, budget 15%, local 10%, outreach 10%, urgency 10%, confidence 5%.</p>
+        <div class="tags"><span class="tag green">NO LLM</span><span class="tag green">deterministic</span><span class="tag">dataclass</span><span class="tag">7 dims</span></div>
+      </div>
+      <div class="comp">
+        <h3>Supporting Modules</h3>
+        <p><strong>Schemas</strong> (research/schemas.py): Pydantic validation, _coerce_list_fields, _coerce_string_fields, OutreachPackSchema.<br>
+        <strong>Search</strong> (research/search.py): Firecrawl Search API wrapper.<br>
+        <strong>Evidence</strong> (research/evidence.py): Audit trail across modules.<br>
+        <strong>Parsing</strong> (research/parsing.py): JSON extraction from LLM responses.<br>
+        <strong>Scrape Context</strong> (research/scrape_context.py): Prompt context optimization.</p>
+        <div class="tags"><span class="tag purple">Pydantic</span><span class="tag">Firecrawl</span><span class="tag">audit</span><span class="tag">JSON parse</span><span class="tag">context opt</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="flow-arrow">calls</div>
+
+<!-- LAYER 6: Scraper -->
+<div class="layer">
+  <div class="layer-header">
+    <span class="badge badge-pink">Layer 6</span>
+    <div>
+      <h2>Scraper</h2>
+      <div class="desc">Web scraping with caching, recursive crawling, and structured HTML extraction.</div>
+    </div>
+  </div>
+  <div class="layer-body">
+    <div class="comp-grid">
+      <div class="comp">
+        <h3>Scraper <span class="file">scraper/scraper.py</span></h3>
+        <p>Main interface. ScrapeCache manages per-analysis crawl caching (no re-scraping same URL). extract_domain_name() utility. Firecrawl API + fallback HTTP.</p>
+        <div class="tags"><span class="tag pink">ScrapeCache</span><span class="tag">Firecrawl</span><span class="tag">fallback</span></div>
+      </div>
+      <div class="comp">
+        <h3>Crawler <span class="file">scraper/crawler.py</span></h3>
+        <p>Recursive web crawler. Configurable max_pages (default 5), max_depth (default 2). Extracts and follows links, collects page content.</p>
+        <div class="tags"><span class="tag">recursive</span><span class="tag">max_pages: 5</span><span class="tag">max_depth: 2</span></div>
+      </div>
+      <div class="comp">
+        <h3>Extractors <span class="file">scraper/extractors.py</span></h3>
+        <p>HTML parsing: extract_text(), extract_meta(), extract_links(), extract_headings(). Returns structured data from raw HTML.</p>
+        <div class="tags"><span class="tag">HTML parse</span><span class="tag">4 extractors</span></div>
+      </div>
+      <div class="comp">
+        <h3>Models <span class="file">scraper/models.py</span></h3>
+        <p>Dataclasses: ScrapeResult (pages, body_text, raw_html_length, crawl_duration_s), PageResult (url, title, text, html, links).</p>
+        <div class="tags"><span class="tag">dataclass</span><span class="tag">ScrapeResult</span><span class="tag">PageResult</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="flow-arrow">writes to</div>
+
+<!-- LAYER 7: Reports -->
+<div class="layer">
+  <div class="layer-header">
+    <span class="badge badge-red">Layer 7</span>
+    <div>
+      <h2>Report Generation</h2>
+      <div class="desc">Converts analysis results to formatted Markdown and HTML reports.</div>
+    </div>
+  </div>
+  <div class="layer-body">
+    <div class="comp-grid">
+      <div class="comp">
+        <h3>Writer <span class="file">report/writer.py</span></h3>
+        <p>_build_markdown() creates structured report with 9 numbered sections + Evidence Sources. HTML export via HTML_TEMPLATE with print-friendly CSS. Sections: Company Overview, SEO, Competitors, Social, SWOT, Acquisition Strategy, Outreach Pack, Next Steps, Prospect Score.</p>
+        <div class="tags"><span class="tag red">Markdown</span><span class="tag red">HTML</span><span class="tag">9 sections</span><span class="tag">print-ready</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- DATA FLOW -->
+<div class="layer" style="margin-top:3rem">
+  <div class="layer-header">
+    <span class="badge badge-blue">Flow</span>
+    <div>
+      <h2>Data Flow — Analysis Request</h2>
+      <div class="desc">Complete request lifecycle from user input to displayed results</div>
+    </div>
+  </div>
+  <div class="data-flow">
+    <div class="flow-step"><div class="num">1</div><div class="text"><strong>Dashboard</strong> — User enters URL, selects modules/provider, clicks Analyze</div></div>
+    <div class="flow-step"><div class="num">2</div><div class="text"><strong>Frontend POST</strong> — Next.js POSTs to <code>/analyses</code> on FastAPI (port 8000) with target_url, modules[], provider, fmt</div></div>
+    <div class="flow-step"><div class="num">3</div><div class="text"><strong>API validates</strong> — Checks API key, module names against VALID_MODULES, creates job in SQLite (status=pending)</div></div>
+    <div class="flow-step"><div class="num">4</div><div class="text"><strong>Background thread</strong> — worker.start_analysis_job() launches daemon thread, sets status=running</div></div>
+    <div class="flow-step"><div class="num">5</div><div class="text"><strong>Core services</strong> — run_analysis() resolves LLM provider via llm.router, calls coordinator.run_all()</div></div>
+    <div class="flow-step"><div class="num">6</div><div class="text"><strong>Coordinator</strong> — Executes modules in dependency order with progress callbacks (pct 5→100)</div></div>
+    <div class="flow-step"><div class="num">7</div><div class="text"><strong>Report written</strong> — report.writer generates md/html file on disk</div></div>
+    <div class="flow-step"><div class="num">8</div><div class="text"><strong>DB updated</strong> — Worker sets status=completed, results=..., report_path=...</div></div>
+    <div class="flow-step"><div class="num">9</div><div class="text"><strong>Frontend polls</strong> — GET /analyses/{id}/results every 3s, displays results when completed</div></div>
+    <div class="flow-step"><div class="num">10</div><div class="text"><strong>User views</strong> — Score badge on card, full breakdown on detail page, download report</div></div>
+  </div>
+</div>
+
+<!-- PROGRESS STAGES -->
+<div class="layer" style="margin-top:2rem">
+  <div class="layer-header">
+    <span class="badge badge-green">Progress</span>
+    <div>
+      <h2>Progress Callback Stages</h2>
+      <div class="desc">Real-time progress percentages reported during analysis execution</div>
+    </div>
+  </div>
+  <div class="progress-stages">
+    <div class="stage"><span class="pct">5%</span><div class="bar"><div class="bar-fill" style="width:5%"></div></div><span class="label">Scraping target website</span></div>
+    <div class="stage"><span class="pct">10%</span><div class="bar"><div class="bar-fill" style="width:10%"></div></div><span class="label">Website scraped</span></div>
+    <div class="stage"><span class="pct">12%</span><div class="bar"><div class="bar-fill" style="width:12%"></div></div><span class="label">Running Company Profile</span></div>
+    <div class="stage"><span class="pct">25%</span><div class="bar"><div class="bar-fill" style="width:25%"></div></div><span class="label">Company Profile complete</span></div>
+    <div class="stage"><span class="pct">30%</span><div class="bar"><div class="bar-fill" style="width:30%"></div></div><span class="label">Running N downstream modules in parallel</span></div>
+    <div class="stage"><span class="pct">35%</span><div class="bar"><div class="bar-fill" style="width:35%"></div></div><span class="label">Running SEO / Competitors / Social Content</span></div>
+    <div class="stage"><span class="pct">35-70%</span><div class="bar"><div class="bar-fill" style="width:70%"></div></div><span class="label">Module complete (parallel, non-deterministic order)</span></div>
+    <div class="stage"><span class="pct">85%</span><div class="bar"><div class="bar-fill" style="width:85%"></div></div><span class="label">Running SWOT Synthesis</span></div>
+    <div class="stage"><span class="pct">90%</span><div class="bar"><div class="bar-fill" style="width:90%"></div></div><span class="label">SWOT Synthesis complete</span></div>
+    <div class="stage"><span class="pct">92%</span><div class="bar"><div class="bar-fill" style="width:92%"></div></div><span class="label">Running Outreach Pack</span></div>
+    <div class="stage"><span class="pct">95%</span><div class="bar"><div class="bar-fill" style="width:95%"></div></div><span class="label">Outreach Pack complete</span></div>
+    <div class="stage"><span class="pct">96%</span><div class="bar"><div class="bar-fill" style="width:96%"></div></div><span class="label">Computing Prospect Score</span></div>
+    <div class="stage"><span class="pct">99%</span><div class="bar"><div class="bar-fill" style="width:99%"></div></div><span class="label">Prospect Score complete</span></div>
+    <div class="stage"><span class="pct">100%</span><div class="bar"><div class="bar-fill" style="width:100%"></div></div><span class="label">All modules complete!</span></div>
+  </div>
+</div>
+
+<!-- FILE TREE -->
+<div class="layer" style="margin-top:2rem">
+  <div class="layer-header">
+    <span class="badge badge-amber">Structure</span>
+    <div>
+      <h2>File Tree</h2>
+      <div class="desc">Key files and directories</div>
+    </div>
+  </div>
+  <div style="padding:1.5rem;font-family:monospace;font-size:.8rem;line-height:1.8;color:var(--muted)">
+    <div style="color:var(--text);font-weight:600;margin-bottom:.5rem">ReconIQ/</div>
+    <div style="padding-left:1rem">
+      <span style="color:var(--accent)">api/</span> — main.py, worker.py, db.py, auth.py, schemas.py, routes/<br>
+      <span style="color:var(--green)">core/</span> — models.py, services.py, settings.py, batch.py<br>
+      <span style="color:var(--purple)">llm/</span> — router.py, cache.py<br>
+      <span style="color:var(--cyan)">research/</span> — coordinator.py, company_profile.py, seo_keywords.py, competitors.py, competitor_matrix.py, social_content.py, swot.py, outreach.py, prospect_score.py, schemas.py, search.py, evidence.py, parsing.py, scrape_context.py<br>
+      <span style="color:var(--pink)">scraper/</span> — scraper.py, crawler.py, extractors.py, models.py<br>
+      <span style="color:var(--red)">report/</span> — writer.py<br>
+      <span style="color:var(--amber)">web/src/</span> — app/page.tsx, app/analysis/[id]/page.tsx, lib/api.ts, components/<br>
+      <span style="color:var(--text)">tests/</span> — 13 test files, 330 tests<br>
+      <span style="color:var(--text)">config.yaml</span> · <span style="color:var(--text)">.env</span> · <span style="color:var(--text)">requirements.txt</span> · <span style="color:var(--text)">FEATURE_PHASES.md</span> · <span style="color:var(--text)">app.py</span> · <span style="color:var(--text)">cli.py</span>
+    </div>
+  </div>
+</div>
+
+<footer>
+  ReconIQ v1.0.0 — Architecture Map · Generated 2026-05-15 · <a href="architecture.json" style="color:var(--accent)">JSON version</a>
+</footer>
+
+</div>
+</body>
+</html>
