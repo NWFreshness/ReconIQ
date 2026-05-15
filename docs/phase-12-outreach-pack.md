@@ -26,8 +26,10 @@ Review workflow: one PR per independently reviewable task/sub-phase.
   - Merge commit: `9c90e4ba766c33cc21b69a28b48ee1089b4092f4`
   - Verification: `263 passed`; py_compile passed; `git diff --check` passed; `npm run build` passed.
 - [ ] 12D — Add report section “Outreach Pack.”
-  - Status: In progress — local implementation and verification complete; not yet committed/pushed.
+  - Status: PR open.
+  - PR: https://github.com/NWFreshness/ReconIQ/pull/27
   - Branch: `feat/phase-12d-outreach-report`
+  - Latest commit: `9c55380`
   - Verification: `265 passed`; py_compile passed; `git diff --check` passed.
 - [ ] 12E — Add copy-friendly UI blocks in the analysis detail page.
 - [ ] 12F — Add tests for module execution, validation, and report rendering.
