@@ -10,6 +10,7 @@ import { StatusBadge } from "@/components/StatusBadge";
 import { ProgressBar } from "@/components/ProgressBar";
 import { EvidenceList, getEvidenceItems } from "@/components/EvidenceList";
 import { CompetitorMatrix, getCompetitorMatrix } from "@/components/CompetitorMatrix";
+import { OutreachBlock } from "@/components/OutreachBlock";
 
 export default function AnalysisDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -118,6 +119,14 @@ export default function AnalysisDetailPage() {
             <div className="space-y-4">
               {Object.entries(results.results).map(([key, value]) => {
                 if (key === "metadata") return null;
+                if (key === "outreach") {
+                  return (
+                    <OutreachBlock
+                      key={key}
+                      data={value as Record<string, unknown>}
+                    />
+                  );
+                }
                 const evidenceItems = getEvidenceItems(value);
                 const competitorMatrix = key === "competitor" ? getCompetitorMatrix(value) : { rows: [] };
                 return (

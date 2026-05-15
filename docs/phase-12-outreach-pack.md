@@ -32,6 +32,9 @@ Review workflow: one PR per independently reviewable task/sub-phase.
   - Latest commit: `9c55380`
   - Verification: `265 passed`; py_compile passed; `git diff --check` passed.
 - [ ] 12E — Add copy-friendly UI blocks in the analysis detail page.
+  - Status: In progress — local implementation and verification complete; not yet committed/pushed.
+  - Branch: `feat/phase-12e-outreach-ui`
+  - Verification: `npm run build` passed; TypeScript check passed; `git diff --check` passed.
 - [ ] 12F — Add tests for module execution, validation, and report rendering.
 
 ## Outreach pack output fields
