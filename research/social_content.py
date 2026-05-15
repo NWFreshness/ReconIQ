@@ -69,7 +69,7 @@ def run(company_profile: dict, target_url: str, llm_complete, scrape_result: Scr
 
     # Override with our verified accounts — don't let LLM hallucinate
     data["verified_social_accounts"] = verified_accounts
-    data["platforms"] = list({a["platform"] for a in verified_accounts})
+    data["platforms"] = sorted({a["platform"] for a in verified_accounts})
 
     limitations = data.setdefault("data_limitations", [])
     for lim in search_limitations:

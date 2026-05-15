@@ -127,12 +127,14 @@ def test_outreach_module_uses_strict_sales_asset_prompt():
     assert "Return valid JSON only" in system
 
 
-def test_outreach_module_validates_output_schema():
+def test_outreach_module_coerces_non_list_to_list():
+    """_coerce_list_fields turns a string follow_up_sequence into a list."""
     invalid = OUTREACH_RESULT.copy()
     invalid["follow_up_sequence"] = "not a list"
 
-    with pytest.raises(JsonParsingError, match="follow_up_sequence"):
-        outreach.run(COMPANY_PROFILE, SEO_KEYWORDS, COMPETITORS, SOCIAL_CONTENT, SWOT, "https://acme.example", RecordingLLM(invalid))
+    result = outreach.run(COMPANY_PROFILE, SEO_KEYWORDS, COMPETITORS, SOCIAL_CONTENT, SWOT, "https://acme.example", RecordingLLM(invalid))
+    # After coercion, the string becomes a single-element list
+    assert isinstance(result["follow_up_sequence"], list)
 
 
 def test_outreach_module_retries_on_bad_json_then_succeeds():

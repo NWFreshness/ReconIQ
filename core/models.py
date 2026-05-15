@@ -14,6 +14,9 @@ DEFAULT_ENABLED_MODULES = {
 }
 
 
+VALID_MODULE_NAMES = tuple(DEFAULT_ENABLED_MODULES.keys())
+
+
 @dataclass(slots=True)
 class AnalysisRequest:
     """Input for a ReconIQ analysis run."""
