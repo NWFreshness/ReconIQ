@@ -182,6 +182,45 @@ def _next_steps_section(swot: dict) -> str:
     return "\n".join(f"{i}. {s}" for i, s in enumerate(steps, 1))
 
 
+def _outreach_section(outreach: dict) -> str:
+    """Render ready-to-copy outreach assets as a dedicated Markdown section."""
+    if not outreach or outreach.get("error"):
+        return "*No outreach pack data available.*"
+
+    field_sections = [
+        ("Cold Email", outreach.get("cold_email")),
+        ("LinkedIn DM", outreach.get("linkedin_dm")),
+        ("Discovery Call Opener", outreach.get("discovery_call_opener")),
+        ("Proposal Outline", outreach.get("proposal_outline")),
+    ]
+    lines: list[str] = []
+    for heading, value in field_sections:
+        if value:
+            lines.extend([f"### {heading}", "", str(value).strip(), ""])
+
+    follow_ups = outreach.get("follow_up_sequence", [])
+    if follow_ups:
+        lines.extend(["### Follow-up Sequence", ""])
+        if isinstance(follow_ups, list):
+            lines.extend(f"- {item}" for item in follow_ups)
+        else:
+            lines.append(str(follow_ups))
+        lines.append("")
+
+    confidence = outreach.get("data_confidence")
+    if confidence:
+        lines.append(f"**Data Confidence:** {confidence}")
+    limitations = outreach.get("data_limitations", [])
+    if limitations:
+        lines.append("**Data Limitations:**")
+        if isinstance(limitations, list):
+            lines.extend(f"- {item}" for item in limitations)
+        else:
+            lines.append(f"- {limitations}")
+
+    return "\n".join(lines).strip() if lines else "*No outreach pack data available.*"
+
+
 def _collect_evidence(results: dict) -> list[dict]:
     """Collect module-level evidence into a single appendix list."""
     evidence: list[dict] = []
@@ -228,6 +267,7 @@ def _build_markdown(results: dict, company_name: str) -> str:
     competitor = results.get("competitor", {})
     social = results.get("social_content", {})
     swot = results.get("swot", {})
+    outreach = results.get("outreach", {})
 
     modules_run = ", ".join(meta.get("modules_run", [])) or "None"
     modules_skipped = ", ".join(meta.get("modules_skipped", [])) or "None"
@@ -287,7 +327,13 @@ def _build_markdown(results: dict, company_name: str) -> str:
         "",
         "---",
         "",
-        "## 7. Next Steps",
+        "## 7. Outreach Pack",
+        "",
+        _outreach_section(outreach),
+        "",
+        "---",
+        "",
+        "## 8. Next Steps",
         "",
         _next_steps_section(swot),
         "",
