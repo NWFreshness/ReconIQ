@@ -57,10 +57,30 @@ async def create_analysis(
 @router.get("", response_model=list[AnalysisResponse])
 async def list_analyses(
     limit: int = 50,
+    status: str | None = None,
+    provider: str | None = None,
+    date_from: str | None = None,
+    date_to: str | None = None,
+    min_score: float | None = None,
+    error_only: bool = False,
     api_key: str = Depends(verify_api_key),
 ) -> list[AnalysisResponse]:
     db = get_db()
-    records = db.list_jobs(limit=limit)
+    df = None
+    if date_from:
+        df = datetime.fromisoformat(date_from).replace(tzinfo=timezone.utc)
+    dt = None
+    if date_to:
+        dt = datetime.fromisoformat(date_to).replace(tzinfo=timezone.utc)
+    records = db.list_jobs(
+        limit=limit,
+        status=status,
+        provider=provider,
+        date_from=df,
+        date_to=dt,
+        min_score=min_score,
+        error_only=error_only,
+    )
     return [_record_to_response(r) for r in records]
 
 

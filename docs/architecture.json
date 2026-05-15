@@ -1,0 +1,386 @@
+{
+  "project": "ReconIQ",
+  "version": "1.0.0",
+  "description": "Marketing intelligence platform that crawls company websites and produces structured research reports using LLM-powered analysis modules.",
+  "target_audience": "AI automation agencies evaluating B2B prospects for outreach",
+  "stack": {
+    "backend": {
+      "framework": "FastAPI (uvicorn)",
+      "language": "Python 3.11",
+      "database": "SQLite",
+      "llm": "litellm (multi-provider: deepseek, openai, anthropic, groq)",
+      "crawling": "Firecrawl API + custom scraper"
+    },
+    "frontend": {
+      "framework": "Next.js 16 (Turbopack)",
+      "language": "TypeScript",
+      "styling": "Tailwind CSS (dark theme)",
+      "animations": "Framer Motion"
+    },
+    "devops": {
+      "package_manager": "uv (Python), npm (Node)",
+      "testing": "pytest",
+      "deployment": "Local/CLI first, API-key configurable"
+    }
+  },
+  "architecture": {
+    "layers": [
+      {
+        "name": "Frontend (Next.js)",
+        "path": "web/src/",
+        "description": "React-based SPA served by Next.js dev/production server on port 3000. Communicates with FastAPI backend via REST.",
+        "components": [
+          {
+            "name": "Dashboard",
+            "file": "web/src/app/page.tsx",
+            "description": "Main landing page with URL input form, module toggle panel, provider selection, and recent analyses list. Fetches scores for completed jobs and passes them to AnalysisCard components.",
+            "state": ["url", "provider", "model", "fmt", "modules", "jobs", "scores", "loading", "error"]
+          },
+          {
+            "name": "Analysis Detail",
+            "file": "web/src/app/analysis/[id]/page.tsx",
+            "description": "Dynamic route showing job status, progress bar, and results. Renders prospect score block, module results, error states, and metadata. Polls for running jobs.",
+            "special_renders": ["prospect_score", "module_errors", "metadata", "outreach_block", "competitor_matrix", "evidence_list"]
+          },
+          {
+            "name": "API Client",
+            "file": "web/src/lib/api.ts",
+            "description": "Thin fetch wrapper around FastAPI endpoints. Handles API key header, 204 no-content responses, and JSON parsing. Exports typed interface.",
+            "endpoints": ["health", "listAnalyses", "getAnalysis", "getResults", "createAnalysis", "downloadReport", "deleteAnalysis"]
+          },
+          {
+            "name": "AnalysisCard",
+            "file": "web/src/components/AnalysisCard.tsx",
+            "description": "Reusable card component showing job status, ID, target URL, timestamp, download link, delete button, and optional prospect score grade badge.",
+            "props": ["job: AnalysisJob", "onDelete?: (id) => void", "score?: {overall, grade}"]
+          },
+          {
+            "name": "OutreachBlock",
+            "file": "web/src/components/OutreachBlock.tsx",
+            "description": "Copy-friendly UI for outreach assets (cold email, LinkedIn DM, discovery call opener, proposal outline, follow-up sequence). Uses navigator.clipboard with fallback.",
+            "dependencies": ["navigator.clipboard API"]
+          },
+          {
+            "name": "CompetitorMatrix",
+            "file": "web/src/components/CompetitorMatrix.tsx",
+            "description": "Table/grid component rendering competitor comparison data with SWOT insights and gap analysis."
+          },
+          {
+            "name": "EvidenceList",
+            "file": "web/src/components/EvidenceList.tsx",
+            "description": "Displays evidence sources with module name, source type, confidence, page title, URL, and excerpt."
+          },
+          {
+            "name": "StatusBadge",
+            "file": "web/src/components/StatusBadge.tsx",
+            "description": "Color-coded status indicator (pending=gray, running=blue, completed=green, failed=red)."
+          },
+          {
+            "name": "ProgressBar",
+            "file": "web/src/components/ProgressBar.tsx",
+            "description": "Animated progress bar with percentage and message, used during analysis execution."
+          }
+        ]
+      },
+      {
+        "name": "API Layer (FastAPI)",
+        "path": "api/",
+        "description": "REST API on port 8000. Handles job creation, background execution, status polling, results retrieval, and report downloads. Uses SQLite for persistence.",
+        "components": [
+          {
+            "name": "FastAPI App",
+            "file": "api/main.py",
+            "description": "Application entry point. Registers routes (/health, /analyses, /reports), CORS middleware, and startup/shutdown events."
+          },
+          {
+            "name": "Analyses Routes",
+            "file": "api/routes/analyses.py",
+            "description": "REST endpoints: POST /analyses (create job), GET /analyses (list), GET /analyses/{id} (detail), GET /analyses/{id}/results, DELETE /analyses/{id}. API key validation via X-API-Key header. Module name validation against VALID_MODULES."
+          },
+          {
+            "name": "Reports Routes",
+            "file": "api/routes/reports.py",
+            "description": "GET /reports/{id} serves generated report files (md/html/pdf) with proper Content-Type headers."
+          },
+          {
+            "name": "API Schemas",
+            "file": "api/schemas.py",
+            "description": "Pydantic models for request/response validation: AnalysisCreateRequest (target_url, modules, provider, model, fmt), AnalysisResponse. VALID_MODULES constant from core.models."
+          },
+          {
+            "name": "Database",
+            "file": "api/db.py",
+            "description": "SQLite wrapper with thread-safe connections. Tables: jobs (id, target_url, status, modules, provider, model, fmt, progress_pct, progress_msg, report_path, results, error, created_at, updated_at, completed_at). Provides CRUD operations: create_job, get_job, list_jobs, update_job, delete_job."
+          },
+          {
+            "name": "Background Worker",
+            "file": "api/worker.py",
+            "description": "Threading-based job executor. run_analysis_job() updates DB status (pending -> running -> completed/failed), calls core.services.run_analysis(), and handles progress callbacks via DB updates. start_analysis_job() launches in daemon thread."
+          },
+          {
+            "name": "Auth",
+            "file": "api/auth.py",
+            "description": "API key validation middleware. Checks X-API-Key header against configured dev key or env variable."
+          }
+        ]
+      },
+      {
+        "name": "Core Services",
+        "path": "core/",
+        "description": "Business logic layer bridging API and research modules.",
+        "components": [
+          {
+            "name": "Models",
+            "file": "core/models.py",
+            "description": "Dataclasses: AnalysisRequest (target_url, enabled_modules, provider_override, model_override, fmt), DEFAULT_ENABLED_MODULES dict (7 modules: company_profile, seo_keywords, competitor, social_content, swot, outreach, prospect_score), VALID_MODULE_NAMES tuple."
+          },
+          {
+            "name": "Services",
+            "file": "core/services.py",
+            "description": "run_analysis() function: resolves LLM provider via llm.router, calls research.coordinator.run_all(), then report.writer to generate output file. Returns AnalysisResult (report_path, results)."
+          },
+          {
+            "name": "Settings",
+            "file": "core/settings.py",
+            "description": "Configuration loader: reads config.yaml, .env, and environment variables. Supports provider config blocks (deepseek, openai, anthropic, groq) with model, api_key, base_url, timeout settings."
+          },
+          {
+            "name": "Batch",
+            "file": "core/batch.py",
+            "description": "Batch analysis runner for processing multiple URLs sequentially. Uses same run_analysis pipeline with aggregated results."
+          }
+        ]
+      },
+      {
+        "name": "LLM Integration",
+        "path": "llm/",
+        "description": "Provider abstraction layer using litellm for multi-provider support.",
+        "components": [
+          {
+            "name": "Router",
+            "file": "llm/router.py",
+            "description": "LLM provider router. Resolves provider name to litellm model string (e.g. deepseek/deepseek-chat), reads API key from env, constructs completion callable. Supports deepseek, openai, anthropic, groq."
+          },
+          {
+            "name": "Cache",
+            "file": "llm/cache.py",
+            "description": "LLM response caching to avoid redundant API calls during development/testing. File-based cache keyed by prompt hash."
+          }
+        ]
+      },
+      {
+        "name": "Research Modules",
+        "path": "research/",
+        "description": "Seven independent analysis modules orchestrated by the coordinator. Each module takes company profile data + target URL + LLM callable, returns a dict with structured analysis results.",
+        "execution_order": "company_profile -> (seo_keywords + competitor + social_content in parallel) -> swot -> outreach -> prospect_score",
+        "components": [
+          {
+            "name": "Coordinator",
+            "file": "research/coordinator.py",
+            "description": "Orchestrates module execution with dependency awareness and progress callbacks. Flow: (1) Scrape target URL (structured crawl), (2) Run Company Profile, (3) Run downstream modules in parallel via ThreadPoolExecutor, (4) Run SWOT synthesis after all parallel modules, (5) Run Outreach Pack after SWOT succeeds, (6) Compute Prospect Score after all modules. Handles module failures gracefully (mark_failed), skips (mark_skipped), and metadata collection (data_limitations). MODULE_LABELS dict maps module keys to display names.",
+            "key_functions": ["run_all()", "_run_downstream_modules()", "_initial_metadata()", "_collect_data_limitations()"]
+          },
+          {
+            "name": "Company Profile",
+            "file": "research/company_profile.py",
+            "description": "First module. Extracts company name, industry, description, services, location, employees, revenue range, year founded, and tech stack from scraped page content using LLM. Required for all downstream modules.",
+            "output_keys": ["company_name", "industry", "description", "services", "location", "employee_range", "revenue_range", "year_founded", "tech_stack", "digital_channels", "data_limitations"]
+          },
+          {
+            "name": "SEO Keywords",
+            "file": "research/seo_keywords.py",
+            "description": "Analyzes on-page SEO: meta tags, headings, keyword density, content gaps, estimated traffic tier, local SEO signals, and optimization recommendations.",
+            "output_keys": ["meta_description", "meta_keywords", "h1_tags", "target_keywords", "keyword_density", "estimated_traffic_tier", "local_seo_signals", "optimization_gaps", "data_limitations"]
+          },
+          {
+            "name": "Competitors",
+            "file": "research/competitors.py",
+            "description": "Identifies competitors via Firecrawl search API and analyzes competitive positioning, market gaps, and differentiation opportunities.",
+            "output_keys": ["competitors", "market_positioning", "differentiation_opportunities", "competitive_gaps", "data_limitations"]
+          },
+          {
+            "name": "Competitor Matrix",
+            "file": "research/competitor_matrix.py",
+            "description": "Generates structured comparison matrix of competitors with scoring dimensions and gap analysis for UI rendering.",
+            "output_keys": ["matrix", "scores", "gaps"]
+          },
+          {
+            "name": "Social Content",
+            "file": "research/social_content.py",
+            "description": "Audits social media presence: platform detection, verified accounts, content quality, posting frequency, engagement signals, review sites, content gaps. Uses sorted() for deterministic platform ordering.",
+            "output_keys": ["platforms", "verified_social_accounts", "content_quality", "content_frequency", "engagement_signals", "review_sites", "blog_or_resources", "content_gaps", "email_signals", "data_confidence", "data_limitations"]
+          },
+          {
+            "name": "SWOT Analysis",
+            "file": "research/swot.py",
+            "description": "Synthesizes all module outputs into Strengths, Weaknesses, Opportunities, Threats. Requires company_profile to succeed. Produces client acquisition strategy recommendations.",
+            "output_keys": ["strengths", "weaknesses", "opportunities", "threats", "acquisition_strategy", "data_limitations"]
+          },
+          {
+            "name": "Outreach Pack",
+            "file": "research/outreach.py",
+            "description": "Generates ready-to-copy outreach assets from all upstream module data. Requires both company_profile and swot to succeed. Produces cold email, LinkedIn DM, discovery call opener, proposal outline, and follow-up sequence. Validates output via OutreachPackSchema.",
+            "output_keys": ["cold_email", "linkedin_dm", "discovery_call_opener", "proposal_outline", "follow_up_sequence", "data_confidence", "data_limitations"],
+            "schema_file": "research/schemas.py (OutreachPackSchema)"
+          },
+          {
+            "name": "Prospect Score",
+            "file": "research/prospect_score.py",
+            "description": "Deterministic (no LLM) scoring module. Computes 7 weighted dimensions from structured module outputs. Returns ProspectScore dataclass with overall score (0-100) and letter grade (A+ to F). Dimensions: marketing_gap_severity (25%), ai_automation_fit (25%), local_relevance (10%), likely_budget (15%), outreach_ease (10%), urgency_signals (10%), data_confidence (5%).",
+            "output_keys": ["overall", "grade", "marketing_gap_severity", "ai_automation_fit", "local_relevance", "likely_budget", "outreach_ease", "urgency_signals", "data_confidence", "summary", "breakdown"],
+            "is_llm_call": false,
+            "dataclass": "ProspectScore"
+          },
+          {
+            "name": "Schemas",
+            "file": "research/schemas.py",
+            "description": "Pydantic validation for all module outputs. ReconIQBaseModel base class. validate_module_output() with _coerce_list_fields and _coerce_string_fields for resilient LLM output handling. OutreachPackSchema defined here.",
+            "coercion": ["null -> '' for string fields", "null -> [] for list fields", "string -> [string] for list fields"]
+          },
+          {
+            "name": "Search",
+            "file": "research/search.py",
+            "description": "Web search abstraction using Firecrawl Search API. Returns structured results with URLs, snippets, and metadata. Used by competitor and social modules.",
+            "provider": "Firecrawl Search API"
+          },
+          {
+            "name": "Evidence",
+            "file": "research/evidence.py",
+            "description": "Tracks evidence sources across all modules for auditability. Records module name, source type, confidence level, selector/field, page title, URL, and excerpt."
+          },
+          {
+            "name": "Parsing",
+            "file": "research/parsing.py",
+            "description": "JSON extraction from LLM responses. Handles markdown code blocks, malformed JSON, and schema validation errors."
+          },
+          {
+            "name": "Scrape Context",
+            "file": "research/scrape_context.py",
+            "description": "Prepares scraped content for LLM consumption. Truncates, structures, and optimizes page content for prompt context windows."
+          }
+        ]
+      },
+      {
+        "name": "Scraper",
+        "path": "scraper/",
+        "description": "Web scraping layer with caching and structured extraction.",
+        "components": [
+          {
+            "name": "Scraper",
+            "file": "scraper/scraper.py",
+            "description": "Main scraper interface. ScrapeCache class manages per-analysis crawl caching. extract_domain_name() utility. Supports Firecrawl API and fallback HTTP scraping.",
+            "key_classes": ["ScrapeCache", "ScrapeResult"]
+          },
+          {
+            "name": "Crawler",
+            "file": "scraper/crawler.py",
+            "description": "Recursive web crawler with configurable max_pages and max_depth. Extracts links, follows them, and collects page content.",
+            "limits": ["max_pages (default 5)", "max_depth (default 2)"]
+          },
+          {
+            "name": "Extractors",
+            "file": "scraper/extractors.py",
+            "description": "HTML parsing utilities: extract text, meta tags, links, structured data, and headings from raw HTML.",
+            "functions": ["extract_text()", "extract_meta()", "extract_links()", "extract_headings()"]
+          },
+          {
+            "name": "Models",
+            "file": "scraper/models.py",
+            "description": "Dataclasses for scraper: ScrapeResult (pages, body_text, raw_html_length, crawl_duration_s), PageResult (url, title, text, html, links)."
+          }
+        ]
+      },
+      {
+        "name": "Report Generation",
+        "path": "report/",
+        "description": "Converts analysis results to formatted reports.",
+        "components": [
+          {
+            "name": "Writer",
+            "file": "report/writer.py",
+            "description": "Generates reports in multiple formats. _build_markdown() creates structured markdown with sections for each module. Also supports HTML export via HTML_TEMPLATE. Sections: 1. Company Overview, 2. SEO & Keywords, 3. Competitor Landscape, 4. Social & Content Audit, 5. SWOT Analysis, 6. Client Acquisition Strategy, 7. Outreach Pack, 8. Next Steps, 9. Prospect Score, Evidence Sources.",
+            "formats": ["markdown", "html"],
+            "sections": 9
+          }
+        ]
+      }
+    ]
+  },
+  "data_flow": {
+    "analysis_request": {
+      "step_1": "User enters URL on Next.js dashboard (port 3000)",
+      "step_2": "Frontend POSTs to /analyses on FastAPI (port 8000) with target_url, modules, provider, fmt",
+      "step_3": "API validates request, creates job in SQLite DB with status='pending'",
+      "step_4": "API starts background thread (api.worker.start_analysis_job)",
+      "step_5": "Worker updates status to 'running', calls core.services.run_analysis()",
+      "step_6": "run_analysis resolves LLM provider via llm.router, calls research.coordinator.run_all()",
+      "step_7": "Coordinator executes modules in dependency order (see execution_order above)",
+      "step_8": "Results collected, report written to disk by report.writer",
+      "step_9": "Worker updates DB: status='completed', results=..., report_path=...",
+      "step_10": "Frontend polls GET /analyses/{id}/results every 3 seconds, displays when completed"
+    },
+    "progress_updates": {
+      "mechanism": "Callback chain: coordinator -> progress_callback -> worker -> db.update_job(progress_pct, progress_msg) -> frontend polls GET /analyses/{id}",
+      "stages": [
+        {"pct": 5, "msg": "Scraping target website"},
+        {"pct": 10, "msg": "Website scraped"},
+        {"pct": 12, "msg": "Running Company Profile"},
+        {"pct": 25, "msg": "Company Profile complete"},
+        {"pct": 30, "msg": "Running N downstream research modules in parallel"},
+        {"pct": 35, "msg": "Running SEO Keywords / Competitors / Social Content"},
+        {"pct_range": "35-70", "msg": "Module complete (parallel)"},
+        {"pct": 85, "msg": "Running SWOT Synthesis"},
+        {"pct": 90, "msg": "SWOT Synthesis complete"},
+        {"pct": 92, "msg": "Running Outreach Pack"},
+        {"pct": 95, "msg": "Outreach Pack complete"},
+        {"pct": 96, "msg": "Computing Prospect Score"},
+        {"pct": 99, "msg": "Prospect Score complete"},
+        {"pct": 100, "msg": "All modules complete"}
+      ]
+    }
+  },
+  "configuration": {
+    "env_file": ".env",
+    "config_file": "config.yaml",
+    "api_key_header": "X-API-Key",
+    "dev_api_key": "reconiq-dev-key-change-in-production",
+    "default_provider": "deepseek",
+    "default_model": "deepseek-chat",
+    "frontend_api_base": "http://localhost:8000",
+    "frontend_port": 3000,
+    "backend_port": 8000
+  },
+  "testing": {
+    "framework": "pytest",
+    "total_tests": 330,
+    "test_files": [
+      "tests/test_api.py",
+      "tests/test_app.py",
+      "tests/test_cli.py",
+      "tests/test_coordinator.py",
+      "tests/test_competitor_matrix.py",
+      "tests/test_core.py",
+      "tests/test_end_to_end_mocked.py",
+      "tests/test_evidence.py",
+      "tests/test_outreach.py",
+      "tests/test_outreach_schema.py",
+      "tests/test_prospect_score.py",
+      "tests/test_report_writer.py",
+      "tests/test_research_modules.py"
+    ],
+    "strategy": "Mock LLM responses, validate Pydantic schemas, test module orchestration, verify report rendering"
+  },
+  "file_tree": {
+    "root_files": ["app.py", "cli.py", "config.yaml", ".env", "requirements.txt", "FEATURE_PHASES.md"],
+    "packages": {
+      "api/": ["main.py", "worker.py", "db.py", "auth.py", "schemas.py", "routes/"],
+      "core/": ["models.py", "services.py", "settings.py", "batch.py"],
+      "llm/": ["router.py", "cache.py"],
+      "research/": ["coordinator.py", "company_profile.py", "seo_keywords.py", "competitors.py", "competitor_matrix.py", "social_content.py", "swot.py", "outreach.py", "prospect_score.py", "schemas.py", "search.py", "evidence.py", "parsing.py", "scrape_context.py"],
+      "scraper/": ["scraper.py", "crawler.py", "extractors.py", "models.py"],
+      "report/": ["writer.py"],
+      "web/src/": ["app/page.tsx", "app/analysis/[id]/page.tsx", "lib/api.ts", "components/"],
+      "tests/": ["test_*.py"]
+    }
+  }
+}

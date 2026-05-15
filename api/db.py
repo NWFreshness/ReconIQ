@@ -146,11 +146,44 @@ class Database:
             session.commit()
             return True
 
-    def list_jobs(self, limit: int = 50) -> list[AnalysisRecord]:
+    def list_jobs(
+        self,
+        limit: int = 50,
+        status: str | None = None,
+        provider: str | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
+        min_score: float | None = None,
+        error_only: bool = False,
+    ) -> list[AnalysisRecord]:
         with self.get_session() as session:
-            stmt = select(AnalysisJob).order_by(AnalysisJob.created_at.desc()).limit(limit)
+            stmt = select(AnalysisJob)
+            if status is not None:
+                stmt = stmt.where(AnalysisJob.status == status)
+            if provider is not None:
+                stmt = stmt.where(AnalysisJob.provider == provider)
+            if date_from is not None:
+                stmt = stmt.where(AnalysisJob.created_at >= date_from)
+            if date_to is not None:
+                stmt = stmt.where(AnalysisJob.created_at <= date_to)
+            if error_only:
+                stmt = stmt.where(AnalysisJob.status == "failed")
+            stmt = stmt.order_by(AnalysisJob.created_at.desc()).limit(limit)
             jobs = session.execute(stmt).scalars().all()
-            return [self._to_record(j) for j in jobs]
+            results = [self._to_record(j) for j in jobs]
+            if min_score is not None:
+                results = self._filter_by_min_score(results, min_score)
+            return results
+
+    def _filter_by_min_score(
+        self, records: list[AnalysisRecord], min_score: float
+    ) -> list[AnalysisRecord]:
+        filtered: list[AnalysisRecord] = []
+        for r in records:
+            ps = (r.results or {}).get("prospect_score") if r.results else None
+            if ps and isinstance(ps, dict) and ps.get("overall", 0) >= min_score:
+                filtered.append(r)
+        return filtered
 
     def _to_record(self, job: AnalysisJob) -> AnalysisRecord:
         return AnalysisRecord(
