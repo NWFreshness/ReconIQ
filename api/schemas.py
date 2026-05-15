@@ -109,3 +109,26 @@ class HealthResponse(BaseModel):
 class ReportDownloadResponse(BaseModel):
     filename: str
     content_type: str
+
+
+class ProspectListCreateRequest(BaseModel):
+    name: str = Field(min_length=1, max_length=200)
+    description: str | None = Field(default=None, max_length=2000)
+
+
+class ProspectListUpdateRequest(BaseModel):
+    name: str | None = Field(default=None, min_length=1, max_length=200)
+    description: str | None = Field(default=None, max_length=2000)
+
+
+class ProspectListResponse(BaseModel):
+    id: str
+    name: str
+    description: str | None
+    analysis_count: int
+    created_at: datetime
+    updated_at: datetime
+
+
+class AddAnalysisToListRequest(BaseModel):
+    analysis_id: str
