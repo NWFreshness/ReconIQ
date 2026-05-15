@@ -55,6 +55,15 @@ def _results(**overrides) -> dict:
             "data_confidence": "medium",
             "data_limitations": ["strategy inferred"],
         },
+        "outreach": {
+            "cold_email": "Subject: Quick widget growth idea\n\nHi Acme team, I noticed your widget pages could capture more local demand. Open to a 15-minute audit?",
+            "linkedin_dm": "Saw Acme's local widget focus. I have a quick SEO + follow-up automation idea that may help capture more qualified inquiries.",
+            "discovery_call_opener": "I’d like to understand where Acme’s best widget leads come from today and where follow-up slows down.",
+            "proposal_outline": "1. Local SEO audit\n2. Conversion follow-up automation\n3. 30-day rollout plan",
+            "follow_up_sequence": ["Send audit snapshot", "Share local SEO checklist", "Offer 15-minute teardown"],
+            "data_confidence": "medium",
+            "data_limitations": ["outreach inferred"],
+        },
     }
     base.update(overrides)
     return base
@@ -170,6 +179,37 @@ def test_includes_lead_generation_and_close_rate_in_acquisition_section(tmp_path
 
     assert "Lead Generation Strategy" in acq_section
     assert "AI Close Rate Strategy" in acq_section
+
+
+def test_renders_outreach_pack_as_copy_ready_section(tmp_path):
+    report_path = writer.write_report(_results(), output_dir=str(tmp_path))
+    content = Path(report_path).read_text(encoding="utf-8")
+
+    outreach_start = content.index("## 7. Outreach Pack")
+    next_steps_start = content.index("## 8. Next Steps")
+    outreach_section = content[outreach_start:next_steps_start]
+
+    assert "### Cold Email" in outreach_section
+    assert "Subject: Quick widget growth idea" in outreach_section
+    assert "### LinkedIn DM" in outreach_section
+    assert "Saw Acme's local widget focus" in outreach_section
+    assert "### Discovery Call Opener" in outreach_section
+    assert "### Proposal Outline" in outreach_section
+    assert "### Follow-up Sequence" in outreach_section
+    assert "- Send audit snapshot" in outreach_section
+    assert "**Data Confidence:** medium" in outreach_section
+    assert "outreach inferred" in outreach_section
+
+
+def test_outreach_pack_handles_missing_data_gracefully(tmp_path):
+    results = _results()
+    del results["outreach"]
+
+    report_path = writer.write_report(results, output_dir=str(tmp_path))
+    content = Path(report_path).read_text(encoding="utf-8")
+
+    assert "## 7. Outreach Pack" in content
+    assert "*No outreach pack data available.*" in content
 
 
 def test_handles_missing_module_data_gracefully(tmp_path):
