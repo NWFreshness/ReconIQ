@@ -41,6 +41,7 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadJobs();
     const interval = setInterval(loadJobs, 3000);
     return () => clearInterval(interval);

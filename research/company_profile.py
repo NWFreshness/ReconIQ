@@ -6,6 +6,7 @@ from scraper.scraper import extract_domain_name, scrape
 from research.parsing import JSON_RESPONSE_RULES, llm_json_call
 from research.schemas import CompanyProfileSchema, validate_module_output
 from research.scrape_context import format_company_context
+from research.evidence import attach_evidence, collect_scrape_evidence
 
 SYSTEM_PROMPT = (
     "You are an expert marketing analyst. Analyze the following website content "
@@ -76,4 +77,5 @@ def run(
         context="company profile",
         max_tokens=1500,
     )
+    attach_evidence(data, collect_scrape_evidence(scrape_result, module="company_profile"))
     return validate_module_output(data, CompanyProfileSchema, "company profile")

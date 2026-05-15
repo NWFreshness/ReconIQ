@@ -15,6 +15,16 @@ class ReconIQBaseModel(BaseModel):
         return self.model_dump(mode="python")
 
 
+class EvidenceItem(ReconIQBaseModel):
+    module: str = ""
+    source_type: str = ""
+    url: str = ""
+    page_title: str = ""
+    selector_or_field: str = ""
+    excerpt: str = ""
+    confidence: str = ""
+
+
 class SEOKeywordsSchema(ReconIQBaseModel):
     top_keywords: list[str] = []
     content_gaps: list[str] = []

@@ -5,6 +5,7 @@ from scraper.models import ScrapeResult
 from research.parsing import JSON_RESPONSE_RULES, llm_json_call
 from research.schemas import SEOKeywordsSchema, validate_module_output
 from research.scrape_context import format_seo_context
+from research.evidence import attach_evidence, collect_scrape_evidence
 
 SYSTEM_PROMPT = (
     "You are an expert SEO analyst. Based on the provided company profile and target URL, "
@@ -42,4 +43,5 @@ def run(company_profile: dict, target_url: str, llm_complete, scrape_result: Scr
         context="SEO keywords",
         max_tokens=1200,
     )
+    attach_evidence(data, collect_scrape_evidence(scrape_result, module="seo_keywords"))
     return validate_module_output(data, SEOKeywordsSchema, "SEO keywords")

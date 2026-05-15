@@ -6,6 +6,7 @@ from research.parsing import JSON_RESPONSE_RULES, llm_json_call
 from research.schemas import SocialContentSchema, validate_module_output
 from research.scrape_context import format_social_context
 from research.search import discover_social_accounts
+from research.evidence import attach_evidence, collect_scrape_evidence
 
 SYSTEM_PROMPT = (
     "You are a content and social media analyst. Based ONLY on verified evidence from the company's website "
@@ -81,4 +82,5 @@ def run(company_profile: dict, target_url: str, llm_complete, scrape_result: Scr
     if not data.get("platforms"):
         data["platforms"] = sorted({a["platform"] for a in verified_accounts})
 
+    attach_evidence(data, collect_scrape_evidence(scrape_result, module="social_content"))
     return validate_module_output(data, SocialContentSchema, "social content")

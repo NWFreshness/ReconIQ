@@ -40,7 +40,11 @@ COMPETITOR_RESULT = {
     "scraped_competitors": [],
     "inferred_competitors": [],
     "data_confidence": "low",
-    "data_limitations": ["Live competitor search is disabled.", "No verified competitors were found via search and homepage scrape."],
+    "data_limitations": [
+        "Live competitor search is disabled.",
+        "No verified competitors were found via search and homepage scrape.",
+        "Firecrawl API key is not configured.",
+    ],
 }
 
 SOCIAL_RESULT = {
@@ -55,7 +59,12 @@ SOCIAL_RESULT = {
     "content_gaps": ["customer stories"],
     "email_signals": "minimal",
     "data_confidence": "low",
-    "data_limitations": ["No live social profile scrape was performed.", "Live social search is disabled.", "No verified social media accounts were found on the website or via search."],
+    "data_limitations": [
+        "No live social profile scrape was performed.",
+        "Live social search is disabled.",
+        "No verified social media accounts were found on the website or via search.",
+        "Firecrawl API key is not configured.",
+    ],
 }
 
 SWOT_RESULT = {

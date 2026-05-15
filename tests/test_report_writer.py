@@ -165,6 +165,29 @@ def test_includes_data_confidence_and_limitations(tmp_path):
     assert "seo caveat" in content
 
 
+def test_includes_evidence_sources_appendix(tmp_path):
+    results = _results()
+    results["company_profile"]["evidence"] = [
+        {
+            "module": "company_profile",
+            "source_type": "scrape",
+            "url": "https://acme.example/about",
+            "page_title": "About Acme",
+            "selector_or_field": "page.text",
+            "excerpt": "Acme builds widgets for local businesses.",
+            "confidence": "high",
+        }
+    ]
+
+    report_path = writer.write_report(results, output_dir=str(tmp_path))
+    content = Path(report_path).read_text(encoding="utf-8")
+
+    assert "## Evidence Sources" in content
+    assert "company_profile" in content
+    assert "https://acme.example/about" in content
+    assert "Acme builds widgets for local businesses." in content
+
+
 def test_does_not_crash_when_company_name_is_missing(tmp_path):
     results = _results()
     del results["company_profile"]["company_name"]
