@@ -8,6 +8,8 @@ from pathlib import Path
 
 from markdown import markdown as md_to_html
 
+from research.competitor_matrix import build_competitor_matrix
+
 
 def write_report(results: dict, output_dir: str = "reports") -> str:
     """
@@ -69,7 +71,7 @@ def _competitor_section(competitor: dict) -> str:
     if not competitors:
         return "*No competitor data available.*"
 
-    lines = []
+    lines = ["#### Competitor Comparison Matrix", "", _competitor_matrix_table(competitor), ""]
     for i, comp in enumerate(competitors, 1):
         if isinstance(comp, dict):
             lines.append(f"### {i}. {comp.get('name', 'Unknown Competitor')}")
@@ -84,6 +86,45 @@ def _competitor_section(competitor: dict) -> str:
         else:
             lines.append(f"- {comp}")
     return "\n".join(lines).strip()
+
+
+def _competitor_matrix_table(competitor: dict) -> str:
+    matrix = build_competitor_matrix(competitor)
+    columns = matrix["columns"]
+    rows = matrix["rows"]
+    if not rows:
+        return "*No competitors available for matrix comparison.*"
+
+    table = [
+        "| " + " | ".join(columns) + " |",
+        "| " + " | ".join("---" for _ in columns) + " |",
+    ]
+    for row in rows:
+        name = _escape_table_cell(row["name"])
+        url = row.get("url", "")
+        competitor_name = f"[{name}]({url})" if url and url != "—" else name
+        values = [
+            competitor_name,
+            row["pricing_tier"],
+            row["positioning"],
+            row["key_messaging"],
+            _join_cell(row["services"]),
+            _join_cell(row["weaknesses"]),
+            row["content_quality"],
+            row["seo_notes"],
+        ]
+        table.append("| " + " | ".join(_escape_table_cell(value) for value in values) + " |")
+    return "\n".join(table)
+
+
+def _join_cell(value) -> str:
+    if isinstance(value, list):
+        return ", ".join(str(item) for item in value) or "—"
+    return str(value) if value else "—"
+
+
+def _escape_table_cell(value) -> str:
+    return str(value).replace("|", "\\|").replace("\n", " ")
 
 
 def _swot_section(swot: dict) -> str:

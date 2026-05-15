@@ -9,6 +9,7 @@ import { api, type AnalysisJob, type AnalysisResult } from "@/lib/api";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ProgressBar } from "@/components/ProgressBar";
 import { EvidenceList, getEvidenceItems } from "@/components/EvidenceList";
+import { CompetitorMatrix, getCompetitorMatrix } from "@/components/CompetitorMatrix";
 
 export default function AnalysisDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -118,6 +119,7 @@ export default function AnalysisDetailPage() {
               {Object.entries(results.results).map(([key, value]) => {
                 if (key === "metadata") return null;
                 const evidenceItems = getEvidenceItems(value);
+                const competitorMatrix = key === "competitor" ? getCompetitorMatrix(value) : { rows: [] };
                 return (
                   <div key={key} className="bg-surface border border-border rounded-xl overflow-hidden">
                     <div className="px-5 py-3 border-b border-border bg-background/50 flex items-center gap-2">
@@ -127,6 +129,7 @@ export default function AnalysisDetailPage() {
                       </h3>
                     </div>
                     <div className="p-5">
+                      <CompetitorMatrix matrix={competitorMatrix} />
                       <pre className="text-xs text-muted font-mono overflow-x-auto whitespace-pre-wrap">
                         {JSON.stringify(value, null, 2)}
                       </pre>
