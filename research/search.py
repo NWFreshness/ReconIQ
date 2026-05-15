@@ -8,6 +8,13 @@ import requests
 
 from core.settings import load_config
 
+MAJOR_SOCIAL_PLATFORMS = (
+    ("linkedin", "LinkedIn"),
+    ("facebook", "Facebook"),
+    ("instagram", "Instagram"),
+    ("twitter", "Twitter OR X"),
+)
+
 
 def _empty_search_result(reason: str, provider: str = "disabled", query: str = "") -> dict[str, Any]:
     return {"results": [], "accounts": [], "provider": provider, "query": query, "data_limitations": [reason]}
@@ -54,6 +61,17 @@ def _firecrawl_search(query: str, api_key: str, api_url: str, limit: int = 5) ->
     return results
 
 
+def _firecrawl_credentials(search_cfg: dict[str, Any]) -> tuple[str, str]:
+    firecrawl_cfg = search_cfg.get("firecrawl", {})
+    api_key = firecrawl_cfg.get("api_key") or ""
+    api_url = firecrawl_cfg.get("api_url") or "https://api.firecrawl.dev"
+    return api_key, api_url
+
+
+def _is_missing_api_key(api_key: str) -> bool:
+    return not api_key or api_key.startswith("${")
+
+
 def discover_competitors(company_profile: dict, target_url: str, config: dict[str, Any] | None = None) -> dict[str, Any]:
     cfg = config or load_config()
     search_cfg = cfg.get("search", {})
@@ -66,10 +84,8 @@ def discover_competitors(company_profile: dict, target_url: str, config: dict[st
     if provider != "firecrawl":
         return _empty_search_result(f"Unsupported search provider '{provider}'.", provider=provider, query=query)
 
-    firecrawl_cfg = search_cfg.get("firecrawl", {})
-    api_key = firecrawl_cfg.get("api_key") or ""
-    api_url = firecrawl_cfg.get("api_url") or "https://api.firecrawl.dev"
-    if not api_key or api_key.startswith("${"):
+    api_key, api_url = _firecrawl_credentials(search_cfg)
+    if _is_missing_api_key(api_key):
         return _empty_search_result("Firecrawl API key is not configured.", provider="firecrawl", query=query)
 
     max_results = int(search_cfg.get("max_results", 5) or 5)
@@ -95,10 +111,8 @@ def discover_social_accounts(company_name: str, target_url: str, config: dict[st
     if provider != "firecrawl":
         return _empty_search_result(f"Unsupported search provider '{provider}'.", provider=provider)
 
-    firecrawl_cfg = search_cfg.get("firecrawl", {})
-    api_key = firecrawl_cfg.get("api_key") or ""
-    api_url = firecrawl_cfg.get("api_url") or "https://api.firecrawl.dev"
-    if not api_key or api_key.startswith("${"):
+    api_key, api_url = _firecrawl_credentials(search_cfg)
+    if _is_missing_api_key(api_key):
         return _empty_search_result("Firecrawl API key is not configured.", provider="firecrawl")
 
     accounts: list[dict[str, str]] = []
@@ -107,15 +121,8 @@ def discover_social_accounts(company_name: str, target_url: str, config: dict[st
     if not company_name:
         return _empty_search_result("No company name available for social search.", provider="firecrawl")
 
-    # Search for each major platform
-    platforms = [
-        ("linkedin", f"{company_name} LinkedIn"),
-        ("facebook", f"{company_name} Facebook"),
-        ("instagram", f"{company_name} Instagram"),
-        ("twitter", f"{company_name} Twitter OR X"),
-    ]
-
-    for platform, query in platforms:
+    for platform, label in MAJOR_SOCIAL_PLATFORMS:
+        query = f"{company_name} {label}"
         try:
             results = _firecrawl_search(query, api_key, api_url, limit=3)
             target_netloc = urlparse(target_url).netloc.lower()

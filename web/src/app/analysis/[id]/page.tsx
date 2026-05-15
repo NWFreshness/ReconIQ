@@ -8,9 +8,6 @@ import { ArrowLeft, Download, FileText, AlertCircle } from "lucide-react";
 import { api, type AnalysisJob, type AnalysisResult } from "@/lib/api";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ProgressBar } from "@/components/ProgressBar";
-import { EvidenceList, getEvidenceItems } from "@/components/EvidenceList";
-import { CompetitorMatrix, getCompetitorMatrix } from "@/components/CompetitorMatrix";
-import { OutreachBlock } from "@/components/OutreachBlock";
 
 export default function AnalysisDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -119,16 +116,24 @@ export default function AnalysisDetailPage() {
             <div className="space-y-4">
               {Object.entries(results.results).map(([key, value]) => {
                 if (key === "metadata") return null;
-                if (key === "outreach") {
+                const hasError = typeof value === "object" && value !== null && "error" in value;
+                if (hasError) {
                   return (
-                    <OutreachBlock
-                      key={key}
-                      data={value as Record<string, unknown>}
-                    />
+                    <div key={key} className="bg-red-400/5 border border-red-400/10 rounded-xl overflow-hidden">
+                      <div className="px-5 py-3 border-b border-red-400/10 bg-red-400/5 flex items-center gap-2">
+                        <AlertCircle className="w-3.5 h-3.5 text-red-400" />
+                        <h3 className="text-xs font-semibold uppercase tracking-wider text-red-400">
+                          {key.replace(/_/g, " ")} — Failed
+                        </h3>
+                      </div>
+                      <div className="p-5">
+                        <p className="text-xs text-red-300 font-mono whitespace-pre-wrap">
+                          {(value as Record<string, string>).error}
+                        </p>
+                      </div>
+                    </div>
                   );
                 }
-                const evidenceItems = getEvidenceItems(value);
-                const competitorMatrix = key === "competitor" ? getCompetitorMatrix(value) : { rows: [] };
                 return (
                   <div key={key} className="bg-surface border border-border rounded-xl overflow-hidden">
                     <div className="px-5 py-3 border-b border-border bg-background/50 flex items-center gap-2">
@@ -138,11 +143,9 @@ export default function AnalysisDetailPage() {
                       </h3>
                     </div>
                     <div className="p-5">
-                      <CompetitorMatrix matrix={competitorMatrix} />
                       <pre className="text-xs text-muted font-mono overflow-x-auto whitespace-pre-wrap">
                         {JSON.stringify(value, null, 2)}
                       </pre>
-                      <EvidenceList items={evidenceItems} />
                     </div>
                   </div>
                 );

@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { Trash2 } from "lucide-react";
 import { StatusBadge } from "./StatusBadge";
@@ -8,7 +7,6 @@ import { ProgressBar } from "./ProgressBar";
 import type { AnalysisJob } from "@/lib/api";
 
 export function AnalysisCard({ job, onDelete }: { job: AnalysisJob; onDelete?: (id: string) => void }) {
-  const [expanded, setExpanded] = useState(false);
   const isRunning = job.status === "running" || job.status === "pending";
 
   return (
