@@ -48,8 +48,13 @@ COMPETITOR_RESULT = {
 }
 
 SOCIAL_RESULT = {
-    "platforms": [],
-    "verified_social_accounts": [],
+    "platforms": ["facebook", "instagram", "linkedin", "twitter"],
+    "verified_social_accounts": [
+        {"platform": "linkedin", "url": "https://www.linkedin.com/company/acme-widget-works"},
+        {"platform": "facebook", "url": "https://www.facebook.com/AcmeWidgets/"},
+        {"platform": "instagram", "url": "https://www.instagram.com/acmewidget/"},
+        {"platform": "twitter", "url": "https://acme.com/twitter/"},
+    ],
     "inferred_platforms": [],
     "content_quality": "moderate — inferred from company profile",
     "content_frequency": "sporadic",
@@ -62,7 +67,6 @@ SOCIAL_RESULT = {
     "data_limitations": [
         "No live social profile scrape was performed.",
         "Live social search is disabled.",
-        "No verified social media accounts were found on the website or via search.",
         "Firecrawl API key is not configured.",
     ],
 }

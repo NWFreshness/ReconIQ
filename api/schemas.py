@@ -8,6 +8,10 @@ from typing import Any
 from pydantic import BaseModel, Field, field_validator
 from urllib.parse import urlparse
 
+from core.models import VALID_MODULE_NAMES
+
+VALID_MODULES = VALID_MODULE_NAMES
+
 
 def _normalize_url(url: str) -> str:
     url = url.strip()
@@ -55,6 +59,18 @@ class AnalysisCreateRequest(BaseModel):
         if parsed.scheme not in ("http", "https"):
             raise ValueError("target_url must use http or https scheme")
         return url
+
+    @field_validator("modules")
+    @classmethod
+    def modules_must_be_valid(cls, v: list[str]) -> list[str]:
+        valid = set(VALID_MODULES)
+        unknown = [m for m in v if m not in valid]
+        if unknown:
+            raise ValueError(
+                f"Unknown modules: {', '.join(unknown)}. "
+                f"Valid: {', '.join(sorted(valid))}"
+            )
+        return v
 
 
 class AnalysisResponse(BaseModel):

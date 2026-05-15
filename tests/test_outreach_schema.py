@@ -63,10 +63,11 @@ def test_validate_module_output_supports_outreach_pack_schema():
     assert result["data_confidence"] == ""
 
 
-def test_validate_module_output_rejects_invalid_follow_up_sequence():
-    with pytest.raises(JsonParsingError, match="follow_up_sequence"):
-        validate_module_output(
-            {"follow_up_sequence": "not a list"},
-            OutreachPackSchema,
-            "outreach",
-        )
+def test_validate_module_output_coerces_string_to_list():
+    """String follow_up_sequence is coerced to a single-element list."""
+    result = validate_module_output(
+        {"follow_up_sequence": "not a list"},
+        OutreachPackSchema,
+        "outreach",
+    )
+    assert result["follow_up_sequence"] == ["not a list"]
