@@ -20,8 +20,10 @@ Review workflow: one PR per independently reviewable task/sub-phase.
   - Merge commit: `5f975c2895d404a5f681e7df6625cd15113c6058`
   - Verification: focused module tests pass; full verification recorded in PR.
 - [ ] 12C — Add module toggle support in backend schemas, API, CLI, Streamlit, and Next UI.
-  - Status: In progress — local implementation and verification complete; not yet committed/pushed.
+  - Status: PR open.
+  - PR: https://github.com/NWFreshness/ReconIQ/pull/26
   - Branch: `feat/phase-12c-outreach-toggle`
+  - Latest commit: `40c652c`
   - Verification: `263 passed`; py_compile passed; `git diff --check` passed; `npm run build` passed.
 - [ ] 12D — Add report section “Outreach Pack.”
 - [ ] 12E — Add copy-friendly UI blocks in the analysis detail page.
