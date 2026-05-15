@@ -114,6 +114,34 @@ def test_renders_competitor_list_cleanly(tmp_path):
     assert "generic messaging" in content
 
 
+def test_renders_competitor_comparison_matrix(tmp_path):
+    results = _results()
+    results["competitor"] = {
+        "competitors": [
+            {
+                "name": "WidgetCo",
+                "url": "https://widgetco.example",
+                "positioning": "Premium regional.",
+                "pricing_tier": "premium",
+                "key_messaging": "Widgets that scale.",
+                "weaknesses": ["generic messaging"],
+                "services": ["consulting"],
+                "content_quality": "strong",
+                "seo_notes": "Ranks for widgets",
+            }
+        ],
+        "data_confidence": "low",
+        "data_limitations": ["inferred"],
+    }
+
+    report_path = writer.write_report(results, output_dir=str(tmp_path))
+    content = Path(report_path).read_text(encoding="utf-8")
+
+    assert "#### Competitor Comparison Matrix" in content
+    assert "| Competitor | Pricing Tier | Positioning | Key Messaging | Services | Weaknesses | Content Quality | SEO Notes |" in content
+    assert "| [WidgetCo](https://widgetco.example) | premium | Premium regional. | Widgets that scale. | consulting | generic messaging | strong | Ranks for widgets |" in content
+
+
 def test_renders_swot_as_list_sections(tmp_path):
     report_path = writer.write_report(_results(), output_dir=str(tmp_path))
     content = Path(report_path).read_text(encoding="utf-8")

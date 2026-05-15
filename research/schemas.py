@@ -39,11 +39,15 @@ class SEOKeywordsSchema(ReconIQBaseModel):
 class CompetitorItem(ReconIQBaseModel):
     name: str = ""
     url: str = ""
+    pricing_tier: str = ""
     positioning: str = ""
     estimated_pricing_tier: str = ""
     key_messaging: str = ""
+    services: list[str] = []
     weaknesses: list[str] = []
     inferred_services: list[str] = []
+    content_quality: str = ""
+    seo_notes: str = ""
 
 
 class CompetitorSchema(ReconIQBaseModel):
@@ -136,9 +140,9 @@ def _coerce_competitor_lists(data: dict[str, Any]) -> dict[str, Any]:
             if isinstance(item, dict):
                 cleaned.append(item)
             elif isinstance(item, str):
-                cleaned.append({"name": item, "url": "", "positioning": "", "estimated_pricing_tier": "", "key_messaging": "", "weaknesses": [], "inferred_services": []})
+                cleaned.append({"name": item, "url": "", "pricing_tier": "", "positioning": "", "estimated_pricing_tier": "", "key_messaging": "", "services": [], "weaknesses": [], "inferred_services": [], "content_quality": "", "seo_notes": ""})
             else:
-                cleaned.append({"name": str(item), "url": "", "positioning": "", "estimated_pricing_tier": "", "key_messaging": "", "weaknesses": [], "inferred_services": []})
+                cleaned.append({"name": str(item), "url": "", "pricing_tier": "", "positioning": "", "estimated_pricing_tier": "", "key_messaging": "", "services": [], "weaknesses": [], "inferred_services": [], "content_quality": "", "seo_notes": ""})
         data[key] = cleaned
     return data
 
