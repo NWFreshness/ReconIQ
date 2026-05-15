@@ -29,6 +29,14 @@
         "nxtPid": "nxtPid"
       },
       "namedRegex": "^/analysis/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/lists/[id]",
+      "regex": "^/lists/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/lists/(?<nxtPid>[^/]+?)(?:/)?$"
     }
   ],
   "staticRoutes": [
