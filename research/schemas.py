@@ -114,6 +114,16 @@ class CompanyProfileSchema(ReconIQBaseModel):
     data_limitations: list[str] = []
 
 
+class OutreachPackSchema(ReconIQBaseModel):
+    cold_email: str = ""
+    linkedin_dm: str = ""
+    discovery_call_opener: str = ""
+    proposal_outline: str = ""
+    follow_up_sequence: list[str] = []
+    data_confidence: str = ""
+    data_limitations: list[str] = []
+
+
 def validate_module_output(data: dict[str, Any], schema_type: type[BaseModel], context: str) -> dict[str, Any]:
     """Validate module output and return a plain dict for existing callers."""
     # Pre-clean: coerce list items to dicts where schemas expect objects
@@ -155,7 +165,8 @@ def _coerce_string_fields(data: dict[str, Any]) -> dict[str, Any]:
         "blog_or_resources", "email_signals", "acquisition_angle",
         "competitive_advantage", "lead_generation_strategy", "close_rate_strategy",
         "company_name", "what_they_do", "target_audience", "value_proposition",
-        "brand_voice", "primary_cta",
+        "brand_voice", "primary_cta", "cold_email", "linkedin_dm",
+        "discovery_call_opener", "proposal_outline",
     )
     for field in string_fields:
         if field in data and data[field] is not None and not isinstance(data[field], str):
