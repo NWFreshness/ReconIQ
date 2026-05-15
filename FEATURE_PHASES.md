@@ -17,6 +17,26 @@
 
 ---
 
+## Phase Status Tracker
+
+Update rules for future agents/models:
+1. Before starting a phase, confirm the previous phase status here.
+2. Mark a phase `[x]` only after code is implemented, committed, pushed, and merged.
+3. Record branch name, test counts, and verification evidence.
+
+- [x] Phase 10 — Evidence & Citations Viewer (PR #22, merged 2026-05-15)
+- [x] Phase 11 — Competitor Comparison Matrix (PR #23, merged 2026-05-15)
+- [x] Phase 12 — Outreach Pack Generator (PRs #25-30, merged 2026-05-15)
+- [x] Phase 13 — Prospect Scoring (PRs #31-32, merged 2026-05-15)
+- [x] Phase 14 — Dashboard Filters (PRs #33-34, merged 2026-05-15)
+- [ ] Phase 15 — Saved Prospect Lists
+  - Status: In progress — 15A complete locally.
+  - Branch: `feat/phase-15a-prospect-lists-db`
+  - 15A: Database tables/models — 26 tests pass; full suite 375 passed; no regressions.
+  - 15B-15F: Pending
+
+---
+
 ## Phase 10: Evidence and Citations Viewer — DONE (PR #22, merged 2026-05-15)
 
 **Goal:** Make every major report claim traceable to scraped pages, search results, or explicit LLM inference.
