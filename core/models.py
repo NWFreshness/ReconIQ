@@ -11,6 +11,7 @@ DEFAULT_ENABLED_MODULES = {
     "social_content": True,
     "swot": True,
     "outreach": True,
+    "prospect_score": True,
 }
 
 

@@ -41,7 +41,7 @@ class ExportFormat(str, Enum):
 class AnalysisCreateRequest(BaseModel):
     target_url: str
     modules: list[str] = Field(default_factory=lambda: [
-        "company_profile", "seo_keywords", "competitor", "social_content", "swot", "outreach"
+        "company_profile", "seo_keywords", "competitor", "social_content", "swot", "outreach", "prospect_score"
     ])
     provider: str | None = "deepseek"
     model: str | None = None

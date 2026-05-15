@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowLeft, Download, FileText, AlertCircle } from "lucide-react";
+import { ArrowLeft, Download, FileText, AlertCircle, Target } from "lucide-react";
 import { api, type AnalysisJob, type AnalysisResult } from "@/lib/api";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ProgressBar } from "@/components/ProgressBar";
@@ -114,6 +114,55 @@ export default function AnalysisDetailPage() {
 
           {results?.results && (
             <div className="space-y-4">
+              {/* Prospect Score — special rendering */}
+              {(() => {
+                const ps = results.results.prospect_score as Record<string, unknown> | undefined;
+                if (!ps || ps.error) return null;
+                const overall = ps.overall as number | undefined;
+                const grade = ps.grade as string | undefined;
+                const summary = ps.summary as string | undefined;
+                if (overall === undefined || !grade) return null;
+
+                const gradeColor = grade.startsWith("A") ? "text-emerald-400 bg-emerald-400/10 border-emerald-400/30"
+                  : grade.startsWith("B") ? "text-cyan-400 bg-cyan-400/10 border-cyan-400/30"
+                  : grade.startsWith("C") ? "text-yellow-400 bg-yellow-400/10 border-yellow-400/30"
+                  : grade === "D" ? "text-orange-400 bg-orange-400/10 border-orange-400/30"
+                  : "text-red-400 bg-red-400/10 border-red-400/30";
+
+                const dimensions = [
+                  ["Marketing Gap", ps.marketing_gap_severity as number | undefined],
+                  ["AI Fit", ps.ai_automation_fit as number | undefined],
+                  ["Local Relevance", ps.local_relevance as number | undefined],
+                  ["Likely Budget", ps.likely_budget as number | undefined],
+                  ["Outreach Ease", ps.outreach_ease as number | undefined],
+                  ["Urgency", ps.urgency_signals as number | undefined],
+                  ["Data Confidence", ps.data_confidence as number | undefined],
+                ];
+
+                return (
+                  <div className="bg-surface border border-border rounded-xl overflow-hidden">
+                    <div className="px-5 py-3 border-b border-border bg-background/50 flex items-center gap-2">
+                      <Target className="w-3.5 h-3.5 text-accent" />
+                      <h3 className="text-xs font-semibold uppercase tracking-wider text-foreground">Prospect Score</h3>
+                      <span className={`ml-auto text-sm font-bold px-2 py-0.5 rounded-md border ${gradeColor}`}>
+                        {grade} {overall.toFixed(0)}
+                      </span>
+                    </div>
+                    <div className="p-5">
+                      {summary && <p className="text-xs text-muted mb-4 italic">{summary}</p>}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        {dimensions.map(([label, val]) => val !== undefined && (
+                          <div key={label} className="text-center">
+                            <div className="text-lg font-bold text-foreground">{val.toFixed(0)}</div>
+                            <div className="text-[10px] text-muted uppercase tracking-wider">{label}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()}
+
               {Object.entries(results.results).map(([key, value]) => {
                 if (key === "metadata") return null;
                 const hasError = typeof value === "object" && value !== null && "error" in value;

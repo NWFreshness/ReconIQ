@@ -6,6 +6,7 @@ import time
 import pytest
 
 from research import coordinator
+from research.prospect_score import ProspectScore
 from scraper.models import ScrapeResult
 
 
@@ -27,6 +28,22 @@ def fake_default_outreach(monkeypatch):
     )
 
 
+def _fake_prospect_score():
+    return ProspectScore(
+        overall=75.0,
+        grade="B+",
+        marketing_gap_severity=70.0,
+        ai_automation_fit=65.0,
+        local_relevance=80.0,
+        likely_budget=60.0,
+        outreach_ease=85.0,
+        urgency_signals=55.0,
+        data_confidence=70.0,
+        summary="Good prospect",
+        breakdown=["Marketing gap severity: 70/100"],
+    )
+
+
 def _enabled(**overrides):
     enabled = {
         "company_profile": True,
@@ -35,6 +52,7 @@ def _enabled(**overrides):
         "social_content": True,
         "swot": True,
         "outreach": True,
+        "prospect_score": True,
     }
     enabled.update(overrides)
     return enabled
@@ -60,6 +78,7 @@ def test_company_profile_runs_before_downstream_modules(monkeypatch):
     monkeypatch.setattr(coordinator, "run_competitors", fake_downstream("competitor"))
     monkeypatch.setattr(coordinator, "run_social_content", fake_downstream("social_content"))
     monkeypatch.setattr(coordinator, "run_swot", lambda **kwargs: {"data_limitations": ["swot caveat"]})
+    monkeypatch.setattr(coordinator, "compute_prospect_score", lambda **kwargs: _fake_prospect_score())
     # Mock scrape so ScrapeCache doesn't make real HTTP requests
     monkeypatch.setattr("scraper.scraper.ScrapeCache.get_structured", lambda self, url, timeout=15, max_pages=5, max_depth=2, progress_callback=None: _fake_scrape_result())
 
@@ -92,6 +111,7 @@ def test_downstream_modules_run_in_parallel_after_profile(monkeypatch):
     monkeypatch.setattr(coordinator, "run_competitors", slow_downstream("competitor"))
     monkeypatch.setattr(coordinator, "run_social_content", slow_downstream("social_content"))
     monkeypatch.setattr(coordinator, "run_swot", lambda **kwargs: {"data_limitations": []})
+    monkeypatch.setattr(coordinator, "compute_prospect_score", lambda **kwargs: _fake_prospect_score())
     monkeypatch.setattr("scraper.scraper.ScrapeCache.get_structured", lambda self, url, timeout=15, max_pages=5, max_depth=2, progress_callback=None: _fake_scrape_result())
 
     coordinator.run_all("https://acme.example", lambda *args, **kwargs: "ok", _enabled())
@@ -118,6 +138,7 @@ def test_swot_receives_all_available_module_outputs(monkeypatch):
         return {"swot": {}, "data_limitations": []}
 
     monkeypatch.setattr(coordinator, "run_swot", fake_swot)
+    monkeypatch.setattr(coordinator, "compute_prospect_score", lambda **kwargs: _fake_prospect_score())
     monkeypatch.setattr("scraper.scraper.ScrapeCache.get_structured", lambda self, url, timeout=15, max_pages=5, max_depth=2, progress_callback=None: _fake_scrape_result())
 
     coordinator.run_all("https://acme.example", lambda *args, **kwargs: "ok", _enabled())
@@ -142,6 +163,7 @@ def test_outreach_runs_after_swot_and_receives_all_outputs(monkeypatch):
     monkeypatch.setattr(coordinator, "run_competitors", lambda company_profile, target_url, llm_complete, scrape_result=None: competitor)
     monkeypatch.setattr(coordinator, "run_social_content", lambda company_profile, target_url, llm_complete, scrape_result=None: social)
     monkeypatch.setattr(coordinator, "run_swot", lambda **kwargs: swot)
+    monkeypatch.setattr(coordinator, "compute_prospect_score", lambda **kwargs: _fake_prospect_score())
 
     def fake_outreach(**kwargs):
         outreach_kwargs.update(kwargs)
@@ -169,6 +191,7 @@ def test_outreach_is_skipped_when_disabled(monkeypatch):
     monkeypatch.setattr(coordinator, "run_competitors", lambda company_profile, target_url, llm_complete, scrape_result=None: {"data_limitations": []})
     monkeypatch.setattr(coordinator, "run_social_content", lambda company_profile, target_url, llm_complete, scrape_result=None: {"data_limitations": []})
     monkeypatch.setattr(coordinator, "run_swot", lambda **kwargs: {"data_limitations": []})
+    monkeypatch.setattr(coordinator, "compute_prospect_score", lambda **kwargs: _fake_prospect_score())
     monkeypatch.setattr(coordinator, "run_outreach", lambda **kwargs: (_ for _ in ()).throw(AssertionError("should not run")))
     monkeypatch.setattr("scraper.scraper.ScrapeCache.get_structured", lambda self, url, timeout=15, max_pages=5, max_depth=2, progress_callback=None: _fake_scrape_result())
 
@@ -184,6 +207,7 @@ def test_outreach_is_skipped_when_swot_disabled(monkeypatch):
     monkeypatch.setattr(coordinator, "run_competitors", lambda company_profile, target_url, llm_complete, scrape_result=None: {"data_limitations": []})
     monkeypatch.setattr(coordinator, "run_social_content", lambda company_profile, target_url, llm_complete, scrape_result=None: {"data_limitations": []})
     monkeypatch.setattr(coordinator, "run_swot", lambda **kwargs: (_ for _ in ()).throw(AssertionError("should not run")))
+    monkeypatch.setattr(coordinator, "compute_prospect_score", lambda **kwargs: _fake_prospect_score())
     monkeypatch.setattr(coordinator, "run_outreach", lambda **kwargs: (_ for _ in ()).throw(AssertionError("should not run")))
     monkeypatch.setattr("scraper.scraper.ScrapeCache.get_structured", lambda self, url, timeout=15, max_pages=5, max_depth=2, progress_callback=None: _fake_scrape_result())
 
@@ -200,6 +224,7 @@ def test_outreach_is_skipped_when_swot_fails(monkeypatch):
     monkeypatch.setattr(coordinator, "run_competitors", lambda company_profile, target_url, llm_complete, scrape_result=None: {"data_limitations": []})
     monkeypatch.setattr(coordinator, "run_social_content", lambda company_profile, target_url, llm_complete, scrape_result=None: {"data_limitations": []})
     monkeypatch.setattr(coordinator, "run_swot", lambda **kwargs: (_ for _ in ()).throw(RuntimeError("swot boom")))
+    monkeypatch.setattr(coordinator, "compute_prospect_score", lambda **kwargs: _fake_prospect_score())
     monkeypatch.setattr(coordinator, "run_outreach", lambda **kwargs: (_ for _ in ()).throw(AssertionError("should not run")))
     monkeypatch.setattr("scraper.scraper.ScrapeCache.get_structured", lambda self, url, timeout=15, max_pages=5, max_depth=2, progress_callback=None: _fake_scrape_result())
 
@@ -221,6 +246,7 @@ def test_downstream_failure_is_recorded_and_run_continues_to_swot(monkeypatch):
     monkeypatch.setattr(coordinator, "run_competitors", failing_competitor)
     monkeypatch.setattr(coordinator, "run_social_content", lambda company_profile, target_url, llm_complete, scrape_result=None: {"data_limitations": []})
     monkeypatch.setattr(coordinator, "run_swot", lambda **kwargs: {"data_limitations": ["swot caveat"]})
+    monkeypatch.setattr(coordinator, "compute_prospect_score", lambda **kwargs: _fake_prospect_score())
     monkeypatch.setattr("scraper.scraper.ScrapeCache.get_structured", lambda self, url, timeout=15, max_pages=5, max_depth=2, progress_callback=None: _fake_scrape_result())
 
     results = coordinator.run_all("https://acme.example", lambda *args, **kwargs: "ok", _enabled())
@@ -239,6 +265,7 @@ def test_disabled_modules_are_marked_skipped(monkeypatch):
     monkeypatch.setattr(coordinator, "run_competitors", lambda company_profile, target_url, llm_complete, scrape_result=None: {"data_limitations": []})
     monkeypatch.setattr(coordinator, "run_social_content", lambda company_profile, target_url, llm_complete, scrape_result=None: {"data_limitations": []})
     monkeypatch.setattr(coordinator, "run_swot", lambda **kwargs: {"data_limitations": []})
+    monkeypatch.setattr(coordinator, "compute_prospect_score", lambda **kwargs: _fake_prospect_score())
     monkeypatch.setattr("scraper.scraper.ScrapeCache.get_structured", lambda self, url, timeout=15, max_pages=5, max_depth=2, progress_callback=None: _fake_scrape_result())
 
     results = coordinator.run_all(
@@ -262,6 +289,7 @@ def test_swot_is_skipped_when_company_profile_fails(monkeypatch):
     monkeypatch.setattr(coordinator, "run_competitors", lambda company_profile, target_url, llm_complete, scrape_result=None: {"data_limitations": []})
     monkeypatch.setattr(coordinator, "run_social_content", lambda company_profile, target_url, llm_complete, scrape_result=None: {"data_limitations": []})
     monkeypatch.setattr(coordinator, "run_swot", lambda **kwargs: (_ for _ in ()).throw(AssertionError("should not run")))
+    monkeypatch.setattr(coordinator, "compute_prospect_score", lambda **kwargs: _fake_prospect_score())
     monkeypatch.setattr("scraper.scraper.ScrapeCache.get_structured", lambda self, url, timeout=15, max_pages=5, max_depth=2, progress_callback=None: _fake_scrape_result())
 
     results = coordinator.run_all("https://acme.example", lambda *args, **kwargs: "ok", _enabled())
@@ -278,7 +306,9 @@ def test_progress_callback_receives_sensible_messages_and_percentages(monkeypatc
     monkeypatch.setattr(coordinator, "run_competitors", lambda company_profile, target_url, llm_complete, scrape_result=None: {"data_limitations": []})
     monkeypatch.setattr(coordinator, "run_social_content", lambda company_profile, target_url, llm_complete, scrape_result=None: {"data_limitations": []})
     monkeypatch.setattr(coordinator, "run_swot", lambda **kwargs: {"data_limitations": []})
+    monkeypatch.setattr(coordinator, "compute_prospect_score", lambda **kwargs: _fake_prospect_score())
     monkeypatch.setattr(coordinator, "run_outreach", lambda **kwargs: {"data_limitations": []})
+    monkeypatch.setattr(coordinator, "compute_prospect_score", lambda **kwargs: _fake_prospect_score())
     monkeypatch.setattr("scraper.scraper.ScrapeCache.get_structured", lambda self, url, timeout=15, max_pages=5, max_depth=2, progress_callback=None: _fake_scrape_result())
     progress = []
 
@@ -312,6 +342,7 @@ def test_metadata_includes_required_fields_and_provider_model_when_available(mon
     monkeypatch.setattr(coordinator, "run_competitors", lambda company_profile, target_url, llm_complete, scrape_result=None: {"data_limitations": []})
     monkeypatch.setattr(coordinator, "run_social_content", lambda company_profile, target_url, llm_complete, scrape_result=None: {"data_limitations": []})
     monkeypatch.setattr(coordinator, "run_swot", lambda **kwargs: {"data_limitations": []})
+    monkeypatch.setattr(coordinator, "compute_prospect_score", lambda **kwargs: _fake_prospect_score())
     monkeypatch.setattr("scraper.scraper.ScrapeCache.get_structured", lambda self, url, timeout=15, max_pages=5, max_depth=2, progress_callback=None: _fake_scrape_result())
 
     results = coordinator.run_all("https://acme.example", llm_complete, _enabled())
@@ -348,3 +379,47 @@ def test_scrape_cache_prevents_duplicate_scrapes(monkeypatch):
     result2 = cache.get_text("https://example.com")
     assert scrape_count[0] == 1  # Still 1 — no additional scrape
     assert result1 == result2
+
+def test_prospect_score_is_computed_when_all_modules_succeed(monkeypatch):
+    monkeypatch.setattr(coordinator, "run_company_profile", lambda *a, **kw: {"company_name": "Acme"})
+    monkeypatch.setattr(coordinator, "run_seo_keywords", lambda *a, **kw: {"data_limitations": []})
+    monkeypatch.setattr(coordinator, "run_competitors", lambda *a, **kw: {"data_limitations": []})
+    monkeypatch.setattr(coordinator, "run_social_content", lambda *a, **kw: {"data_limitations": []})
+    monkeypatch.setattr(coordinator, "run_swot", lambda **kw: {"data_limitations": []})
+    monkeypatch.setattr(coordinator, "run_outreach", lambda **kw: {"data_limitations": []})
+    monkeypatch.setattr(coordinator, "compute_prospect_score", lambda **kw: _fake_prospect_score())
+    monkeypatch.setattr("scraper.scraper.ScrapeCache.get_structured", lambda self, *a, **kw: _fake_scrape_result())
+
+    results = coordinator.run_all("https://acme.example", lambda *a, **kw: "ok", _enabled())
+
+    assert "prospect_score" in results
+    assert results["prospect_score"]["grade"] == "B+"
+    assert results["prospect_score"]["overall"] == 75.0
+    assert "prospect_score" in results["metadata"]["modules_run"]
+
+
+def test_prospect_score_is_skipped_when_company_profile_fails(monkeypatch):
+    monkeypatch.setattr(coordinator, "run_company_profile", lambda *a, **kw: (_ for _ in ()).throw(RuntimeError("profile boom")))
+    monkeypatch.setattr("scraper.scraper.ScrapeCache.get_structured", lambda self, *a, **kw: _fake_scrape_result())
+
+    results = coordinator.run_all("https://acme.example", lambda *a, **kw: "ok", _enabled())
+
+    assert results["company_profile"]["error"] == "profile boom"
+    assert "prospect_score" not in results
+    assert "prospect_score" in results["metadata"]["modules_skipped"]
+
+
+def test_prospect_score_is_skipped_when_disabled(monkeypatch):
+    monkeypatch.setattr(coordinator, "run_company_profile", lambda *a, **kw: {"company_name": "Acme"})
+    monkeypatch.setattr(coordinator, "run_seo_keywords", lambda *a, **kw: {"data_limitations": []})
+    monkeypatch.setattr(coordinator, "run_competitors", lambda *a, **kw: {"data_limitations": []})
+    monkeypatch.setattr(coordinator, "run_social_content", lambda *a, **kw: {"data_limitations": []})
+    monkeypatch.setattr(coordinator, "run_swot", lambda **kw: {"data_limitations": []})
+    monkeypatch.setattr(coordinator, "run_outreach", lambda **kw: {"data_limitations": []})
+    monkeypatch.setattr("scraper.scraper.ScrapeCache.get_structured", lambda self, *a, **kw: _fake_scrape_result())
+
+    disabled = _enabled(prospect_score=False)
+    results = coordinator.run_all("https://acme.example", lambda *a, **kw: "ok", disabled)
+
+    assert "prospect_score" not in results
+    assert "prospect_score" in results["metadata"]["modules_skipped"]
