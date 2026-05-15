@@ -175,6 +175,48 @@ def _acquisition_section(swot: dict) -> str:
     return "\n\n".join(sections) if sections else "*No acquisition data available.*"
 
 
+def _prospect_score_section(score: dict) -> str:
+    """Render prospect score as a dedicated Markdown section."""
+    if not score or score.get("error"):
+        return "*No prospect score data available.*"
+
+    lines: list[str] = []
+    overall = score.get("overall", 0)
+    grade = score.get("grade", "")
+    summary = score.get("summary", "")
+
+    lines.append(f"**Overall Score: {overall:.0f}/100 — Grade: {grade}**")
+    if summary:
+        lines.append(f"*{summary}*")
+    lines.append("")
+
+    # Dimension breakdown
+    dimensions = [
+        ("Marketing Gap Severity", score.get("marketing_gap_severity")),
+        ("AI Automation Fit", score.get("ai_automation_fit")),
+        ("Local Relevance", score.get("local_relevance")),
+        ("Likely Budget", score.get("likely_budget")),
+        ("Outreach Ease", score.get("outreach_ease")),
+        ("Urgency Signals", score.get("urgency_signals")),
+        ("Data Confidence", score.get("data_confidence")),
+    ]
+    lines.append("| Dimension | Score |")
+    lines.append("|---|---|")
+    for label, value in dimensions:
+        if value is not None:
+            lines.append(f"| {label} | {value:.0f}/100 |")
+    lines.append("")
+
+    breakdown = score.get("breakdown", [])
+    if breakdown:
+        lines.append("**Breakdown:**")
+        for item in breakdown:
+            lines.append(f"- {item}")
+        lines.append("")
+
+    return "\n".join(lines).strip()
+
+
 def _next_steps_section(swot: dict) -> str:
     steps = swot.get("recommended_next_steps", [])
     if not steps:
@@ -268,6 +310,7 @@ def _build_markdown(results: dict, company_name: str) -> str:
     social = results.get("social_content", {})
     swot = results.get("swot", {})
     outreach = results.get("outreach", {})
+    prospect_score = results.get("prospect_score", {})
 
     modules_run = ", ".join(meta.get("modules_run", [])) or "None"
     modules_skipped = ", ".join(meta.get("modules_skipped", [])) or "None"
@@ -336,6 +379,12 @@ def _build_markdown(results: dict, company_name: str) -> str:
         "## 8. Next Steps",
         "",
         _next_steps_section(swot),
+        "",
+        "---",
+        "",
+        "## 9. Prospect Score",
+        "",
+        _prospect_score_section(prospect_score),
         "",
         "---",
         "",

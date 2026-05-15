@@ -13,6 +13,7 @@ const MODULE_LABELS = {
   social_content: "Social & Content",
   swot: "SWOT Analysis",
   outreach: "Outreach Pack",
+  prospect_score: "Prospect Score",
 } as const;
 
 type ModuleKey = keyof typeof MODULE_LABELS;
@@ -25,6 +26,7 @@ const DEFAULT_MODULES: EnabledModules = {
   social_content: true,
   swot: true,
   outreach: true,
+  prospect_score: true,
 };
 
 const MODULE_ENTRIES = Object.entries(MODULE_LABELS) as [ModuleKey, string][];
@@ -45,6 +47,7 @@ export default function Home() {
   const [fmt, setFmt] = useState("md");
   const [modules, setModules] = useState<EnabledModules>(DEFAULT_MODULES);
   const [jobs, setJobs] = useState<AnalysisJob[]>([]);
+  const [scores, setScores] = useState<Record<string, { overall: number; grade: string }>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -56,6 +59,22 @@ export default function Home() {
     try {
       const data = await api.listAnalyses(20);
       setJobs(data);
+      // Fetch scores for completed jobs
+      const newScores: Record<string, { overall: number; grade: string }> = {};
+      for (const job of data) {
+        if (job.status === "completed") {
+          try {
+            const results = await api.getResults(job.id);
+            const ps = results.results?.prospect_score as Record<string, unknown> | undefined;
+            if (ps && typeof ps.overall === "number" && typeof ps.grade === "string") {
+              newScores[job.id] = { overall: ps.overall, grade: ps.grade };
+            }
+          } catch {
+            // skip if results not available
+          }
+        }
+      }
+      setScores(newScores);
     } catch {
       // silently fail on polling
     }
@@ -311,7 +330,7 @@ export default function Home() {
                     exit={{ opacity: 0, y: -10 }}
                     transition={{ duration: 0.3 }}
                   >
-                    <AnalysisCard job={job} onDelete={handleDelete} />
+                    <AnalysisCard job={job} onDelete={handleDelete} score={scores[job.id]} />
                   </motion.div>
                 ))}
               </div>

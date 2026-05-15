@@ -1,12 +1,27 @@
 "use client";
 
 import Link from "next/link";
-import { Trash2 } from "lucide-react";
+import { Trash2, Target } from "lucide-react";
 import { StatusBadge } from "./StatusBadge";
 import { ProgressBar } from "./ProgressBar";
-import type { AnalysisJob } from "@/lib/api";
+import type { AnalysisJob, AnalysisResult } from "@/lib/api";
 
-export function AnalysisCard({ job, onDelete }: { job: AnalysisJob; onDelete?: (id: string) => void }) {
+function getScoreFromResults(job: AnalysisJob): { score: number; grade: string } | null {
+  // Score is stored in the results, which are fetched separately.
+  // For the card, we check if there's a score badge from the job metadata.
+  // The score data comes from the results endpoint.
+  return null;
+}
+
+function gradeColor(grade: string): string {
+  if (grade.startsWith("A")) return "text-emerald-400 bg-emerald-400/10 border-emerald-400/30";
+  if (grade.startsWith("B")) return "text-cyan-400 bg-cyan-400/10 border-cyan-400/30";
+  if (grade.startsWith("C")) return "text-yellow-400 bg-yellow-400/10 border-yellow-400/30";
+  if (grade === "D") return "text-orange-400 bg-orange-400/10 border-orange-400/30";
+  return "text-red-400 bg-red-400/10 border-red-400/30";
+}
+
+export function AnalysisCard({ job, onDelete, score }: { job: AnalysisJob; onDelete?: (id: string) => void; score?: { overall: number; grade: string } }) {
   const isRunning = job.status === "running" || job.status === "pending";
 
   return (
@@ -15,6 +30,11 @@ export function AnalysisCard({ job, onDelete }: { job: AnalysisJob; onDelete?: (
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3 mb-2">
             <StatusBadge status={job.status} />
+            {score && (
+              <span className={`text-xs font-bold px-2 py-0.5 rounded-md border ${gradeColor(score.grade)}`}>
+                {score.grade} {score.overall.toFixed(0)}
+              </span>
+            )}
             <span className="text-xs text-muted font-mono">{job.id.slice(0, 8)}</span>
           </div>
           <h3 className="text-sm font-semibold text-foreground truncate">
