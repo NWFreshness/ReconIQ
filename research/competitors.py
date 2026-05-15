@@ -7,6 +7,7 @@ from research.parsing import JSON_RESPONSE_RULES, llm_json_call
 from research.schemas import CompetitorItem, CompetitorSchema, validate_module_output
 from research.scrape_context import format_competitor_context
 from research.search import discover_competitors
+from research.evidence import attach_evidence, collect_scrape_evidence
 
 SYSTEM_PROMPT = (
     "You are an expert competitive intelligence analyst. You are given VERIFIED competitor data "
@@ -132,4 +133,5 @@ def run(
         if msg not in limitations:
             limitations.append(msg)
 
+    attach_evidence(data, collect_scrape_evidence(scrape_result, module="competitor"))
     return validate_module_output(data, CompetitorSchema, "competitor analysis")

@@ -8,6 +8,7 @@ import { ArrowLeft, Download, FileText, AlertCircle } from "lucide-react";
 import { api, type AnalysisJob, type AnalysisResult } from "@/lib/api";
 import { StatusBadge } from "@/components/StatusBadge";
 import { ProgressBar } from "@/components/ProgressBar";
+import { EvidenceList, getEvidenceItems } from "@/components/EvidenceList";
 
 export default function AnalysisDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -116,6 +117,7 @@ export default function AnalysisDetailPage() {
             <div className="space-y-4">
               {Object.entries(results.results).map(([key, value]) => {
                 if (key === "metadata") return null;
+                const evidenceItems = getEvidenceItems(value);
                 return (
                   <div key={key} className="bg-surface border border-border rounded-xl overflow-hidden">
                     <div className="px-5 py-3 border-b border-border bg-background/50 flex items-center gap-2">
@@ -128,6 +130,7 @@ export default function AnalysisDetailPage() {
                       <pre className="text-xs text-muted font-mono overflow-x-auto whitespace-pre-wrap">
                         {JSON.stringify(value, null, 2)}
                       </pre>
+                      <EvidenceList items={evidenceItems} />
                     </div>
                   </div>
                 );
