@@ -38,6 +38,11 @@ Review workflow: one PR per independently reviewable task/sub-phase.
   - Latest commit: `c75fc89`
   - Verification: `npm run build` passed; TypeScript check passed; `git diff --check` passed.
 - [ ] 12F — Add tests for module execution, validation, and report rendering.
+  - Status: PR open.
+  - PR: https://github.com/NWFreshness/ReconIQ/pull/29
+  - Branch: `feat/phase-12f-outreach-tests`
+  - Latest commit: `23068cb`
+  - Verification: `269 passed`; py_compile passed; `git diff --check` passed.
 
 ## Outreach pack output fields
 

@@ -212,6 +212,17 @@ def test_outreach_pack_handles_missing_data_gracefully(tmp_path):
     assert "*No outreach pack data available.*" in content
 
 
+def test_outreach_pack_handles_error_data_gracefully(tmp_path):
+    results = _results()
+    results["outreach"] = {"error": "LLM timeout"}
+
+    report_path = writer.write_report(results, output_dir=str(tmp_path))
+    content = Path(report_path).read_text(encoding="utf-8")
+
+    assert "## 7. Outreach Pack" in content
+    assert "*No outreach pack data available.*" in content
+
+
 def test_handles_missing_module_data_gracefully(tmp_path):
     results = _results()
     del results["seo_keywords"]

@@ -194,6 +194,23 @@ def test_outreach_is_skipped_when_swot_disabled(monkeypatch):
     assert "outreach" not in results
 
 
+def test_outreach_is_skipped_when_swot_fails(monkeypatch):
+    monkeypatch.setattr(coordinator, "run_company_profile", lambda target_url, llm_complete, scraped_content=None, scrape_result=None: {"company_name": "Acme"})
+    monkeypatch.setattr(coordinator, "run_seo_keywords", lambda company_profile, target_url, llm_complete, scrape_result=None: {"data_limitations": []})
+    monkeypatch.setattr(coordinator, "run_competitors", lambda company_profile, target_url, llm_complete, scrape_result=None: {"data_limitations": []})
+    monkeypatch.setattr(coordinator, "run_social_content", lambda company_profile, target_url, llm_complete, scrape_result=None: {"data_limitations": []})
+    monkeypatch.setattr(coordinator, "run_swot", lambda **kwargs: (_ for _ in ()).throw(RuntimeError("swot boom")))
+    monkeypatch.setattr(coordinator, "run_outreach", lambda **kwargs: (_ for _ in ()).throw(AssertionError("should not run")))
+    monkeypatch.setattr("scraper.scraper.ScrapeCache.get_structured", lambda self, url, timeout=15, max_pages=5, max_depth=2, progress_callback=None: _fake_scrape_result())
+
+    results = coordinator.run_all("https://acme.example", lambda *args, **kwargs: "ok", _enabled(swot=True, outreach=True))
+
+    assert "swot" in results["metadata"]["modules_failed"]
+    assert "swot" in results  # swot errored but is recorded
+    assert "outreach" in results["metadata"]["modules_skipped"]
+    assert "outreach" not in results
+
+
 def test_downstream_failure_is_recorded_and_run_continues_to_swot(monkeypatch):
     monkeypatch.setattr(coordinator, "run_company_profile", lambda target_url, llm_complete, scraped_content=None, scrape_result=None: {"company_name": "Acme"})
     monkeypatch.setattr(coordinator, "run_seo_keywords", lambda company_profile, target_url, llm_complete, scrape_result=None: {"data_limitations": ["seo caveat"]})

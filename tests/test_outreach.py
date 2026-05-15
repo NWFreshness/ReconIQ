@@ -148,3 +148,41 @@ def test_outreach_module_retries_on_bad_json_then_succeeds():
 
     assert calls["count"] == 2
     assert result["cold_email"].startswith("Subject:")
+
+
+def test_outreach_module_handles_partial_upstream_data():
+    """Outreach should still run when some upstream modules returned errors."""
+    partial_profile = COMPANY_PROFILE.copy()
+    partial_profile["error"] = "partial scrape error"
+    # Remove some upstream outputs entirely to simulate failures
+    empty_seo = {}
+    empty_competitors = {}
+    empty_social = {}
+
+    llm = RecordingLLM(OUTREACH_RESULT)
+
+    result = outreach.run(
+        company_profile=partial_profile,
+        seo_keywords=empty_seo,
+        competitor=empty_competitors,
+        social_content=empty_social,
+        swot=SWOT,
+        target_url="https://acme.example",
+        llm_complete=llm,
+    )
+
+    assert result == OUTREACH_RESULT
+    # Verify the prompt was built even with partial data
+    prompt = llm.calls[0]["prompt"]
+    assert "TARGET URL: https://acme.example" in prompt
+    assert "--- COMPANY PROFILE ---" in prompt
+    assert "--- SWOT & ACQUISITION STRATEGY ---" in prompt
+
+
+def test_outreach_module_validates_required_json_fields():
+    """Outreach should reject responses missing required keys."""
+    incomplete = OUTREACH_RESULT.copy()
+    del incomplete["cold_email"]
+
+    with pytest.raises(JsonParsingError):
+        outreach.run(COMPANY_PROFILE, SEO_KEYWORDS, COMPETITORS, SOCIAL_CONTENT, SWOT, "https://acme.example", RecordingLLM(incomplete))
