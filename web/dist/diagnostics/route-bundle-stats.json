@@ -1,12 +1,12 @@
 [
   {
     "route": "/",
-    "firstLoadUncompressedJsBytes": 658333,
+    "firstLoadUncompressedJsBytes": 671952,
     "firstLoadChunkPaths": [
       "dist/static/chunks/01xlw8hd842-c.js",
       "dist/static/chunks/0d3shmwh5_nmn.js",
-      "dist/static/chunks/0m7jls2tgr57j.js",
-      "dist/static/chunks/0~bwcldaaiife.js",
+      "dist/static/chunks/184jwjtrjxkw-.js",
+      "dist/static/chunks/15h0cgapo.teg.js",
       "dist/static/chunks/00gq-v0e07i1q.js",
       "dist/static/chunks/0pqt~8bl3ukh4.js",
       "dist/static/chunks/0257pdz1-imal.js",
@@ -16,12 +16,12 @@
   },
   {
     "route": "/analysis/[id]",
-    "firstLoadUncompressedJsBytes": 648311,
+    "firstLoadUncompressedJsBytes": 651704,
     "firstLoadChunkPaths": [
       "dist/static/chunks/01xlw8hd842-c.js",
       "dist/static/chunks/0d3shmwh5_nmn.js",
-      "dist/static/chunks/12vb.s6iee64n.js",
-      "dist/static/chunks/0~bwcldaaiife.js",
+      "dist/static/chunks/0ol6.9kj6aoq..js",
+      "dist/static/chunks/15h0cgapo.teg.js",
       "dist/static/chunks/00gq-v0e07i1q.js",
       "dist/static/chunks/0pqt~8bl3ukh4.js",
       "dist/static/chunks/0257pdz1-imal.js",

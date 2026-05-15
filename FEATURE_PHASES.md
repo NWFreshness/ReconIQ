@@ -30,11 +30,14 @@ Update rules for future agents/models:
 - [x] Phase 13 — Prospect Scoring (PRs #31-32, merged 2026-05-15)
 - [x] Phase 14 — Dashboard Filters (PRs #33-34, merged 2026-05-15)
 - [ ] Phase 15 — Saved Prospect Lists
-  - Status: In progress — 15A merged (PR #35), 15B complete locally.
-  - Branch: `feat/phase-15b-prospect-lists-api`
+  - Status: In progress — 15A merged (PR #35), 15B merged (PR #36), 15C done in 15B. Starting 15D.
+  - Branch: `feat/phase-15d-prospect-lists-ui`
   - 15A: Database tables/models — DONE (merged PR #35)
-  - 15B: CRUD API routes — 25 tests pass; full suite 400 passed; no regressions.
-  - 15C-15F: Pending
+  - 15B: CRUD API routes — DONE (merged PR #36)
+  - 15C: Add/remove analyses endpoints — DONE in 15B
+  - 15D: UI for creating lists and assigning analyses — COMPLETE locally.
+  - 15E: List detail page — Pending
+  - 15F: Tests — Covered by 15A/15B
 
 ---
 

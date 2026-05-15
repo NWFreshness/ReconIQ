@@ -85,3 +85,39 @@ export const api = {
   deleteAnalysis: (id: string) =>
     fetchJson<void>(`/analyses/${id}`, { method: "DELETE" }),
 };
+
+// ── Prospect Lists ─────────────────────────────────────────────────────────
+
+export interface ProspectList {
+  id: string;
+  name: string;
+  description: string | null;
+  analysis_count: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export const prospectLists = {
+  create: (name: string, description?: string) =>
+    fetchJson<ProspectList>("/prospect-lists", {
+      method: "POST",
+      body: JSON.stringify({ name, description }),
+    }),
+  list: () => fetchJson<ProspectList[]>("/prospect-lists"),
+  get: (id: string) => fetchJson<ProspectList>(`/prospect-lists/${id}`),
+  update: (id: string, name?: string, description?: string) =>
+    fetchJson<ProspectList>(`/prospect-lists/${id}`, {
+      method: "PUT",
+      body: JSON.stringify({ name, description }),
+    }),
+  delete: (id: string) =>
+    fetchJson<void>(`/prospect-lists/${id}`, { method: "DELETE" }),
+  getAnalyses: (id: string) => fetchJson<AnalysisJob[]>(`/prospect-lists/${id}/analyses`),
+  addAnalysis: (listId: string, analysisId: string) =>
+    fetchJson<{ status: string }>(`/prospect-lists/${listId}/analyses`, {
+      method: "POST",
+      body: JSON.stringify({ analysis_id: analysisId }),
+    }),
+  removeAnalysis: (listId: string, analysisId: string) =>
+    fetchJson<void>(`/prospect-lists/${listId}/analyses/${analysisId}`, { method: "DELETE" }),
+};

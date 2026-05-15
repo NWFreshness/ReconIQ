@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Radar, Plus, RefreshCw, Terminal, Zap, Globe, Shield } from "lucide-react";
-import { api, type AnalysisJob } from "@/lib/api";
+import { api, type AnalysisJob, prospectLists } from "@/lib/api";
 import { AnalysisCard } from "@/components/AnalysisCard";
 import {
   DashboardFiltersBar,
@@ -53,6 +53,7 @@ export default function Home() {
   const [jobs, setJobs] = useState<AnalysisJob[]>([]);
   const [allJobs, setAllJobs] = useState<AnalysisJob[]>([]);
   const [scores, setScores] = useState<Record<string, { overall: number; grade: string }>>({});
+  const [analysisLists, setAnalysisLists] = useState<Record<string, string[]>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [filters, setFilters] = useState<DashboardFilters>({
@@ -93,6 +94,28 @@ export default function Home() {
         }
       }
       setScores(newScores);
+      // Fetch list assignments for completed jobs
+      const newListAssignments: Record<string, string[]> = {};
+      for (const job of data) {
+        if (job.status === "completed") {
+          try {
+            const lists = await prospectLists.list();
+            const jobLists: string[] = [];
+            for (const list of lists) {
+              const analyses = await prospectLists.getAnalyses(list.id);
+              if (analyses.some((a) => a.id === job.id)) {
+                jobLists.push(list.id);
+              }
+            }
+            if (jobLists.length > 0) {
+              newListAssignments[job.id] = jobLists;
+            }
+          } catch {
+            // skip if lists not available
+          }
+        }
+      }
+      setAnalysisLists(newListAssignments);
     } catch {
       // silently fail on polling
     }
@@ -356,7 +379,15 @@ export default function Home() {
                     exit={{ opacity: 0, y: -10 }}
                     transition={{ duration: 0.3 }}
                   >
-                    <AnalysisCard job={job} onDelete={handleDelete} score={scores[job.id]} />
+                    <AnalysisCard
+                      job={job}
+                      onDelete={handleDelete}
+                      score={scores[job.id]}
+                      listIds={analysisLists[job.id]}
+                      onListsChange={(newListIds) =>
+                        setAnalysisLists((prev) => ({ ...prev, [job.id]: newListIds }))
+                      }
+                    />
                   </motion.div>
                 ))}
               </div>

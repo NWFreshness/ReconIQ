@@ -104,7 +104,7 @@ self.__SERVER_FILES_MANIFEST={
         "transform": "lodash/{{member}}"
       }
     },
-    "outputFileTracingRoot": "/home/tyler-mayfield/Documents/ReconIQ/web",
+    "outputFileTracingRoot": "/home/tylermayfield/Documents/ReconIQ/web",
     "cacheComponents": false,
     "cacheLife": {
       "default": {
@@ -166,7 +166,7 @@ self.__SERVER_FILES_MANIFEST={
       "proxyPrefetch": "flexible",
       "optimisticClientCache": true,
       "manualClientBasePath": false,
-      "cpus": 3,
+      "cpus": 7,
       "memoryBasedWorkersCount": false,
       "imgOptConcurrency": null,
       "imgOptTimeoutInSeconds": 7,
@@ -304,11 +304,11 @@ self.__SERVER_FILES_MANIFEST={
     "bundlePagesRouterDependencies": false,
     "configFileName": "next.config.ts",
     "turbopack": {
-      "root": "/home/tyler-mayfield/Documents/ReconIQ/web"
+      "root": "/home/tylermayfield/Documents/ReconIQ/web"
     },
     "distDirRoot": "dist"
   },
-  "appDir": "/home/tyler-mayfield/Documents/ReconIQ/web",
+  "appDir": "/home/tylermayfield/Documents/ReconIQ/web",
   "relativeAppDir": "",
   "files": [
     "dist/routes-manifest.json",
