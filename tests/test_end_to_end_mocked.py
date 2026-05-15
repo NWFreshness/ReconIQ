@@ -113,6 +113,15 @@ def fake_llm_complete(prompt: str, module: str, system: str | None = None, max_t
             "data_confidence": "medium",
             "data_limitations": ["Inferred from single page scrape"],
         },
+        "outreach": {
+            "cold_email": "Subject: Quick local SEO idea for Acme\n\nHi Acme team, I noticed an opportunity to turn your small business focus into stronger local search demand. Open to a quick walkthrough?",
+            "linkedin_dm": "Saw Acme's small-business software focus. I have a quick local SEO + automation idea that may help surface more qualified inquiries.",
+            "discovery_call_opener": "I’d like to understand where Acme’s best-fit leads currently come from and where follow-up slows down.",
+            "proposal_outline": "1. Current-state audit\n2. Local SEO quick wins\n3. Follow-up automation\n4. 30-day launch plan",
+            "follow_up_sequence": ["Share audit snapshot", "Offer 15-minute teardown", "Send quick-win checklist"],
+            "data_confidence": "medium",
+            "data_limitations": ["Outreach assets are inferred from mocked research data"],
+        },
     }
     return json.dumps(responses.get(module, {}))
 
@@ -134,6 +143,7 @@ class TestMockedEndToEnd:
                 "competitor": True,
                 "social_content": True,
                 "swot": True,
+                "outreach": True,
             },
             output_dir=tmp_reports_dir,
         )
@@ -179,6 +189,7 @@ class TestMockedEndToEnd:
                 "competitor": True,
                 "social_content": True,
                 "swot": True,
+                "outreach": True,
             },
             output_dir=tmp_reports_dir,
         )
@@ -201,6 +212,7 @@ class TestMockedEndToEnd:
                 "competitor": False,
                 "social_content": False,
                 "swot": True,
+                "outreach": True,
             },
             output_dir=tmp_reports_dir,
         )
@@ -225,6 +237,7 @@ class TestMockedEndToEnd:
                 "competitor": True,
                 "social_content": True,
                 "swot": True,
+                "outreach": True,
             },
             output_dir=tmp_reports_dir,
         )
@@ -252,6 +265,7 @@ class TestMockedEndToEnd:
                 "competitor": True,
                 "social_content": True,
                 "swot": True,
+                "outreach": True,
             },
             output_dir=tmp_reports_dir,
         )

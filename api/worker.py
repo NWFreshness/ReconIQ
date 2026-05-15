@@ -5,7 +5,7 @@ import threading
 from typing import Any, Callable
 
 from api.db import get_db
-from core.models import AnalysisRequest
+from core.models import AnalysisRequest, DEFAULT_ENABLED_MODULES
 from core.services import run_analysis
 
 
@@ -25,7 +25,10 @@ def run_analysis_job(job_id: str) -> None:
         db.update_job(job_id, progress_pct=pct, progress_msg=msg)
 
     try:
-        enabled_modules = {m: True for m in job.modules}
+        selected_modules = set(job.modules)
+        enabled_modules = {
+            module: module in selected_modules for module in DEFAULT_ENABLED_MODULES
+        }
         request = AnalysisRequest(
             target_url=job.target_url,
             enabled_modules=enabled_modules,

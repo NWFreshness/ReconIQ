@@ -26,6 +26,7 @@ export default function Home() {
     competitor: true,
     social_content: true,
     swot: true,
+    outreach: true,
   });
   const [jobs, setJobs] = useState<AnalysisJob[]>([]);
   const [loading, setLoading] = useState(false);
@@ -93,6 +94,7 @@ export default function Home() {
     competitor: "Competitors",
     social_content: "Social & Content",
     swot: "SWOT Analysis",
+    outreach: "Outreach Pack",
   };
 
   return (

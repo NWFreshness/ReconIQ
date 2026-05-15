@@ -10,6 +10,7 @@ from research.seo_keywords import run as run_seo_keywords
 from research.competitors import run as run_competitors
 from research.social_content import run as run_social_content
 from research.swot import run as run_swot
+from research.outreach import run as run_outreach
 from scraper.scraper import ScrapeCache, extract_domain_name
 
 
@@ -20,6 +21,7 @@ MODULE_LABELS = {
     "competitor": "Competitor Intel",
     "social_content": "Social Content",
     "swot": "SWOT Synthesis",
+    "outreach": "Outreach Pack",
 }
 
 
@@ -38,6 +40,7 @@ def run_all(
     1. Company Profile runs first (crawls the target URL, shares structured data).
     2. SEO, Competitors, and Social/Content run in parallel after profile.
     3. SWOT runs after all available downstream module outputs are collected.
+    4. Outreach Pack runs last from profile, SEO, competitors, social, and SWOT.
     """
     metadata = _initial_metadata(target_url, llm_complete)
     results: dict[str, Any] = {"metadata": metadata}
@@ -122,7 +125,7 @@ def run_all(
             scrape_result=scrape_result,
         )
     else:
-        for module_name in ("seo_keywords", "competitor", "social_content"):
+        for module_name in ("seo_keywords", "competitor", "social_content", "swot", "outreach"):
             if enabled_modules.get(module_name, True):
                 mark_skipped(module_name)
         log("Skipping downstream modules because Company Profile did not complete", 70.0)
@@ -139,13 +142,34 @@ def run_all(
                 llm_complete=llm_complete,
             )
             mark_run("swot", swot)
-            log("SWOT Synthesis complete", 95.0)
+            log("SWOT Synthesis complete", 90.0)
         except Exception as exc:
             mark_failed("swot", exc)
-            log(f"SWOT Synthesis failed: {exc}", 95.0)
+            log(f"SWOT Synthesis failed: {exc}", 90.0)
     elif enabled_modules.get("swot", True):
         mark_skipped("swot")
-        log("SWOT Synthesis skipped", 95.0)
+        log("SWOT Synthesis skipped", 90.0)
+
+    if enabled_modules.get("outreach", True) and company_profile_succeeded and "swot" in results:
+        log("Running Outreach Pack...", 92.0)
+        try:
+            outreach = run_outreach(
+                company_profile=results.get("company_profile", {}),
+                seo_keywords=results.get("seo_keywords", {}),
+                competitor=results.get("competitor", {}),
+                social_content=results.get("social_content", {}),
+                swot=results.get("swot", {}),
+                target_url=target_url,
+                llm_complete=llm_complete,
+            )
+            mark_run("outreach", outreach)
+            log("Outreach Pack complete", 98.0)
+        except Exception as exc:
+            mark_failed("outreach", exc)
+            log(f"Outreach Pack failed: {exc}", 98.0)
+    elif enabled_modules.get("outreach", True):
+        mark_skipped("outreach")
+        log("Outreach Pack skipped", 98.0)
 
     log("All modules complete!", 100.0)
     if scrape_result is not None:

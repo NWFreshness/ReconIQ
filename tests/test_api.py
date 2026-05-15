@@ -60,8 +60,28 @@ class TestCreateAnalysis:
         data = response.json()
         assert data["target_url"] == "https://example.com/"
         assert data["status"] == "pending"
+        assert "outreach" in data["modules"]
         assert data["id"]
         mock_start.assert_called_once_with(data["id"])
+
+    @patch("api.routes.analyses.start_analysis_job")
+    def test_create_analysis_accepts_outreach_module(self, mock_start: MagicMock) -> None:
+        response = client.post(
+            "/analyses",
+            json={"target_url": "https://example.com", "modules": ["company_profile", "swot", "outreach"]},
+            headers=HEADERS,
+        )
+        assert response.status_code == 202
+        data = response.json()
+        assert data["modules"] == ["company_profile", "swot", "outreach"]
+
+    def test_create_analysis_rejects_unknown_module(self) -> None:
+        response = client.post(
+            "/analyses",
+            json={"target_url": "https://example.com", "modules": ["company_profile", "unknown"]},
+            headers=HEADERS,
+        )
+        assert response.status_code == 422
 
     def test_create_analysis_invalid_url(self) -> None:
         response = client.post(
@@ -173,6 +193,31 @@ class TestWorker:
         assert updated.status == "completed"
         assert updated.report_path == "/tmp/report.md"
         assert updated.results is not None
+
+    @patch("api.worker.run_analysis")
+    def test_worker_converts_selected_modules_to_explicit_enabled_flags(self, mock_run: MagicMock) -> None:
+        from api.db import get_db
+        from api.worker import run_analysis_job
+
+        db = get_db()
+        record = db.create_job(
+            target_url="https://example.com",
+            modules=["company_profile", "outreach"],
+            provider="deepseek",
+            model=None,
+            fmt="md",
+        )
+        mock_run.return_value = MagicMock(report_path="/tmp/report.md", results={})
+
+        run_analysis_job(record.id)
+
+        request = mock_run.call_args[0][0]
+        assert request.enabled_modules["company_profile"] is True
+        assert request.enabled_modules["outreach"] is True
+        assert request.enabled_modules["seo_keywords"] is False
+        assert request.enabled_modules["competitor"] is False
+        assert request.enabled_modules["social_content"] is False
+        assert request.enabled_modules["swot"] is False
 
     @patch("api.worker.run_analysis")
     def test_worker_handles_failure(self, mock_run: MagicMock) -> None:

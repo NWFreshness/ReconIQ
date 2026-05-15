@@ -8,6 +8,10 @@ from typing import Any
 from pydantic import BaseModel, Field, field_validator
 from urllib.parse import urlparse
 
+from core.models import DEFAULT_ENABLED_MODULES
+
+VALID_MODULES = tuple(DEFAULT_ENABLED_MODULES.keys())
+
 
 def _normalize_url(url: str) -> str:
     url = url.strip()
@@ -36,9 +40,7 @@ class ExportFormat(str, Enum):
 
 class AnalysisCreateRequest(BaseModel):
     target_url: str
-    modules: list[str] = Field(default_factory=lambda: [
-        "company_profile", "seo_keywords", "competitor", "social_content", "swot"
-    ])
+    modules: list[str] = Field(default_factory=lambda: list(DEFAULT_ENABLED_MODULES.keys()))
     provider: str | None = "deepseek"
     model: str | None = None
     fmt: ExportFormat = ExportFormat.md
@@ -55,6 +57,13 @@ class AnalysisCreateRequest(BaseModel):
         if parsed.scheme not in ("http", "https"):
             raise ValueError("target_url must use http or https scheme")
         return url
+    @field_validator("modules")
+    @classmethod
+    def modules_must_be_known(cls, modules: list[str]) -> list[str]:
+        unknown = [module for module in modules if module not in VALID_MODULES]
+        if unknown:
+            raise ValueError(f"unknown module(s): {', '.join(unknown)}")
+        return modules
 
 
 class AnalysisResponse(BaseModel):

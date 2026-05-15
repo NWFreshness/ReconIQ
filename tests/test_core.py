@@ -43,6 +43,7 @@ def test_analysis_request_defaults_are_framework_neutral():
         "competitor": True,
         "social_content": True,
         "swot": True,
+        "outreach": True,
     }
     assert request.provider_override is None
     assert request.model_override is None

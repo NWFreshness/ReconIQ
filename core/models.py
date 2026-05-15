@@ -10,6 +10,7 @@ DEFAULT_ENABLED_MODULES = {
     "competitor": True,
     "social_content": True,
     "swot": True,
+    "outreach": True,
 }
 
 

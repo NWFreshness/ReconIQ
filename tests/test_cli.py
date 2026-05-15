@@ -17,11 +17,13 @@ class TestParseModules:
         assert result["competitor"] is True
         assert result["social_content"] is True
         assert result["swot"] is True
+        assert result["outreach"] is True
 
     def test_subset(self) -> None:
         result = _parse_modules("company_profile,swot")
         assert result["company_profile"] is True
         assert result["swot"] is True
+        assert result["outreach"] is False
         assert result["seo_keywords"] is False
 
     def test_invalid_module_ignored(self) -> None:

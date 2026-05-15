@@ -70,6 +70,16 @@ class TestBuildAnalysisRequest:
         assert req.model_override is None
         assert req.output_dir == "reports"
 
+    def test_request_preserves_outreach_toggle(self):
+        req = build_analysis_request(
+            target_url="https://example.com",
+            enabled_modules={"outreach": True, "swot": True},
+            provider="deepseek",
+            model="",
+            output_dir="reports",
+        )
+        assert req.enabled_modules["outreach"] is True
+
     def test_provider_override_when_changed(self):
         req = build_analysis_request(
             target_url="https://example.com",
