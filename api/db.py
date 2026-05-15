@@ -17,8 +17,10 @@ from sqlalchemy import (
     Float,
     Text,
     select,
+    Integer,
+    ForeignKey,
 )
-from sqlalchemy.orm import declarative_base, sessionmaker, Session
+from sqlalchemy.orm import declarative_base, sessionmaker, Session, relationship
 
 Base = declarative_base()
 
@@ -62,6 +64,39 @@ class AnalysisRecord:
     created_at: datetime | None = None
     updated_at: datetime | None = None
     completed_at: datetime | None = None
+
+
+class ProspectList(Base):  # type: ignore[valid-type,misc]
+    __tablename__ = "prospect_lists"
+
+    id = Column(String(36), primary_key=True)
+    name = Column(String(200), nullable=False)
+    description = Column(Text, nullable=True)
+    analysis_count = Column(Integer, nullable=False, default=0)
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    memberships = relationship("ProspectListMembership", back_populates="list", cascade="all, delete-orphan")
+
+
+class ProspectListMembership(Base):  # type: ignore[valid-type,misc]
+    __tablename__ = "prospect_list_memberships"
+
+    list_id = Column(String(36), ForeignKey("prospect_lists.id", ondelete="CASCADE"), primary_key=True)
+    analysis_id = Column(String(36), primary_key=True)
+    added_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+
+    list = relationship("ProspectList", back_populates="memberships")
+
+
+@dataclass
+class ProspectListRecord:
+    id: str
+    name: str
+    description: str | None = None
+    analysis_count: int = 0
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
 
 
 class Database:
@@ -202,6 +237,146 @@ class Database:
             created_at=job.created_at,
             updated_at=job.updated_at,
             completed_at=job.completed_at,
+        )
+
+    # ── Prospect Lists CRUD ────────────────────────────────────────────────
+
+    def create_list(
+        self,
+        name: str,
+        description: str | None = None,
+    ) -> ProspectListRecord:
+        list_id = str(uuid.uuid4())
+        with self.get_session() as session:
+            lst = ProspectList(
+                id=list_id,
+                name=name,
+                description=description,
+                created_at=datetime.now(timezone.utc),
+                updated_at=datetime.now(timezone.utc),
+            )
+            session.add(lst)
+            session.commit()
+            return self._to_list_record(lst)
+
+    def get_list(self, list_id: str) -> ProspectListRecord | None:
+        with self.get_session() as session:
+            lst = session.get(ProspectList, list_id)
+            return self._to_list_record(lst) if lst else None
+
+    def list_lists(self) -> list[ProspectListRecord]:
+        with self.get_session() as session:
+            stmt = select(ProspectList).order_by(ProspectList.created_at.desc())
+            lists = session.execute(stmt).scalars().all()
+            return [self._to_list_record(l) for l in lists]
+
+    def update_list(
+        self,
+        list_id: str,
+        name: str | None = None,
+        description: str | None = None,
+    ) -> ProspectListRecord | None:
+        with self.get_session() as session:
+            lst = session.get(ProspectList, list_id)
+            if not lst:
+                return None
+            if name is not None:
+                lst.name = name
+            if description is not None:
+                lst.description = description
+            lst.updated_at = datetime.now(timezone.utc)
+            session.commit()
+            return self._to_list_record(lst)
+
+    def delete_list(self, list_id: str) -> bool:
+        with self.get_session() as session:
+            lst = session.get(ProspectList, list_id)
+            if not lst:
+                return False
+            session.delete(lst)
+            session.commit()
+            return True
+
+    # ── List Memberships ───────────────────────────────────────────────────
+
+    def add_to_list(self, list_id: str, analysis_id: str) -> bool:
+        with self.get_session() as session:
+            lst = session.get(ProspectList, list_id)
+            if not lst:
+                return False
+            job = session.get(AnalysisJob, analysis_id)
+            if not job:
+                return False
+            # Check if membership already exists (idempotent)
+            existing = session.execute(
+                select(ProspectListMembership).where(
+                    ProspectListMembership.list_id == list_id,
+                    ProspectListMembership.analysis_id == analysis_id,
+                )
+            ).scalar_one_or_none()
+            if existing:
+                return True
+            membership = ProspectListMembership(
+                list_id=list_id,
+                analysis_id=analysis_id,
+                added_at=datetime.now(timezone.utc),
+            )
+            session.add(membership)
+            lst.analysis_count += 1
+            lst.updated_at = datetime.now(timezone.utc)
+            session.commit()
+            return True
+
+    def remove_from_list(self, list_id: str, analysis_id: str) -> bool:
+        with self.get_session() as session:
+            membership = session.execute(
+                select(ProspectListMembership).where(
+                    ProspectListMembership.list_id == list_id,
+                    ProspectListMembership.analysis_id == analysis_id,
+                )
+            ).scalar_one_or_none()
+            if not membership:
+                return False
+            session.delete(membership)
+            lst = session.get(ProspectList, list_id)
+            if lst and lst.analysis_count > 0:
+                lst.analysis_count -= 1
+                lst.updated_at = datetime.now(timezone.utc)
+            session.commit()
+            return True
+
+    def list_analyses_in_list(self, list_id: str) -> list[AnalysisRecord]:
+        with self.get_session() as session:
+            stmt = (
+                select(AnalysisJob)
+                .join(ProspectListMembership, AnalysisJob.id == ProspectListMembership.analysis_id)
+                .where(ProspectListMembership.list_id == list_id)
+                .order_by(ProspectListMembership.added_at.desc())
+            )
+            jobs = session.execute(stmt).scalars().all()
+            return [self._to_record(j) for j in jobs]
+
+    def list_lists_for_analysis(self, analysis_id: str) -> list[ProspectListRecord]:
+        with self.get_session() as session:
+            stmt = (
+                select(ProspectList)
+                .join(ProspectListMembership, ProspectList.id == ProspectListMembership.list_id)
+                .where(ProspectListMembership.analysis_id == analysis_id)
+                .order_by(ProspectList.created_at.desc())
+            )
+            lists = session.execute(stmt).scalars().all()
+            return [self._to_list_record(l) for l in lists]
+
+    # ── Internal helpers ───────────────────────────────────────────────────
+
+    def _to_list_record(self, lst: ProspectList) -> ProspectListRecord:
+        return ProspectListRecord(
+            id=lst.id,
+            name=lst.name,
+            description=lst.description,
+            analysis_count=lst.analysis_count,
+            created_at=lst.created_at,
+            updated_at=lst.updated_at,
         )
 
 
