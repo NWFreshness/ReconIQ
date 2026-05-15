@@ -150,7 +150,8 @@ def run_all(
         mark_skipped("swot")
         log("SWOT Synthesis skipped", 90.0)
 
-    if enabled_modules.get("outreach", True) and company_profile_succeeded and "swot" in results:
+    swot_succeeded = "swot" in results and not results["swot"].get("error")
+    if enabled_modules.get("outreach", True) and company_profile_succeeded and swot_succeeded:
         log("Running Outreach Pack...", 92.0)
         try:
             outreach = run_outreach(

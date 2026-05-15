@@ -38,6 +38,9 @@ Review workflow: one PR per independently reviewable task/sub-phase.
   - Latest commit: `c75fc89`
   - Verification: `npm run build` passed; TypeScript check passed; `git diff --check` passed.
 - [ ] 12F — Add tests for module execution, validation, and report rendering.
+  - Status: In progress — local implementation and verification complete; not yet committed/pushed.
+  - Branch: `feat/phase-12f-outreach-tests`
+  - Verification: `269 passed`; py_compile passed; `git diff --check` passed.
 
 ## Outreach pack output fields
 

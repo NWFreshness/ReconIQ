@@ -177,6 +177,14 @@ class TestMockedEndToEnd:
         assert "acquisition_angle" in content.lower() or "acquisition" in content.lower()
         assert "data limitations" in content.lower()
 
+        # Outreach pack section present with asset content
+        assert "## 7. Outreach Pack" in content
+        assert "### Cold Email" in content
+        assert "Subject: Quick local SEO idea for Acme" in content
+        assert "### LinkedIn DM" in content
+        assert "### Follow-up Sequence" in content
+        assert "Share audit snapshot" in content
+
     @patch("core.services.llm_complete", side_effect=fake_llm_complete)
     @patch("scraper.scraper.ScrapeCache.get_structured", return_value=_fake_scrape_result())
     def test_pipeline_with_failed_scrape_still_completes(self, _mock_scrape, _mock_llm, tmp_reports_dir: str):
