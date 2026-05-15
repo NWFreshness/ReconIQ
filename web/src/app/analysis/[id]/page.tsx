@@ -153,7 +153,7 @@ export default function AnalysisDetailPage() {
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                         {dimensions.map(([label, val]) => val !== undefined && (
                           <div key={label} className="text-center">
-                            <div className="text-lg font-bold text-foreground">{val.toFixed(0)}</div>
+                            <div className="text-lg font-bold text-foreground">{Number(val).toFixed(0)}</div>
                             <div className="text-[10px] text-muted uppercase tracking-wider">{label}</div>
                           </div>
                         ))}
