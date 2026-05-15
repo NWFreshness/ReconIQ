@@ -229,7 +229,7 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-m1, m2, m3, m4, m5 = st.columns(5)
+m1, m2, m3, m4, m5, m6 = st.columns(6)
 with m1:
     toggle_profile = st.checkbox("Profile", value=True)
 with m2:
@@ -240,6 +240,8 @@ with m4:
     toggle_social = st.checkbox("Social", value=True)
 with m5:
     toggle_swot = st.checkbox("SWOT", value=True)
+with m6:
+    toggle_outreach = st.checkbox("Outreach", value=True)
 
 enabled_modules = {
     "company_profile": toggle_profile,
@@ -247,6 +249,7 @@ enabled_modules = {
     "competitor": toggle_competitor,
     "social_content": toggle_social,
     "swot": toggle_swot,
+    "outreach": toggle_outreach,
 }
 
 # ── Status Area ───────────────────────────────────────────────────────────────────────────────

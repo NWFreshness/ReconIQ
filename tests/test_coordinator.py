@@ -3,6 +3,8 @@ from __future__ import annotations
 import threading
 import time
 
+import pytest
+
 from research import coordinator
 from scraper.models import ScrapeResult
 
@@ -15,6 +17,16 @@ def _fake_scrape_result() -> ScrapeResult:
         body_text="Fake page content",
     )
 
+
+@pytest.fixture(autouse=True)
+def fake_default_outreach(monkeypatch):
+    monkeypatch.setattr(
+        coordinator,
+        "run_outreach",
+        lambda **kwargs: {"cold_email": "Email", "data_limitations": []},
+    )
+
+
 def _enabled(**overrides):
     enabled = {
         "company_profile": True,
@@ -22,6 +34,7 @@ def _enabled(**overrides):
         "competitor": True,
         "social_content": True,
         "swot": True,
+        "outreach": True,
     }
     enabled.update(overrides)
     return enabled
@@ -116,6 +129,71 @@ def test_swot_receives_all_available_module_outputs(monkeypatch):
     assert swot_kwargs["target_url"] == "https://acme.example"
 
 
+def test_outreach_runs_after_swot_and_receives_all_outputs(monkeypatch):
+    profile = {"company_name": "Acme"}
+    seo = {"top_keywords": ["widgets"]}
+    competitor = {"competitors": []}
+    social = {"platforms": ["LinkedIn"]}
+    swot = {"acquisition_angle": "Lead with automation audit."}
+    outreach_kwargs = {}
+
+    monkeypatch.setattr(coordinator, "run_company_profile", lambda target_url, llm_complete, scraped_content=None, scrape_result=None: profile)
+    monkeypatch.setattr(coordinator, "run_seo_keywords", lambda company_profile, target_url, llm_complete, scrape_result=None: seo)
+    monkeypatch.setattr(coordinator, "run_competitors", lambda company_profile, target_url, llm_complete, scrape_result=None: competitor)
+    monkeypatch.setattr(coordinator, "run_social_content", lambda company_profile, target_url, llm_complete, scrape_result=None: social)
+    monkeypatch.setattr(coordinator, "run_swot", lambda **kwargs: swot)
+
+    def fake_outreach(**kwargs):
+        outreach_kwargs.update(kwargs)
+        return {"cold_email": "Email", "data_limitations": ["outreach caveat"]}
+
+    monkeypatch.setattr(coordinator, "run_outreach", fake_outreach)
+    monkeypatch.setattr("scraper.scraper.ScrapeCache.get_structured", lambda self, url, timeout=15, max_pages=5, max_depth=2, progress_callback=None: _fake_scrape_result())
+
+    results = coordinator.run_all("https://acme.example", lambda *args, **kwargs: "ok", _enabled())
+
+    assert results["outreach"]["cold_email"] == "Email"
+    assert "outreach" in results["metadata"]["modules_run"]
+    assert "outreach caveat" in results["metadata"]["data_limitations"]
+    assert outreach_kwargs["company_profile"] is profile
+    assert outreach_kwargs["seo_keywords"] is seo
+    assert outreach_kwargs["competitor"] is competitor
+    assert outreach_kwargs["social_content"] is social
+    assert outreach_kwargs["swot"] is swot
+    assert outreach_kwargs["target_url"] == "https://acme.example"
+
+
+def test_outreach_is_skipped_when_disabled(monkeypatch):
+    monkeypatch.setattr(coordinator, "run_company_profile", lambda target_url, llm_complete, scraped_content=None, scrape_result=None: {"company_name": "Acme"})
+    monkeypatch.setattr(coordinator, "run_seo_keywords", lambda company_profile, target_url, llm_complete, scrape_result=None: {"data_limitations": []})
+    monkeypatch.setattr(coordinator, "run_competitors", lambda company_profile, target_url, llm_complete, scrape_result=None: {"data_limitations": []})
+    monkeypatch.setattr(coordinator, "run_social_content", lambda company_profile, target_url, llm_complete, scrape_result=None: {"data_limitations": []})
+    monkeypatch.setattr(coordinator, "run_swot", lambda **kwargs: {"data_limitations": []})
+    monkeypatch.setattr(coordinator, "run_outreach", lambda **kwargs: (_ for _ in ()).throw(AssertionError("should not run")))
+    monkeypatch.setattr("scraper.scraper.ScrapeCache.get_structured", lambda self, url, timeout=15, max_pages=5, max_depth=2, progress_callback=None: _fake_scrape_result())
+
+    results = coordinator.run_all("https://acme.example", lambda *args, **kwargs: "ok", _enabled(outreach=False))
+
+    assert "outreach" in results["metadata"]["modules_skipped"]
+    assert "outreach" not in results
+
+
+def test_outreach_is_skipped_when_swot_disabled(monkeypatch):
+    monkeypatch.setattr(coordinator, "run_company_profile", lambda target_url, llm_complete, scraped_content=None, scrape_result=None: {"company_name": "Acme"})
+    monkeypatch.setattr(coordinator, "run_seo_keywords", lambda company_profile, target_url, llm_complete, scrape_result=None: {"data_limitations": []})
+    monkeypatch.setattr(coordinator, "run_competitors", lambda company_profile, target_url, llm_complete, scrape_result=None: {"data_limitations": []})
+    monkeypatch.setattr(coordinator, "run_social_content", lambda company_profile, target_url, llm_complete, scrape_result=None: {"data_limitations": []})
+    monkeypatch.setattr(coordinator, "run_swot", lambda **kwargs: (_ for _ in ()).throw(AssertionError("should not run")))
+    monkeypatch.setattr(coordinator, "run_outreach", lambda **kwargs: (_ for _ in ()).throw(AssertionError("should not run")))
+    monkeypatch.setattr("scraper.scraper.ScrapeCache.get_structured", lambda self, url, timeout=15, max_pages=5, max_depth=2, progress_callback=None: _fake_scrape_result())
+
+    results = coordinator.run_all("https://acme.example", lambda *args, **kwargs: "ok", _enabled(swot=False, outreach=True))
+
+    assert "swot" in results["metadata"]["modules_skipped"]
+    assert "outreach" in results["metadata"]["modules_skipped"]
+    assert "outreach" not in results
+
+
 def test_downstream_failure_is_recorded_and_run_continues_to_swot(monkeypatch):
     monkeypatch.setattr(coordinator, "run_company_profile", lambda target_url, llm_complete, scraped_content=None, scrape_result=None: {"company_name": "Acme"})
     monkeypatch.setattr(coordinator, "run_seo_keywords", lambda company_profile, target_url, llm_complete, scrape_result=None: {"data_limitations": ["seo caveat"]})
@@ -149,10 +227,10 @@ def test_disabled_modules_are_marked_skipped(monkeypatch):
     results = coordinator.run_all(
         "https://acme.example",
         lambda *args, **kwargs: "ok",
-        _enabled(seo_keywords=False, social_content=False, swot=False),
+        _enabled(seo_keywords=False, social_content=False, swot=False, outreach=False),
     )
 
-    assert set(results["metadata"]["modules_skipped"]) == {"seo_keywords", "social_content", "swot"}
+    assert set(results["metadata"]["modules_skipped"]) == {"seo_keywords", "social_content", "swot", "outreach"}
     assert "seo_keywords" not in results
     assert "social_content" not in results
     assert "swot" not in results

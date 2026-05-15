@@ -10,7 +10,7 @@ from core.models import AnalysisRequest, DEFAULT_ENABLED_MODULES
 from core.services import run_analysis
 
 
-MODULE_CHOICES = ["company_profile", "seo_keywords", "competitor", "social_content", "swot"]
+MODULE_CHOICES = list(DEFAULT_ENABLED_MODULES.keys())
 FORMAT_CHOICES = ["md", "html", "pdf"]
 
 
