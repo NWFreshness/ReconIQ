@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { FolderPlus, FolderOpen, X, Check, List } from "lucide-react";
+import { FolderPlus, FolderOpen, X, Check, List, Eye } from "lucide-react";
+import Link from "next/link";
 import { prospectLists, type ProspectList } from "@/lib/api";
 
 interface ListManagerProps {
@@ -164,13 +165,24 @@ export function ListManager({ analysisId, currentListIds, onListsChange }: ListM
                       <div className="flex items-center gap-2 min-w-0">
                         <FolderOpen className="w-3.5 h-3.5 text-muted flex-shrink-0" />
                         <div className="min-w-0">
-                          <span className="text-xs font-medium text-foreground truncate block">
+                          <Link
+                            href={`/lists/${list.id}`}
+                            className="text-xs font-medium text-foreground truncate block hover:text-accent transition-colors"
+                          >
                             {list.name}
-                          </span>
+                          </Link>
                           <span className="text-[10px] text-muted">{list.analysis_count} analyses</span>
                         </div>
                       </div>
-                      {isInList ? (
+                      <div className="flex items-center gap-1">
+                        <Link
+                          href={`/lists/${list.id}`}
+                          className="text-xs p-1.5 rounded bg-surface-hover text-muted border border-border hover:text-foreground hover:border-muted transition-colors"
+                          title="View list"
+                        >
+                          <Eye className="w-3 h-3" />
+                        </Link>
+                        {isInList ? (
                         <button
                           onClick={() => handleRemoveFromList(list.id)}
                           className="text-xs px-2 py-1 rounded bg-emerald-400/10 text-emerald-400 border border-emerald-400/30 hover:bg-emerald-400/20 transition-colors flex items-center gap-1"
@@ -186,6 +198,7 @@ export function ListManager({ analysisId, currentListIds, onListsChange }: ListM
                           Add
                         </button>
                       )}
+                      </div>
                     </div>
                   );
                 })

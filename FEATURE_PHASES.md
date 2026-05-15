@@ -36,7 +36,7 @@ Update rules for future agents/models:
   - 15B: CRUD API routes — DONE (merged PR #36)
   - 15C: Add/remove analyses endpoints — DONE in 15B
   - 15D: UI for creating lists and assigning analyses — COMPLETE locally.
-  - 15E: List detail page — Pending
+  - 15E: List detail page — COMPLETE locally.
   - 15F: Tests — Covered by 15A/15B
 
 ---
