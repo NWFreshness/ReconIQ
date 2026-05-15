@@ -17,31 +17,30 @@
 
 ---
 
-## Phase 10: Evidence and Citations Viewer
+## Phase 10: Evidence and Citations Viewer — DONE (PR #22, merged 2026-05-15)
 
 **Goal:** Make every major report claim traceable to scraped pages, search results, or explicit LLM inference.
 
 **Why:** ReconIQ becomes more trustworthy as a client-facing intelligence tool when users can see where claims came from.
 
-**Likely files:**
+**Files delivered:**
 
-- `scraper/models.py`
-- `scraper/crawler.py`
-- `research/scrape_context.py`
-- `research/schemas.py`
-- `research/*.py`
-- `report/writer.py`
-- `api/schemas.py`
-- `web/src/app/analysis/[id]/page.tsx`
+- `research/evidence.py` — `EvidenceItem` shape and `collect_scrape_evidence()` helper
+- `research/schemas.py` — evidence fields added to module output schemas
+- `research/{company_profile,competitors,seo_keywords,social_content}.py` — evidence collection wired into each module
+- `report/writer.py` — "Evidence Sources" appendix section
+- `web/src/components/EvidenceList.tsx` — expandable evidence UI component
+- `tests/test_evidence.py` — 66 lines of unit tests
+- `tests/test_report_writer.py` — evidence appendix rendering tests
 
 **Sub-phases:**
 
-- [ ] 10A — Define a shared `EvidenceItem` shape with fields like `source_type`, `url`, `page_title`, `excerpt`, `selector_or_field`, `confidence`, and `module`.
-- [ ] 10B — Add evidence extraction from structured scrape data: title, meta description, headings, social links, contact info, JSON-LD, page excerpts.
-- [ ] 10C — Update research module outputs to include `evidence` arrays where possible.
-- [ ] 10D — Update report writer to add footnotes or an appendix called “Evidence Sources.”
-- [ ] 10E — Update the analysis detail page to show expandable evidence under each module.
-- [ ] 10F — Add tests proving report claims preserve evidence metadata and missing evidence is labeled as inferred.
+- [x] 10A — Define a shared `EvidenceItem` shape with fields like `source_type`, `url`, `page_title`, `excerpt`, `selector_or_field`, `confidence`, and `module`.
+- [x] 10B — Add evidence extraction from structured scrape data: title, meta description, headings, social links, contact info, JSON-LD, page excerpts.
+- [x] 10C — Update research module outputs to include `evidence` arrays where possible.
+- [x] 10D — Update report writer to add footnotes or an appendix called "Evidence Sources."
+- [x] 10E — Update the analysis detail page to show expandable evidence under each module.
+- [x] 10F — Add tests proving report claims preserve evidence metadata and missing evidence is labeled as inferred.
 
 **Verification:**
 
@@ -51,28 +50,29 @@
 
 ---
 
-## Phase 11: Competitor Comparison Matrix
+## Phase 11: Competitor Comparison Matrix — DONE (PR #23, merged 2026-05-15)
 
 **Goal:** Present competitor findings as a structured side-by-side table.
 
 **Why:** The current competitor section is useful, but a comparison matrix makes gaps and positioning easier to scan.
 
-**Likely files:**
+**Files delivered:**
 
-- `research/schemas.py`
-- `research/competitors.py`
-- `report/writer.py`
-- `api/schemas.py`
-- `web/src/app/analysis/[id]/page.tsx`
-- `web/src/components/CompetitorMatrix.tsx` new
+- `research/competitor_matrix.py` — `build_competitor_matrix()` with normalized column mapping
+- `research/competitors.py` — matrix output wired into module
+- `research/schemas.py` — matrix fields added to competitor output schema
+- `report/writer.py` — Markdown table rendering for competitor matrix
+- `web/src/components/CompetitorMatrix.tsx` — React component for detail page
+- `tests/test_competitor_matrix.py` — 66 lines of unit tests
+- `tests/test_report_writer.py` — matrix output tests
 
 **Sub-phases:**
 
-- [ ] 11A — Extend competitor schema with normalized comparison fields: `pricing_tier`, `positioning`, `key_messaging`, `services`, `weaknesses`, `content_quality`, `seo_notes`.
-- [ ] 11B — Add a pure formatter that converts competitor results into a matrix model.
-- [ ] 11C — Render the matrix in Markdown and HTML/PDF exports.
-- [ ] 11D — Add a React `CompetitorMatrix` component for the detail page.
-- [ ] 11E — Add tests for empty competitors, one competitor, and multiple competitors with partial fields.
+- [x] 11A — Extend competitor schema with normalized comparison fields: `pricing_tier`, `positioning`, `key_messaging`, `services`, `weaknesses`, `content_quality`, `seo_notes`.
+- [x] 11B — Add a pure formatter that converts competitor results into a matrix model.
+- [x] 11C — Render the matrix in Markdown and HTML/PDF exports.
+- [x] 11D — Add a React `CompetitorMatrix` component for the detail page.
+- [x] 11E — Add tests for empty competitors, one competitor, and multiple competitors with partial fields.
 
 **Verification:**
 
@@ -160,7 +160,7 @@
 
 ---
 
-## Phase 14: Report Dashboard Filters
+## Phase 14: Report Dashboard Filters — DONE (PRs #33, #34, merged 2026-05-15)
 
 **Goal:** Make the Next dashboard easier to navigate as the number of analyses grows.
 
@@ -169,27 +169,26 @@
 - Status
 - Provider
 - Date range
-- Export format
 - Minimum prospect score
 - Failed analyses only
 
-**Likely files:**
+**Files delivered:**
 
-- `api/routes/analyses.py`
-- `api/db.py`
-- `api/schemas.py`
-- `web/src/lib/api.ts`
-- `web/src/app/page.tsx`
-- `web/src/components/DashboardFilters.tsx` new
+- `api/routes/analyses.py` — query params: status, provider, date_from, date_to, min_score, error_only
+- `api/db.py` — SQL filtering in `list_jobs()`
+- `api/schemas.py` — filter params in response models
+- `web/src/lib/api.ts` — typed `listAnalyses()` with filter params
+- `web/src/app/page.tsx` — filter state + URL query param persistence
+- `web/src/components/DashboardFilters.tsx` — filter bar component
 
 **Sub-phases:**
 
-- [ ] 14A — Add optional query params to `GET /analyses`.
-- [ ] 14B — Extend database query builder to filter by status, provider, format, date, and score if present.
-- [ ] 14C — Add typed API client support for filters.
-- [ ] 14D — Add a filter bar to the dashboard.
-- [ ] 14E — Persist filters in URL query params.
-- [ ] 14F — Add API and frontend tests for common filter combinations.
+- [x] 14A — Add optional query params to `GET /analyses`.
+- [x] 14B — Extend database query builder to filter by status, provider, format, date, and score if present.
+- [x] 14C — Add typed API client support for filters.
+- [x] 14D — Add a filter bar to the dashboard.
+- [x] 14E — Persist filters in URL query params.
+- [x] 14F — Add API and frontend tests for common filter combinations.
 
 **Verification:**
 
