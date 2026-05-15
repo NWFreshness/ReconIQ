@@ -7,11 +7,16 @@ Review workflow: one PR per independently reviewable task/sub-phase.
 ## Sub-phase tracker
 
 - [x] 12A — Define `OutreachPackSchema` with separate fields for each asset.
-  - Status: PR open.
+  - Status: Merged.
+  - PR: https://github.com/NWFreshness/ReconIQ/pull/24
   - Branch: `feat/phase-12a-outreach-schema`
+  - Merge commit: `96d8808014f0b30e4689467b256817b9824d76cd`
   - Verification: focused schema tests pass; full verification recorded in PR.
 
-- [ ] 12B — Add an `outreach` research module that consumes company profile, SEO, competitors, social/content, and SWOT.
+- [x] 12B — Add an `outreach` research module that consumes company profile, SEO, competitors, social/content, and SWOT.
+  - Status: PR open.
+  - Branch: `feat/phase-12b-outreach-module`
+  - Verification: focused module tests pass; full verification recorded in PR.
 - [ ] 12C — Add module toggle support in backend schemas, API, CLI, Streamlit, and Next UI.
 - [ ] 12D — Add report section “Outreach Pack.”
 - [ ] 12E — Add copy-friendly UI blocks in the analysis detail page.
