@@ -29,14 +29,13 @@ Update rules for future agents/models:
 - [x] Phase 12 — Outreach Pack Generator (PRs #25-30, merged 2026-05-15)
 - [x] Phase 13 — Prospect Scoring (PRs #31-32, merged 2026-05-15)
 - [x] Phase 14 — Dashboard Filters (PRs #33-34, merged 2026-05-15)
-- [ ] Phase 15 — Saved Prospect Lists
-  - Status: In progress — 15A merged (PR #35), 15B merged (PR #36), 15C done in 15B. Starting 15D.
-  - Branch: `feat/phase-15d-prospect-lists-ui`
+- [x] Phase 15 — Saved Prospect Lists (PRs #35, #36, #37, #38 merged)
+  - Status: COMPLETE
   - 15A: Database tables/models — DONE (merged PR #35)
   - 15B: CRUD API routes — DONE (merged PR #36)
   - 15C: Add/remove analyses endpoints — DONE in 15B
-  - 15D: UI for creating lists and assigning analyses — COMPLETE locally.
-  - 15E: List detail page — COMPLETE locally.
+  - 15D: UI for creating lists and assigning analyses — DONE (merged PR #37)
+  - 15E: List detail page — DONE (merged PR #38)
   - 15F: Tests — Covered by 15A/15B
 
 ---
@@ -471,12 +470,12 @@ Update rules for future agents/models:
 
 **Sub-phases:**
 
-- [ ] 21A — Define visual data models independent of rendering library.
-- [ ] 21B — Add Markdown-compatible ASCII/table fallbacks for all visuals.
-- [ ] 21C — Add HTML report visual components with inline CSS.
-- [ ] 21D — Add PDF-safe styling for WeasyPrint.
-- [ ] 21E — Add React visual components for the detail page.
-- [ ] 21F — Add tests for report generation with visual sections enabled.
+- [x] 21A — Define visual data models independent of rendering library.
+- [x] 21B — Add Markdown-compatible ASCII/table fallbacks for all visuals.
+- [x] 21C — Add HTML report visual components with inline CSS.
+- [x] 21D — Add PDF-safe styling for WeasyPrint.
+- [x] 21E — Add React visual components for the detail page.
+- [x] 21F — Add tests for report generation with visual sections enabled.
 
 **Verification:**
 
@@ -540,7 +539,7 @@ Update rules for future agents/models:
 | 18 | Cost Controls | Not started | LLM router |
 | 19 | Better Local Mode | Not started | LLM router; search helpers |
 | 20 | CRM and Export Integrations | Not started | Batch mode; ideally Phase 15 |
-| 21 | Visual Report Builder | Not started | Report writer; stable schemas |
+| 21 | Visual Report Builder | COMPLETE | Report writer; stable schemas |
 
 ---
 
