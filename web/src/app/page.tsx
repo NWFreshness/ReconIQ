@@ -5,6 +5,10 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Radar, Plus, RefreshCw, Terminal, Zap, Globe, Shield } from "lucide-react";
 import { api, type AnalysisJob } from "@/lib/api";
 import { AnalysisCard } from "@/components/AnalysisCard";
+import {
+  DashboardFiltersBar,
+  type DashboardFilters,
+} from "@/components/DashboardFilters";
 
 const MODULE_LABELS = {
   company_profile: "Company Profile",
@@ -47,9 +51,16 @@ export default function Home() {
   const [fmt, setFmt] = useState("md");
   const [modules, setModules] = useState<EnabledModules>(DEFAULT_MODULES);
   const [jobs, setJobs] = useState<AnalysisJob[]>([]);
+  const [allJobs, setAllJobs] = useState<AnalysisJob[]>([]);
   const [scores, setScores] = useState<Record<string, { overall: number; grade: string }>>({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [filters, setFilters] = useState<DashboardFilters>({
+    status: "",
+    provider: "",
+    min_score: null,
+    error_only: false,
+  });
 
   const runningJobs = jobs.filter((job) => job.status === "running").length;
   const completedJobs = jobs.filter((job) => job.status === "completed").length;
@@ -57,8 +68,15 @@ export default function Home() {
 
   const loadJobs = useCallback(async () => {
     try {
-      const data = await api.listAnalyses(20);
+      // Load all jobs (with backend filters applied)
+      const data = await api.listAnalyses(50, {
+        status: filters.status || undefined,
+        provider: filters.provider || undefined,
+        min_score: filters.min_score ?? undefined,
+        error_only: filters.error_only || undefined,
+      });
       setJobs(data);
+      setAllJobs(data);
       // Fetch scores for completed jobs
       const newScores: Record<string, { overall: number; grade: string }> = {};
       for (const job of data) {
@@ -78,7 +96,7 @@ export default function Home() {
     } catch {
       // silently fail on polling
     }
-  }, []);
+  }, [filters]);
 
   useEffect(() => {
     const initialLoad = setTimeout(() => {
@@ -296,6 +314,14 @@ export default function Home() {
             </motion.div>
           ))}
         </div>
+
+        {/* Filter Bar */}
+        <DashboardFiltersBar
+          filters={filters}
+          onChange={(f) => setFilters(f)}
+          jobCount={jobs.length}
+          totalCount={jobs.length}
+        />
 
         {/* Job List */}
         <div>

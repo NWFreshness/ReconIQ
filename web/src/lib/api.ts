@@ -47,7 +47,22 @@ export interface AnalysisResult {
 
 export const api = {
   health: () => fetchJson<{ status: string; version: string; timestamp: string }>("/health"),
-  listAnalyses: (limit = 50) => fetchJson<AnalysisJob[]>(`/analyses?limit=${limit}`),
+  listAnalyses: (
+    limit = 50,
+    params?: {
+      status?: string;
+      provider?: string;
+      min_score?: number;
+      error_only?: boolean;
+    },
+  ) => {
+    const qs = new URLSearchParams({ limit: String(limit) });
+    if (params?.status) qs.set("status", params.status);
+    if (params?.provider) qs.set("provider", params.provider);
+    if (params?.min_score !== undefined) qs.set("min_score", String(params.min_score));
+    if (params?.error_only) qs.set("error_only", String(params.error_only));
+    return fetchJson<AnalysisJob[]>(`/analyses?${qs.toString()}`);
+  },
   getAnalysis: (id: string) => fetchJson<AnalysisJob>(`/analyses/${id}`),
   getResults: (id: string) => fetchJson<AnalysisResult>(`/analyses/${id}/results`),
   createAnalysis: (body: {
