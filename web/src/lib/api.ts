@@ -14,6 +14,7 @@ async function fetchJson<T>(path: string, options?: RequestInit): Promise<T> {
     const err = await res.text();
     throw new Error(`${res.status}: ${err}`);
   }
+  if (res.status === 204) return undefined as T;
   return res.json();
 }
 

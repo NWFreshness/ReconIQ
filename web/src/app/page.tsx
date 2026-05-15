@@ -6,6 +6,29 @@ import { Radar, Plus, RefreshCw, Terminal, Zap, Globe, Shield } from "lucide-rea
 import { api, type AnalysisJob } from "@/lib/api";
 import { AnalysisCard } from "@/components/AnalysisCard";
 
+const MODULE_LABELS = {
+  company_profile: "Company Profile",
+  seo_keywords: "SEO & Keywords",
+  competitor: "Competitors",
+  social_content: "Social & Content",
+  swot: "SWOT Analysis",
+  outreach: "Outreach Pack",
+} as const;
+
+type ModuleKey = keyof typeof MODULE_LABELS;
+type EnabledModules = Record<ModuleKey, boolean>;
+
+const DEFAULT_MODULES: EnabledModules = {
+  company_profile: true,
+  seo_keywords: true,
+  competitor: true,
+  social_content: true,
+  swot: true,
+  outreach: true,
+};
+
+const MODULE_ENTRIES = Object.entries(MODULE_LABELS) as [ModuleKey, string][];
+
 function normalizeUrl(url: string): string {
   url = url.trim();
   if (!url) return url;
@@ -20,17 +43,14 @@ export default function Home() {
   const [provider, setProvider] = useState("deepseek");
   const [model, setModel] = useState("");
   const [fmt, setFmt] = useState("md");
-  const [modules, setModules] = useState({
-    company_profile: true,
-    seo_keywords: true,
-    competitor: true,
-    social_content: true,
-    swot: true,
-    outreach: true,
-  });
+  const [modules, setModules] = useState<EnabledModules>(DEFAULT_MODULES);
   const [jobs, setJobs] = useState<AnalysisJob[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+
+  const runningJobs = jobs.filter((job) => job.status === "running").length;
+  const completedJobs = jobs.filter((job) => job.status === "completed").length;
+  const failedJobs = jobs.filter((job) => job.status === "failed").length;
 
   const loadJobs = useCallback(async () => {
     try {
@@ -42,14 +62,20 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
-    loadJobs();
-    const interval = setInterval(loadJobs, 3000);
-    return () => clearInterval(interval);
+    const initialLoad = setTimeout(() => {
+      void loadJobs();
+    }, 0);
+    const interval = setInterval(() => {
+      void loadJobs();
+    }, 3000);
+    return () => {
+      clearTimeout(initialLoad);
+      clearInterval(interval);
+    };
   }, [loadJobs]);
 
-  const toggleModule = (key: string) => {
-    setModules((m) => ({ ...m, [key]: !m[key as keyof typeof m] }));
+  const toggleModule = (key: ModuleKey) => {
+    setModules((current) => ({ ...current, [key]: !current[key] }));
   };
 
   const handleDelete = async (id: string) => {
@@ -86,15 +112,6 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  };
-
-  const moduleLabels: Record<string, string> = {
-    company_profile: "Company Profile",
-    seo_keywords: "SEO & Keywords",
-    competitor: "Competitors",
-    social_content: "Social & Content",
-    swot: "SWOT Analysis",
-    outreach: "Outreach Pack",
   };
 
   return (
@@ -149,7 +166,7 @@ export default function Home() {
             <div className="flex-1 relative">
               <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
               <input
-                type="url"
+                type="text"
                 value={url}
                 onChange={(e) => setUrl(e.target.value)}
                 placeholder="example.com"
@@ -219,13 +236,13 @@ export default function Home() {
           <div className="mt-4">
             <label className="text-[10px] text-muted uppercase tracking-wider mb-2 block">Modules</label>
             <div className="flex flex-wrap gap-2">
-              {Object.entries(moduleLabels).map(([key, label]) => (
+              {MODULE_ENTRIES.map(([key, label]) => (
                 <button
                   key={key}
                   type="button"
                   onClick={() => toggleModule(key)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-                    modules[key as keyof typeof modules]
+                    modules[key]
                       ? "bg-cyan-400/10 text-cyan-400 border-cyan-400/30"
                       : "bg-background text-muted border-border hover:border-muted"
                   }`}
@@ -241,9 +258,9 @@ export default function Home() {
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
           {[
             { icon: Terminal, label: "Total", value: jobs.length },
-            { icon: Zap, label: "Running", value: jobs.filter((j) => j.status === "running").length },
-            { icon: Shield, label: "Completed", value: jobs.filter((j) => j.status === "completed").length },
-            { icon: Radar, label: "Failed", value: jobs.filter((j) => j.status === "failed").length },
+            { icon: Zap, label: "Running", value: runningJobs },
+            { icon: Shield, label: "Completed", value: completedJobs },
+            { icon: Radar, label: "Failed", value: failedJobs },
           ].map((stat) => (
             <motion.div
               key={stat.label}

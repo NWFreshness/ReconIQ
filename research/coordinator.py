@@ -172,6 +172,29 @@ def run_all(
         mark_skipped("outreach")
         log("Outreach Pack skipped", 98.0)
 
+    # —— Outreach Pack (requires SWOT to succeed) ——
+    swot_succeeded = "swot" in results and not results["swot"].get("error")
+    if enabled_modules.get("outreach", True) and swot_succeeded:
+        log("Running Outreach Pack...", 96.0)
+        try:
+            outreach = run_outreach(
+                company_profile=results.get("company_profile", {}),
+                seo_keywords=results.get("seo_keywords", {}),
+                competitor=results.get("competitor", {}),
+                social_content=results.get("social_content", {}),
+                swot=results.get("swot", {}),
+                target_url=target_url,
+                llm_complete=llm_complete,
+            )
+            mark_run("outreach", outreach)
+            log("Outreach Pack complete", 98.0)
+        except Exception as exc:
+            mark_failed("outreach", exc)
+            log(f"Outreach Pack failed: {exc}", 98.0)
+    elif enabled_modules.get("outreach", True):
+        mark_skipped("outreach")
+        log("Outreach Pack skipped", 98.0)
+
     log("All modules complete!", 100.0)
     if scrape_result is not None:
         metadata["crawl"] = {

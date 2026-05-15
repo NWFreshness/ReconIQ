@@ -15,16 +15,6 @@ class ReconIQBaseModel(BaseModel):
         return self.model_dump(mode="python")
 
 
-class EvidenceItem(ReconIQBaseModel):
-    module: str = ""
-    source_type: str = ""
-    url: str = ""
-    page_title: str = ""
-    selector_or_field: str = ""
-    excerpt: str = ""
-    confidence: str = ""
-
-
 class SEOKeywordsSchema(ReconIQBaseModel):
     top_keywords: list[str] = []
     content_gaps: list[str] = []
@@ -39,15 +29,11 @@ class SEOKeywordsSchema(ReconIQBaseModel):
 class CompetitorItem(ReconIQBaseModel):
     name: str = ""
     url: str = ""
-    pricing_tier: str = ""
     positioning: str = ""
     estimated_pricing_tier: str = ""
     key_messaging: str = ""
-    services: list[str] = []
     weaknesses: list[str] = []
     inferred_services: list[str] = []
-    content_quality: str = ""
-    seo_notes: str = ""
 
 
 class CompetitorSchema(ReconIQBaseModel):
@@ -129,6 +115,7 @@ def validate_module_output(data: dict[str, Any], schema_type: type[BaseModel], c
     # Pre-clean: coerce list items to dicts where schemas expect objects
     data = _coerce_competitor_lists(data)
     data = _coerce_string_fields(data)
+    data = _coerce_list_fields(data)
     try:
         model = schema_type.model_validate(data)
     except ValidationError as exc:
@@ -150,9 +137,9 @@ def _coerce_competitor_lists(data: dict[str, Any]) -> dict[str, Any]:
             if isinstance(item, dict):
                 cleaned.append(item)
             elif isinstance(item, str):
-                cleaned.append({"name": item, "url": "", "pricing_tier": "", "positioning": "", "estimated_pricing_tier": "", "key_messaging": "", "services": [], "weaknesses": [], "inferred_services": [], "content_quality": "", "seo_notes": ""})
+                cleaned.append({"name": item, "url": "", "positioning": "", "estimated_pricing_tier": "", "key_messaging": "", "weaknesses": [], "inferred_services": []})
             else:
-                cleaned.append({"name": str(item), "url": "", "pricing_tier": "", "positioning": "", "estimated_pricing_tier": "", "key_messaging": "", "services": [], "weaknesses": [], "inferred_services": [], "content_quality": "", "seo_notes": ""})
+                cleaned.append({"name": str(item), "url": "", "positioning": "", "estimated_pricing_tier": "", "key_messaging": "", "weaknesses": [], "inferred_services": []})
         data[key] = cleaned
     return data
 
@@ -165,12 +152,28 @@ def _coerce_string_fields(data: dict[str, Any]) -> dict[str, Any]:
         "blog_or_resources", "email_signals", "acquisition_angle",
         "competitive_advantage", "lead_generation_strategy", "close_rate_strategy",
         "company_name", "what_they_do", "target_audience", "value_proposition",
-        "brand_voice", "primary_cta", "cold_email", "linkedin_dm",
-        "discovery_call_opener", "proposal_outline",
+        "brand_voice", "primary_cta",
+        # outreach pack fields
+        "cold_email", "linkedin_dm", "discovery_call_opener", "proposal_outline",
     )
     for field in string_fields:
         if field in data and data[field] is not None and not isinstance(data[field], str):
             data[field] = str(data[field])
         if field in data and data[field] is None:
             data[field] = ""
+    return data
+
+
+def _coerce_list_fields(data: dict[str, Any]) -> dict[str, Any]:
+    """Ensure list fields are actually lists (not null)."""
+    for key in ("follow_up_sequence", "data_limitations", "competitors",
+                "scraped_competitors", "inferred_competitors", "platforms",
+                "inferred_platforms", "review_sites", "content_gaps",
+                "services_products", "marketing_channels", "service_area",
+                "strengths", "weaknesses", "opportunities", "threats",
+                "talking_points", "recommended_next_steps"):
+        if key in data and data[key] is None:
+            data[key] = []
+        elif key in data and not isinstance(data[key], list):
+            data[key] = [str(data[key])]
     return data
