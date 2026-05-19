@@ -35,7 +35,8 @@ playwright install chromium
 
 # Configure API keys
 cp .env.example .env
-# Edit .env with your API keys (at least DEEPSEEK_API_KEY and FIRECRAWL_API_KEY)
+# Edit .env — at minimum you need DEEPSEEK_API_KEY
+# For competitor search: FIRECRAWL_API_KEY (primary) and SERPAPI_API_KEY (fallback)
 ```
 
 ### Mode 1: FastAPI + Next.js (recommended)
@@ -65,12 +66,13 @@ Copy `.env.example` to `.env` and add your API keys:
 | Variable | Required | Description |
 |----------|----------|-------------|
 | `DEEPSEEK_API_KEY` | Yes (default) | DeepSeek API key |
-| `FIRECRAWL_API_KEY` | Yes (for competitor discovery) | Firecrawl search API key |
+| `FIRECRAWL_API_KEY` | Recommended (competitor search, primary) | Firecrawl search API key |
+| `SERPAPI_API_KEY` | Recommended (competitor search, fallback) | SerpAPI key — used automatically when Firecrawl fails or runs out of credits. $10/month for 5,000 searches |
 | `OPENAI_API_KEY` | No | OpenAI API key |
 | `ANTHROPIC_API_KEY` | No | Anthropic API key |
 | `GROQ_API_KEY` | No | Groq API key |
 
-**Without `FIRECRAWL_API_KEY`, the competitor module falls back to homepage-only scraping and finds zero competitors.**
+**Without `FIRECRAWL_API_KEY` and `SERPAPI_API_KEY`, competitor search returns zero results.** Both are configured as a fallback chain in `config.yaml` — the system tries Firecrawl first, then SerpAPI, so at least one will work.
 
 ### config.yaml
 
@@ -106,9 +108,8 @@ You can override the provider and model per-run from the sidebar in the UI or vi
 
 ```
 ReconIQ/
-├── app.py                    # Streamlit UI entry point
 ├── cli.py                    # CLI interface
-├── config.yaml               # LLM provider, model, and scraper configuration
+├── config.yaml               # LLM provider, model, scraper, and search provider configuration
 ├── DESIGN.md                 # Design system tokens (Google DESIGN.md format)
 ├── requirements.txt          # Python dependencies
 ├── api/                      # FastAPI backend (port 8000)
@@ -141,7 +142,7 @@ ReconIQ/
 │   ├── prospect_score.py     # Deterministic prospect scoring (7 dimensions)
 │   ├── evidence.py           # Evidence & citations helpers
 │   ├── parsing.py            # LLM response parsing and validation
-│   └── search.py             # Firecrawl search integration
+│   ├── search.py             # Search provider integration (Firecrawl + SerpAPI fallback)
 ├── scraper/                  # Web scraping layer
 │   ├── scraper.py            # Primary scraper (requests + BeautifulSoup)
 │   ├── crawler.py            # Multi-page crawler with depth control
@@ -185,7 +186,7 @@ npx @google/design.md lint DESIGN.md
 .venv/bin/python -m pytest tests/ -q
 ```
 
-349 tests pass in ~51 seconds.
+459 tests pass in ~60 seconds.
 
 ## LLM Providers
 
