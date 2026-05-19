@@ -1,4 +1,16 @@
-"""Research Coordinator — dependency-aware orchestration for research modules."""
+"""Research Coordinator — dependency-aware orchestration for research modules.
+
+Uses the ModuleRegistry pattern for module discovery and ordering.
+Actual execution still delegates to each module's run() function.
+
+Pipeline order (from module.order in registry):
+  10  Company Profile (must succeed for downstream)
+  20  SEO, Competitors, Social (parallel downstream)
+  40  SWOT Synthesis
+  50  Outreach Pack
+  60  Prospect Score
+"""
+
 from __future__ import annotations
 
 import dataclasses
@@ -6,26 +18,29 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any, Callable, Optional
 
+from research.module import ModuleRegistry
 from research.company_profile import run as run_company_profile
 from research.seo_keywords import run as run_seo_keywords
 from research.competitors import run as run_competitors
 from research.social_content import run as run_social_content
 from research.swot import run as run_swot
 from research.outreach import run as run_outreach
-from research.prospect_score import compute_prospect_score
 from scraper.scraper import ScrapeCache, extract_domain_name
 
+# Re-export for backward compatibility (tests monkeypatch these)
+__all__ = [
+    "run_all", "MODULE_LABELS", "run_outreach", "compute_prospect_score",
+]
 
 ProgressCallback = Optional[Callable[[str, float], None]]
-MODULE_LABELS = {
-    "company_profile": "Company Profile",
-    "seo_keywords": "SEO Keywords",
-    "competitor": "Competitor Intel",
-    "social_content": "Social Content",
-    "swot": "SWOT Synthesis",
-    "outreach": "Outreach Pack",
-    "prospect_score": "Prospect Score",
-}
+
+# MODULE_LABELS from registry — the single source of truth for module naming.
+# Updated at import time; refreshed each run to pick up new modules.
+ModuleRegistry.ensure_initialized()
+MODULE_LABELS: dict[str, str] = dict(ModuleRegistry.get_labels())
+
+# Re-export compute_prospect_score for test monkeypatching
+from research.prospect_score import compute_prospect_score  # noqa: F401, E402
 
 
 def run_all(
@@ -36,11 +51,10 @@ def run_all(
     max_pages: int = 5,
     max_depth: int = 2,
 ) -> dict[str, Any]:
-    """
-    Run all enabled research modules and return a combined results dict.
+    """Run all enabled research modules and return a combined results dict.
 
-    Execution order:
-    1. Company Profile runs first (crawls the target URL, shares structured data).
+    Execution order driven by module registry order:
+    1. Company Profile runs first (crawls target URL, shares structured data).
     2. SEO, Competitors, and Social/Content run in parallel after profile.
     3. SWOT runs after all available downstream module outputs are collected.
     4. Outreach Pack runs last from profile, SEO, competitors, social, and SWOT.
@@ -48,9 +62,6 @@ def run_all(
     metadata = _initial_metadata(target_url, llm_complete)
     results: dict[str, Any] = {"metadata": metadata}
 
-    # Create a scrape cache for this analysis run so we don't re-scrape the
-    # same URL across modules. The homepage content is scraped once here and
-    # shared with all modules that need it.
     scrape_cache = ScrapeCache()
 
     def log(msg: str, pct: float) -> None:
@@ -72,13 +83,12 @@ def run_all(
             metadata["modules_run"].append(module_name)
         _collect_data_limitations(result, metadata)
 
-    # Record disabled modules up front so skipped metadata is complete even if
-    # earlier dependencies fail.
+    # Record disabled modules up front
     for module_name in MODULE_LABELS:
         if not enabled_modules.get(module_name, True):
             mark_skipped(module_name)
 
-    # —— Phase 0: Structured crawl ——————————————————————————————————————————————
+    # —— Phase 0: Structured crawl ——————————————————————————————————————
     scrape_result = None
     if enabled_modules.get("company_profile", True):
         log("Scraping target website...", 5.0)
@@ -89,7 +99,6 @@ def run_all(
             progress_callback=log,
         )
         if not scrape_result.body_text:
-            # Fallback: use domain name as hint
             domain = extract_domain_name(target_url)
             scrape_result.body_text = (
                 f"Could not access {target_url}. "
@@ -98,7 +107,7 @@ def run_all(
             )
         log("Website scraped", 10.0)
 
-    # —— Phase 1: Company Profile (must succeed for downstream modules) ——————
+    # —— Phase 1: Company Profile (must succeed for downstream) ——————
     company_profile_succeeded = False
     if enabled_modules.get("company_profile", True):
         log("Running Company Profile...", 12.0)

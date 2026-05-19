@@ -466,7 +466,6 @@ Update rules for future agents/models:
 - `web/src/app/analysis/[id]/page.tsx`
 - `web/src/components/report/*.tsx` new
 - `DESIGN.md`
-- `.streamlit/style.css` if Streamlit remains supported
 
 **Sub-phases:**
 

@@ -14,6 +14,9 @@ import {
   ContentGapChart,
   CompetitorRadarChart,
   AutomationRoadmap,
+  CompanyProfileCard,
+  SEOKeywordsCard,
+  SocialContentCard,
 } from "@/components/report";
 
 export default function AnalysisDetailPage() {
@@ -172,8 +175,11 @@ export default function AnalysisDetailPage() {
 
               {Object.entries(results.results).map(([key, value]) => {
                 if (key === "metadata" || key === "prospect_score") return null;
-                const hasError = typeof value === "object" && value !== null && "error" in value;
+                const hasError = typeof value === "object" && value !== null && "error" in (value as object);
                 if (hasError) {
+                  const errMsg = typeof value === "object" && value !== null
+                    ? String((value as Record<string, unknown>).error || "Unknown error")
+                    : String(value);
                   return (
                     <div key={key} className="bg-red-400/5 border border-red-400/10 rounded-xl overflow-hidden">
                       <div className="px-5 py-3 border-b border-red-400/10 bg-red-400/5 flex items-center gap-2">
@@ -183,9 +189,7 @@ export default function AnalysisDetailPage() {
                         </h3>
                       </div>
                       <div className="p-5">
-                        <p className="text-xs text-red-300 font-mono whitespace-pre-wrap">
-                          {(value as Record<string, string>).error}
-                        </p>
+                        <p className="text-xs text-red-300 font-mono whitespace-pre-wrap">{errMsg}</p>
                       </div>
                     </div>
                   );
@@ -220,30 +224,17 @@ export default function AnalysisDetailPage() {
                   );
                 }
 
-                // SEO — content gap chart
+                // SEO — dedicated card
                 if (key === "seo_keywords") {
-                  const seo = v || {};
-                  const gaps = ((seo.content_gaps as string[]) || []).map((g, i) => ({
-                    label: g, value: Math.max(100 - i * 10 - 20, 10),
-                  }));
-                  const weaknesses = ((seo.seo_weaknesses as string[]) || []).map((w, i) => ({
-                    label: w, value: Math.max(100 - i * 15 - 10, 10),
-                  }));
                   return (
-                    <div key={key} className="bg-surface border border-border rounded-xl overflow-hidden">
-                      <div className="px-5 py-3 border-b border-border bg-background/50 flex items-center gap-2">
-                        <FileText className="w-3.5 h-3.5 text-accent" />
-                        <h3 className="text-xs font-semibold uppercase tracking-wider text-foreground">SEO & Keywords</h3>
-                      </div>
-                      <div className="p-5">
-                        <ContentGapChart items={[...gaps, ...weaknesses]} />
-                        <details className="mt-4">
-                          <summary className="text-xs text-muted cursor-pointer hover:text-foreground">Show raw data</summary>
-                          <pre className="text-xs text-muted font-mono overflow-x-auto whitespace-pre-wrap mt-2">
-                            {JSON.stringify(value, null, 2)}
-                          </pre>
-                        </details>
-                      </div>
+                    <div key={key}>
+                      <SEOKeywordsCard data={(v || {}) as Record<string, unknown> as Parameters<typeof SEOKeywordsCard>[0]["data"]} />
+                      <details className="mt-4">
+                        <summary className="text-xs text-muted cursor-pointer hover:text-foreground">Show raw data</summary>
+                        <pre className="text-xs text-muted font-mono overflow-x-auto whitespace-pre-wrap mt-2">
+                          {JSON.stringify(value, null, 2)}
+                        </pre>
+                      </details>
                     </div>
                   );
                 }
@@ -327,6 +318,24 @@ export default function AnalysisDetailPage() {
                           </div>
                         )}
                       </div>
+                    </div>
+                  );
+                }
+
+                // Company Profile — dedicated card
+                if (key === "company_profile") {
+                  return (
+                    <div key={key}>
+                      <CompanyProfileCard data={(v || {}) as Record<string, unknown> as Parameters<typeof CompanyProfileCard>[0]["data"]} />
+                    </div>
+                  );
+                }
+
+                // Social Content — dedicated card
+                if (key === "social_content") {
+                  return (
+                    <div key={key}>
+                      <SocialContentCard data={(v || {}) as Record<string, unknown> as Parameters<typeof SocialContentCard>[0]["data"]} />
                     </div>
                   );
                 }

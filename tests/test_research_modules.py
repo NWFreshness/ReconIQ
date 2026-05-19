@@ -44,6 +44,7 @@ COMPETITOR_RESULT = {
         "Live competitor search is disabled.",
         "No verified competitors were found via search and homepage scrape.",
         "Firecrawl API key is not configured.",
+        "No competitors found across any query variant. Tried: companies like Acme Widgets Builds widgets for local businesses., Builds widgets for local businesses..",
     ],
 }
 
@@ -169,6 +170,36 @@ def test_company_profile_accepts_pre_scraped_content():
 )
 def test_each_module_calls_llm_with_correct_module_name(monkeypatch, runner, args, expected_module, response):
     monkeypatch.setattr(company_profile, "scrape", lambda url: "Homepage content")
+
+    # Mock live search to return deterministic data matching response expectations.
+    # social_content.run() calls discover_social_accounts() which overrides the LLM's
+    # verified_social_accounts and platforms with real search results. Without this mock,
+    # the test depends on live API results — inherently non-deterministic.
+    _fake_discover_social = lambda company_name, target_url, config=None: {
+        "results": [],
+        "accounts": response.get("verified_social_accounts", []),
+        "provider": "firecrawl",
+        "query": company_name,
+        "data_limitations": [
+            lim for lim in response.get("data_limitations", [])
+            if "social search" in lim.lower() or "firecrawl" in lim.lower() or "api key" in lim.lower()
+        ],
+    }
+    monkeypatch.setattr(social_content, "discover_social_accounts", _fake_discover_social)
+
+    # competitors.run() calls discover_competitors() — mock it to match expectations.
+    _fake_discover_competitors = lambda company_profile, target_url, config=None: {
+        "results": [],
+        "accounts": [],
+        "provider": "firecrawl",
+        "query": "",
+        "data_limitations": [
+            lim for lim in response.get("data_limitations", [])
+            if "competitor" in lim.lower() or "firecrawl" in lim.lower() or "api key" in lim.lower() or "search is disabled" in lim.lower()
+        ],
+    }
+    monkeypatch.setattr(competitors, "discover_competitors", _fake_discover_competitors)
+
     llm = RecordingLLM(response)
 
     result = runner(*args, llm)

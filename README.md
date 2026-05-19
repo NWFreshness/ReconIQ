@@ -50,15 +50,7 @@ cd web && npm run dev
 
 Open [http://localhost:3000](http://localhost:3000).
 
-### Mode 2: Streamlit standalone (port 8501)
-
-```bash
-.venv/bin/streamlit run app.py --server.port 8501 --server.headless true
-```
-
-Open [http://localhost:8501](http://localhost:8501).
-
-### Mode 3: CLI
+### Mode 2: CLI
 
 ```bash
 .venv/bin/python cli.py https://example.com
@@ -161,9 +153,6 @@ ReconIQ/
 │   ├── router.py             # Multi-provider LLM routing via LiteLLM
 │   └── cache.py              # LLM response caching
 ├── tests/                    # Test suite (349 tests)
-├── .streamlit/
-│   ├── config.toml           # Streamlit theme configuration
-│   └── style.css             # Custom CSS design system
 └── docs/                     # Architecture, plans, design notes
 ```
 

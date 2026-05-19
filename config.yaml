@@ -50,3 +50,8 @@ search:
   firecrawl:
     api_url: "https://api.firecrawl.dev"
     api_key: "${FIRECRAWL_API_KEY}"
+  serpapi:
+    api_key: "${SERPAPI_API_KEY}"
+  fallback_chains:
+    firecrawl:
+      - serpapi
