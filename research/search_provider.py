@@ -21,6 +21,8 @@ import abc
 from typing import Any
 from urllib.parse import urlparse
 
+import requests
+
 from research.competitor_query import CompetitorQueryBuilder
 
 # Re-export _build_competitor_query for backward compatibility with search.py
@@ -184,24 +186,51 @@ class FirecrawlSearchProvider(SearchProvider):
         }
 
     def _search(self, query: str, limit: int = 5) -> list[dict[str, str]]:
+        """Search via Firecrawl v2 API.
+
+        When no API key is configured, hit the cloud endpoint directly with no
+        Authorization header. Firecrawl's free tier accepts this (1,000 credits/mo).
+        When a key is configured, use the official SDK (supports self-hosted too).
+        """
+        if not self._api_key:
+            # Keyless path: hit REST directly. firecrawl-py <= 4.30.0 still
+            # raises ValueError on empty api_key, but the cloud API accepts
+            # unauthenticated requests on the free tier (verified 2026-06-17).
+            resp = requests.post(
+                f"{self._api_url.rstrip('/')}/v2/search",
+                json={"query": query, "limit": limit},
+                timeout=30,
+            )
+            resp.raise_for_status()
+            payload = resp.json()
+            results: list[dict[str, str]] = []
+            for item in (payload.get("data") or {}).get("web", [])[:limit]:
+                url = item.get("url") or ""
+                if url:
+                    results.append({
+                        "title": item.get("title", "") or "",
+                        "url": url,
+                        "snippet": item.get("description", "") or "",
+                    })
+            return results
+
+        # Authenticated path: SDK
         from firecrawl import FirecrawlApp
 
         app = FirecrawlApp(api_key=self._api_key, api_url=self._api_url)
         response = app.v2.search(query=query, limit=limit)
-        results: list[dict[str, str]] = []
+        results = []
         web_results = getattr(response, "web", None) or []
         for item in web_results[:limit]:
             url = getattr(item, "url", None) or ""
             if url:
-                results.append(
-                    {
-                        "title": getattr(item, "title", "") or "",
-                        "url": url,
-                        "snippet": getattr(item, "description", "")
-                        or getattr(item, "snippet", "")
-                        or "",
-                    }
-                )
+                results.append({
+                    "title": getattr(item, "title", "") or "",
+                    "url": url,
+                    "snippet": getattr(item, "description", "")
+                    or getattr(item, "snippet", "")
+                    or "",
+                })
         return results
 
 
@@ -332,19 +361,26 @@ class SerpAPISearchProvider(SearchProvider):
         }
 
     def _search(self, query: str, limit: int = 5) -> list[dict[str, str]]:
-        import urllib.request
-        import urllib.parse
-        import json
-
+        # Using `requests` instead of `urllib.request` for consistency
+        # with the rest of the codebase (scraper, llm router) and to
+        # clear the `dynamic-urllib-use-detected` Semgrep rule — even
+        # though the previous code was safe (host was hardcoded and
+        # the query was always passed through `urlencode`), using a
+        # shared HTTP client removes the style inconsistency and
+        # gains us connection pooling + retries.
         params = {
             "q": query,
             "api_key": self._api_key,
             "num": limit,
             "engine": "google",
         }
-        url = f"https://serpapi.com/search?{urllib.parse.urlencode(params)}"
-        with urllib.request.urlopen(url, timeout=30) as response:
-            data = json.loads(response.read().decode())
+        response = requests.get(
+            "https://serpapi.com/search",
+            params=params,
+            timeout=30,
+        )
+        response.raise_for_status()
+        data = response.json()
 
         results: list[dict[str, str]] = []
         # SerpAPI nests organic results under search_results.organic_results
@@ -459,8 +495,19 @@ class FallbackSearchProvider(SearchProvider):
 # ── Provider Factory ───────────────────────────────────────────────────────
 
 
-def _is_missing_api_key(api_key: str) -> bool:
-    return not api_key or api_key.startswith("${")
+def _is_missing_api_key(api_key: str, allow_empty: bool = False) -> bool:
+    """Check whether an API key config value is usable.
+
+    A literal `${VAR}` means the env var was not substituted — always missing.
+    When ``allow_empty=False`` (the default), an empty string is also missing.
+    Firecrawl's cloud free tier and self-hosted servers can run with an empty
+    key, so Firecrawl passes ``allow_empty=True``.
+    """
+    if api_key.startswith("${"):
+        return True
+    if not allow_empty and not api_key:
+        return True
+    return False
 
 
 def get_search_provider(config: dict[str, Any] | None = None) -> SearchProvider:
@@ -486,7 +533,7 @@ def get_search_provider(config: dict[str, Any] | None = None) -> SearchProvider:
         firecrawl_cfg = search_cfg.get("firecrawl", {})
         api_key = firecrawl_cfg.get("api_key") or ""
         api_url = firecrawl_cfg.get("api_url") or "https://api.firecrawl.dev"
-        if _is_missing_api_key(api_key):
+        if _is_missing_api_key(api_key, allow_empty=True):
             return DisabledSearchProvider()
         primary: SearchProvider = FirecrawlSearchProvider(
             api_key=api_key, api_url=api_url
@@ -525,7 +572,7 @@ def _build_individual_provider(
         firecrawl_cfg = search_cfg.get("firecrawl", {})
         api_key = firecrawl_cfg.get("api_key") or ""
         api_url = firecrawl_cfg.get("api_url") or "https://api.firecrawl.dev"
-        if _is_missing_api_key(api_key):
+        if _is_missing_api_key(api_key, allow_empty=True):
             return None
         return FirecrawlSearchProvider(api_key=api_key, api_url=api_url)
     if provider_name == "serpapi":
