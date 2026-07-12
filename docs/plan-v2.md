@@ -1,12 +1,19 @@
 # ReconIQ Implementation Plan v2
 
-> **For Hermes:** This is a collaborative implementation plan. Work one phase at a time with the user. Do not skip checkpoints. When executing, use `subagent-driven-development` for coding phases if the user wants autonomous implementation.
+> **Historical MVP plan (phases 0–9).** As of 2026-07-12 this document is **complete on `main`** and retained for history.
+>
+> **Active progress tracker for phases 10+:** `FEATURE_PHASES.md` (source of truth).
+> **Phase 9 detail:** `docs/enhancements.md`.
+>
+> Do not start new work from unchecked boxes elsewhere in this file without re-checking `FEATURE_PHASES.md` and `main`. Streamlit UI has been replaced by FastAPI + Next.js; research engine remains framework-neutral via `core.services`.
+>
+> **For Hermes (original):** Collaborative implementation plan. Work one phase at a time with the user. Do not skip checkpoints. When executing, use `subagent-driven-development` for coding phases if the user wants autonomous implementation.
 
-**Goal:** Build ReconIQ, a local Streamlit marketing intelligence app that accepts a company URL, researches the company, competitors, SEO/content signals, synthesizes SWOT and acquisition strategy, and writes a Markdown report.
+**Goal (original):** Build ReconIQ, a local marketing intelligence app that accepts a company URL, researches the company, competitors, SEO/content signals, synthesizes SWOT and acquisition strategy, and writes a Markdown report. **Current surface:** FastAPI + Next.js dashboard + CLI (Streamlit removed).
 
-**Architecture:** A Streamlit UI calls a coordinator. The coordinator runs Company Profile first because downstream modules depend on it, then runs SEO/Keywords, Competitors, and Social/Content in parallel, then runs SWOT synthesis, then writes a Markdown report. LLM calls route through a small LiteLLM wrapper with explicit provider/model resolution and testable fallback behavior.
+**Architecture (current):** A FastAPI/CLI/Next UI calls framework-neutral `core.services.run_analysis`. The coordinator runs Company Profile first because downstream modules depend on it, then runs SEO/Keywords, Competitors, and Social/Content in parallel, then SWOT (and later modules: outreach, prospect score), then writes a report. LLM calls route through LiteLLM with provider/model resolution and fallback.
 
-**Tech Stack:** Python 3.11+, Streamlit, LiteLLM, requests, BeautifulSoup4, PyYAML, python-dotenv, pytest, pytest-mock, responses or requests-mock. Playwright is deferred unless we decide JS-heavy scraping is required.
+**Tech Stack (current):** Python 3.11+, FastAPI, Next.js, LiteLLM, requests, BeautifulSoup4, Playwright (optional), Firecrawl/SerpAPI search, PyYAML, python-dotenv, pytest, SQLite.
 
 **Project Root:** `/Users/tylermayfield/Documents/projects/ReconIQ`
 
@@ -14,15 +21,12 @@
 
 ## Phase Status and Source of Truth
 
-This section is the durable source of truth for implementation progress. Future agents/models must read this section before starting work, update it when a phase changes state, and keep it synchronized with GitHub PR status and local verification results.
+MVP status below is frozen complete. For ongoing feature work, **update `FEATURE_PHASES.md`**, not this file.
 
 Update rules for future agents/models:
-1. Before starting a phase, confirm the previous phase status here and verify the referenced PR/branch state when applicable.
-2. Mark a phase `[x]` only after the code is implemented, committed, pushed, and either merged or opened as a PR with passing local verification.
-3. If a phase is implemented but the PR is still open, keep the checkbox checked only when local verification passed and record `Status: PR open`.
-4. Record the PR URL, branch, latest commit, and local verification summary for completed/in-progress phases.
-5. If a phase needs follow-up after review, change the status back to an explicit non-complete state and add a short note.
-6. Do not rely only on chat history or transient todo state; this file is the project-level progress tracker.
+1. Before starting a post-MVP phase, read `FEATURE_PHASES.md` first.
+2. Mark a phase complete only after merge to `main`.
+3. This file remains the historical record for phases 0–9.
 
 - [x] Phase 0 — Baseline and Environment
   - Status: Complete
@@ -71,7 +75,7 @@ Update rules for future agents/models:
   - Local verification: `70 passed`; focused report writer checks `9 passed`; compile check passed; `git diff --check` passed.
 
 - [x] Phase 7 — Streamlit UI
-  - Status: Complete — merged to main.
+  - Status: Complete — merged to main (later superseded by Next.js; Streamlit removed).
   - Branch: `feat/phase-7-streamlit-ui`
   - Local verification: `93 passed`; focused app checks `15 passed`; compile check passed; `git diff --check` passed.
 
