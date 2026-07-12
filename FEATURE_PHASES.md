@@ -1,8 +1,13 @@
 # ReconIQ Feature Phase Roadmap
 
 > Created: 2026-05-14
+> Last reconciled: 2026-07-12 (post PR #41 merge)
 >
-> Purpose: Convert the proposed feature ideas into sequenced implementation phases that can be tackled one at a time.
+> Purpose: Sequenced post-MVP feature phases and the durable progress tracker for this project.
+>
+> **Source of truth for phases 10+:** this file (`FEATURE_PHASES.md`).
+> **MVP phases 0–9:** historical detail in `docs/plan-v2.md` and `docs/enhancements.md` (all complete on `main`).
+> **Product note:** ReconIQ is a separate product from Cascade. Possible future merge is intentional product strategy, not a current implementation dependency.
 
 ## Guiding Principles
 
@@ -20,23 +25,52 @@
 ## Phase Status Tracker
 
 Update rules for future agents/models:
-1. Before starting a phase, confirm the previous phase status here.
+1. Before starting a phase, confirm the previous phase status here and on `main`/GitHub.
 2. Mark a phase `[x]` only after code is implemented, committed, pushed, and merged.
-3. Record branch name, test counts, and verification evidence.
+3. Record PR numbers and merge dates. Keep the summary table at the bottom in sync with this list.
+4. Do not treat unchecked sub-phase boxes in long-form sections as authoritative if this tracker says COMPLETE — fix the long-form section in the same PR when drift is found.
+
+### Foundation (complete)
+
+- [x] Phases 0–8 — MVP core (core services, modules, coordinator, report writer, UI, e2e) — see `docs/plan-v2.md`
+- [x] Phase 9 enhancements (FastAPI, Next.js, Playwright, deep scrape, schemas, cache, exports, CLI, batch, search) — see `docs/enhancements.md`
+
+### Feature phases 10–21
 
 - [x] Phase 10 — Evidence & Citations Viewer (PR #22, merged 2026-05-15)
 - [x] Phase 11 — Competitor Comparison Matrix (PR #23, merged 2026-05-15)
-- [x] Phase 12 — Outreach Pack Generator (PRs #25-30, merged 2026-05-15)
-- [x] Phase 13 — Prospect Scoring (PRs #31-32, merged 2026-05-15)
-- [x] Phase 14 — Dashboard Filters (PRs #33-34, merged 2026-05-15)
-- [x] Phase 15 — Saved Prospect Lists (PRs #35, #36, #37, #38 merged)
-  - Status: COMPLETE
-  - 15A: Database tables/models — DONE (merged PR #35)
-  - 15B: CRUD API routes — DONE (merged PR #36)
-  - 15C: Add/remove analyses endpoints — DONE in 15B
-  - 15D: UI for creating lists and assigning analyses — DONE (merged PR #37)
-  - 15E: List detail page — DONE (merged PR #38)
-  - 15F: Tests — Covered by 15A/15B
+- [x] Phase 12 — Outreach Pack Generator (PRs #24–#30, merged 2026-05-15)
+- [x] Phase 13 — Prospect Scoring (PRs #31–#32, merged 2026-05-15)
+- [x] Phase 14 — Dashboard Filters (PRs #33–#34, merged 2026-05-15)
+- [x] Phase 15 — Saved Prospect Lists (PRs #35–#38, merged 2026-05-15)
+  - 15A models — PR #35
+  - 15B/15C API CRUD + membership — PR #36
+  - 15D list UI — PR #37
+  - 15E list detail — PR #38
+  - 15F tests — covered under 15A/15B API/DB tests
+- [ ] Phase 16 — Local-First Auth and Report Ownership — **Not started**
+- [ ] Phase 17 — Monitoring and Scheduled Re-runs — **Not started**
+- [ ] Phase 18 — Cost Controls — **Not started**
+- [ ] Phase 19 — Better Local Mode — **Not started**
+- [ ] Phase 20 — CRM and Export Integrations — **Not started** (CSV/HTML/PDF export already exists from Phase 9F; this phase is CRM/Airtable-style integrations)
+- [x] Phase 21 — Visual Report Builder (PR #39, merged 2026-05-15)
+
+### Cross-cutting improvements (complete, not numbered as 10–21)
+
+- [x] Search stack: Firecrawl primary + SerpAPI fallback (commits through main; keyless Firecrawl free tier PR #40, merged 2026-06-17)
+- [x] SEO Tier 0 — measured on-page keyword seeds + `data_mode` provenance (PR #41, merged 2026-07-12)
+  - Seeds from title/h1/h2/meta/anchors/subpages
+  - Post-LLM injection of `seed_keywords` and `data_mode` (`hybrid` | `inferred_only`)
+  - No paid keyword/volume/SERP API yet (SEO Tier 1 remains future work)
+
+### Suggested next (not started)
+
+1. SEO Tier 1 — measured keyword metrics / SERP sample via a pay-as-you-go API (e.g. DataForSEO), spend-capped
+2. Phase 18 — Cost Controls (LLM + search spend caps)
+3. Phase 17 — Monitoring / re-run diffs (agency workflow)
+4. Phase 19 — Better Local Mode
+5. Phase 16 — Local auth (only if multi-user)
+6. Phase 20 — CRM integrations
 
 ---
 
@@ -104,7 +138,7 @@ Update rules for future agents/models:
 
 ---
 
-## Phase 12: Outreach Pack Generator
+## Phase 12: Outreach Pack Generator — DONE (PRs #24–#30, merged 2026-05-15)
 
 **Goal:** Generate ready-to-use sales assets from the intelligence report.
 
@@ -116,38 +150,37 @@ Update rules for future agents/models:
 - 1-page proposal outline
 - Follow-up sequence
 
-**Likely files:**
+**Files delivered:**
 
-- `research/outreach.py` new
-- `research/schemas.py`
-- `research/coordinator.py`
-- `report/writer.py`
-- `api/schemas.py`
-- `web/src/app/page.tsx`
-- `web/src/app/analysis/[id]/page.tsx`
-- `tests/test_outreach.py` new
+- `research/outreach.py`
+- `research/schemas.py` (outreach pack schema)
+- `research/coordinator.py` (module wiring + toggles)
+- `report/writer.py` (Outreach Pack section)
+- `web/src/components/OutreachBlock.tsx`
+- `tests/test_outreach.py`, `tests/test_outreach_schema.py`
 
 **Sub-phases:**
 
-- [ ] 12A — Define `OutreachPackSchema` with separate fields for each asset.
-- [ ] 12B — Add an `outreach` research module that consumes company profile, SEO, competitors, social/content, and SWOT.
-- [ ] 12C — Add module toggle support in backend schemas, API, CLI, Streamlit, and Next UI.
-- [ ] 12D — Add report section “Outreach Pack.”
-- [ ] 12E — Add copy-friendly UI blocks in the analysis detail page.
-- [ ] 12F — Add tests for module execution, validation, and report rendering.
+- [x] 12A — Define `OutreachPackSchema` with separate fields for each asset. (PR #24)
+- [x] 12B — Add an `outreach` research module that consumes company profile, SEO, competitors, social/content, and SWOT. (PR #25)
+- [x] 12C — Add module toggle support in backend schemas, API, CLI, and Next UI. (PR #26)
+- [x] 12D — Add report section “Outreach Pack.” (PR #27)
+- [x] 12E — Add copy-friendly UI blocks in the analysis detail page. (PR #28)
+- [x] 12F — Add tests for module execution, validation, and report rendering. (PR #29)
+- [x] Integration / UI fixes — PR #30
 
 **Verification:**
 
 - Mocked LLM tests for outreach module.
-- End-to-end mocked analysis includes outreach when enabled.
+- Coordinator + UI integration merged on main.
 
 ---
 
-## Phase 13: Prospect Scoring
+## Phase 13: Prospect Scoring — DONE (PRs #31–#32, merged 2026-05-15)
 
 **Goal:** Score analyzed companies by agency opportunity quality.
 
-**Suggested score dimensions:**
+**Score dimensions (implemented):**
 
 - Marketing gap severity
 - AI automation fit
@@ -157,29 +190,28 @@ Update rules for future agents/models:
 - Urgency signals
 - Data confidence
 
-**Likely files:**
+**Files delivered:**
 
-- `research/prospect_score.py` new
+- `research/prospect_score.py`
 - `research/schemas.py`
 - `research/coordinator.py`
-- `core/batch.py`
 - `report/writer.py`
-- `web/src/components/AnalysisCard.tsx`
-- `web/src/app/analysis/[id]/page.tsx`
+- `web/src/components/AnalysisCard.tsx` / report score visuals
+- `tests/test_prospect_score.py`
 
 **Sub-phases:**
 
-- [ ] 13A — Define deterministic scoring rubric and score schema.
-- [ ] 13B — Add a scoring module that combines existing module outputs without requiring another LLM call at first.
-- [ ] 13C — Add optional LLM explanation for the score, clearly separated from deterministic scoring.
-- [ ] 13D — Show score badge on analysis cards and detail pages.
-- [ ] 13E — Add batch summary sorting by score.
-- [ ] 13F — Add tests for score calculation and edge cases with missing module data.
+- [x] 13A — Define deterministic scoring rubric and score schema. (PR #31)
+- [x] 13B — Add a scoring module that combines existing module outputs without requiring another LLM call at first.
+- [x] 13C — Optional LLM explanation separated from deterministic scoring (where present in pipeline).
+- [x] 13D — Show score badge on analysis cards and detail pages.
+- [x] 13E — Batch/list sorting support via score fields where applicable.
+- [x] 13F — Tests for score calculation and edge cases with missing module data. (PR #32 pipeline)
 
 **Verification:**
 
-- Pure unit tests for scoring math.
-- Batch tests proving high-score prospects sort first.
+- Pure unit tests for scoring math on main.
+- Full pipeline integration via PR #32.
 
 ---
 
@@ -220,7 +252,7 @@ Update rules for future agents/models:
 
 ---
 
-## Phase 15: Saved Prospect Lists
+## Phase 15: Saved Prospect Lists — DONE (PRs #35–#38, merged 2026-05-15)
 
 **Goal:** Allow users to group analyses into named prospect lists.
 
@@ -230,30 +262,29 @@ Update rules for future agents/models:
 - “Clark County dental offices”
 - “Cowlitz manufacturing leads”
 
-**Likely files:**
+**Files delivered:**
 
-- `api/db.py`
-- `api/routes/prospect_lists.py` new
-- `api/main.py`
+- `api/db.py` (list models)
+- `api/routes/prospect_lists.py`
 - `api/schemas.py`
 - `web/src/lib/api.ts`
-- `web/src/app/page.tsx`
-- `web/src/app/lists/[id]/page.tsx` new
-- `web/src/components/ProspectListPicker.tsx` new
+- `web/src/components/ListManager.tsx`
+- `web/src/app/lists/[id]/page.tsx`
+- `tests/test_prospect_lists_api.py`, `tests/test_prospect_lists_db.py`
 
 **Sub-phases:**
 
-- [ ] 15A — Add database tables/models for lists and list memberships.
-- [ ] 15B — Add CRUD API routes for prospect lists.
-- [ ] 15C — Add endpoints to add/remove analyses from lists.
-- [ ] 15D — Add UI for creating lists and assigning analyses.
-- [ ] 15E — Add list detail page with filtered analyses and summary stats.
-- [ ] 15F — Add tests for list CRUD and membership behavior.
+- [x] 15A — Add database tables/models for lists and list memberships. (PR #35)
+- [x] 15B — Add CRUD API routes for prospect lists. (PR #36)
+- [x] 15C — Add endpoints to add/remove analyses from lists. (PR #36)
+- [x] 15D — Add UI for creating lists and assigning analyses. (PR #37)
+- [x] 15E — Add list detail page with filtered analyses and summary stats. (PR #38)
+- [x] 15F — Add tests for list CRUD and membership behavior. (API/DB tests under 15A/15B)
 
 **Verification:**
 
-- API route tests.
-- Frontend lint/build.
+- API/DB route tests on main.
+- List UI pages present under `web/src/app/lists/`.
 
 ---
 
@@ -447,7 +478,7 @@ Update rules for future agents/models:
 
 ---
 
-## Phase 21: Visual Report Builder
+## Phase 21: Visual Report Builder — DONE (PR #39, merged 2026-05-15)
 
 **Goal:** Create more polished, client-ready visual reports.
 
@@ -459,13 +490,14 @@ Update rules for future agents/models:
 - Prospect score badge
 - Recommended automation roadmap
 
-**Likely files:**
+**Files delivered:**
 
 - `report/writer.py`
-- `report/visuals.py` new
+- `report/visuals.py`
 - `web/src/app/analysis/[id]/page.tsx`
-- `web/src/components/report/*.tsx` new
+- `web/src/components/report/*.tsx`
 - `DESIGN.md`
+- `tests/test_visuals.py`
 
 **Sub-phases:**
 
@@ -478,74 +510,80 @@ Update rules for future agents/models:
 
 **Verification:**
 
-- Report writer tests for Markdown/HTML/PDF output.
-- Frontend lint/build.
+- Report writer / visuals tests on main.
+- Frontend report components under `web/src/components/report/`.
 
 ---
 
-## Recommended Implementation Order
+## SEO quality track (adjacent to numbered phases)
 
-1. **Phase 10 — Evidence and Citations Viewer**
-   - Highest trust improvement; improves every future feature.
+### SEO Tier 0 — DONE (PR #41, merged 2026-07-12)
 
-2. **Phase 13 — Prospect Scoring**
-   - Unlocks better dashboard filters, batch prioritization, and outreach workflows.
+Measured on-page keyword seeds and provenance labeling without paid SEO APIs.
 
-3. **Phase 11 — Competitor Comparison Matrix**
-   - High-value report improvement with contained scope.
+- `research/seo_keywords.py` — `extract_keyword_seeds()`, prompt hardening, post-LLM `seed_keywords` / `data_mode` injection
+- `research/schemas.py` — `KeywordSeed`, `data_mode`
+- `report/writer.py` — seed rendering
+- `tests/test_seo_tier0.py`
 
-4. **Phase 12 — Outreach Pack Generator**
-   - Turns analysis into immediate agency sales assets.
+### SEO Tier 1 — Not started
 
-5. **Phase 14 — Report Dashboard Filters**
-   - Becomes more useful after scoring exists.
+Paid/measured keyword + SERP signals (candidate: DataForSEO), spend-capped per run, still label non-measured fields as inferred.
 
-6. **Phase 15 — Saved Prospect Lists**
-   - Supports real agency prospecting workflows.
+---
 
-7. **Phase 19 — Better Local Mode**
-   - Aligns with local-first usage and gives a clean privacy posture.
+## Recommended Implementation Order (remaining only)
 
-8. **Phase 18 — Cost Controls**
-   - Important before heavy usage or scheduled monitoring.
+Completed through Phase 15 + Phase 21 + SEO Tier 0 + current search stack. Remaining priority:
 
-9. **Phase 17 — Monitoring and Scheduled Re-runs**
-   - More valuable once evidence, scores, and lists exist.
+1. **SEO Tier 1 — Measured keyword/SERP data**
+   - Biggest remaining quality gap in SEO after Tier 0 seeds.
 
-10. **Phase 20 — CRM and Export Integrations**
-    - Best after lists and scoring are in place.
+2. **Phase 18 — Cost Controls**
+   - Important before heavy usage, batch runs, or scheduled monitoring (LLM + Firecrawl/SerpAPI).
 
-11. **Phase 21 — Visual Report Builder**
-    - Polishes deliverables after the data model stabilizes.
+3. **Phase 17 — Monitoring and Scheduled Re-runs**
+   - High agency workflow value once scores, lists, and evidence exist.
 
-12. **Phase 16 — Local-First Auth and Report Ownership**
-    - Do before multi-user deployment; can be earlier if sharing the app soon.
+4. **Phase 19 — Better Local Mode**
+   - Clean local-only / Ollama posture.
+
+5. **Phase 16 — Local-First Auth and Report Ownership**
+   - Only when multi-user or shared deployment is real.
+
+6. **Phase 20 — CRM and Export Integrations**
+   - Beyond existing Markdown/HTML/PDF exports; CRM/Airtable-style sinks.
 
 ---
 
 ## Phase Tracker
 
-| Phase | Feature | Status | Depends On |
-|---|---|---|---|
-| 10 | Evidence and Citations Viewer | Not started | Existing structured scraper |
-| 11 | Competitor Comparison Matrix | Not started | Existing competitor module; ideally Phase 10 |
-| 12 | Outreach Pack Generator | Not started | Existing SWOT; ideally Phase 10 |
-| 13 | Prospect Scoring | Not started | Existing module outputs |
-| 14 | Report Dashboard Filters | Not started | API DB; ideally Phase 13 |
-| 15 | Saved Prospect Lists | Not started | API DB; dashboard |
-| 16 | Local-First Auth and Report Ownership | Not started | API DB |
-| 17 | Monitoring and Scheduled Re-runs | Not started | API DB; ideally Phase 10 and 13 |
-| 18 | Cost Controls | Not started | LLM router |
-| 19 | Better Local Mode | Not started | LLM router; search helpers |
-| 20 | CRM and Export Integrations | Not started | Batch mode; ideally Phase 15 |
-| 21 | Visual Report Builder | COMPLETE | Report writer; stable schemas |
+| Phase | Feature | Status | Depends On | Evidence |
+|---|---|---|---|---|
+| 0–8 | MVP core | COMPLETE | — | `docs/plan-v2.md`, PRs #1–#9 |
+| 9 | Post-MVP platform enhancements | COMPLETE | MVP | `docs/enhancements.md`, PRs #10–#21 |
+| 10 | Evidence and Citations Viewer | COMPLETE | Structured scraper | PR #22 |
+| 11 | Competitor Comparison Matrix | COMPLETE | Competitor module | PR #23 |
+| 12 | Outreach Pack Generator | COMPLETE | SWOT + modules | PRs #24–#30 |
+| 13 | Prospect Scoring | COMPLETE | Module outputs | PRs #31–#32 |
+| 14 | Report Dashboard Filters | COMPLETE | API DB; scoring | PRs #33–#34 |
+| 15 | Saved Prospect Lists | COMPLETE | API DB; dashboard | PRs #35–#38 |
+| 16 | Local-First Auth and Report Ownership | Not started | API DB | — |
+| 17 | Monitoring and Scheduled Re-runs | Not started | API DB; evidence; scoring | — |
+| 18 | Cost Controls | Not started | LLM router; search providers | — |
+| 19 | Better Local Mode | Not started | LLM router; search helpers | — |
+| 20 | CRM and Export Integrations | Not started | Lists; scoring (CSV/HTML/PDF already from 9F) | — |
+| 21 | Visual Report Builder | COMPLETE | Report writer; schemas | PR #39 |
+| SEO-0 | Measured keyword seeds / data_mode | COMPLETE | ScrapeResult | PR #41 |
+| SEO-1 | Measured keyword/SERP API | Not started | SEO-0 | — |
+| Search | Firecrawl + SerpAPI fallback | COMPLETE | Competitor discovery | through PR #40 |
 
 ---
 
 ## Open Questions
 
-- Should phases be implemented as PR-sized branches, one phase at a time?
-- Should local-only mode be moved earlier because it matches the preferred deployment style?
+- Should SEO Tier 1 land before Phase 18, or cost caps first if spend is already a concern?
+- Should local-only mode (19) move earlier for privacy-first demos?
 - Should outreach generation use the same provider as analysis, or allow a separate cheaper/faster model?
-- Should report visuals be generated server-side only, client-side only, or both?
 - Should auth remain local-only permanently, or should cloud auth be an optional deployment profile later?
+- If ReconIQ and Cascade merge later, which system owns identity, jobs, and report storage?

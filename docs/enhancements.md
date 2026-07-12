@@ -1,6 +1,8 @@
 # ReconIQ Enhancement Roadmap
 
-> **For Hermes:** This is the durable tracker for post-MVP enhancements. Do not start these until Phases 0-8 are complete and merged to main. Work one sub-phase at a time with the user. Update this file when a sub-phase changes state.
+> **For Hermes:** Phase 9 enhancements tracker. **All Phase 9 sub-phases are complete on `main`.** Do not start numbered work from this file without checking `FEATURE_PHASES.md` (source of truth for phases 10+ and SEO/search tracks).
+>
+> Last reconciled: 2026-07-12.
 
 **Prerequisites:** All MVP phases (0-8) merged to main. `uv run python -m pytest -q` should pass before starting any enhancement.
 
@@ -9,12 +11,18 @@
 ## Enhancement Status and Source of Truth
 
 Update rules for future agents/models:
-1. Before starting an enhancement, confirm the previous enhancement status here.
+1. Before starting an enhancement, confirm status here **and** in `FEATURE_PHASES.md` for anything after Phase 9.
 2. Mark a phase `[x]` only after code is implemented, committed, pushed, and merged or opened as a PR with passing local verification.
 3. If a PR is open, keep checkbox checked when local verification passed and record `Status: PR open`.
 4. Record PR URL, branch, latest commit, and local verification summary.
 5. If an enhancement needs follow-up after review, revert status and add a note.
-6. Do not rely only on chat history; this file is the project-level progress tracker for enhancements.
+6. Do not rely only on chat history; `FEATURE_PHASES.md` is the project-level progress tracker for post-9 work.
+
+**Phase 9 status:** COMPLETE (see quick reference table at bottom). Subsequent search/SEO improvements:
+
+- Firecrawl + SerpAPI competitor search fallback — complete (through PR #40)
+- SEO Tier 0 measured seeds / data_mode — complete (PR #41)
+- SEO Tier 1 measured keyword/SERP API — not started (tracked in `FEATURE_PHASES.md`)
 
 ---
 
@@ -469,7 +477,7 @@ An enhancement is complete when:
 
 ### Implementation — Phase 9J-1: Structured Extraction
 
-**Status:** Complete — local verification passed; PR pending.
+**Status:** Complete — merged to main (PRs #15–#17).
 
 **Branch:** `feat/phase-9j1-structured-extraction`
 
@@ -616,3 +624,5 @@ Replace the current flat `scrape()` → text dump approach with a structured cra
 | 9H | CLI Interface | Complete — merged | Merged | `feat/phase-9f-9h-9i-exports-cli-batch` |
 | 9I | Batch Analysis | Complete — merged | Merged | `feat/phase-9f-9h-9i-exports-cli-batch` |
 | 9J | Deep Scraping | Complete — merged | Merged | `feat/phase-9j3-9c-9d-9e-integration` |
+
+Post-9 tracker: see `FEATURE_PHASES.md` (phases 10–21, SEO Tier 0/1, search stack).
