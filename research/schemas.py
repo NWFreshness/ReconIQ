@@ -15,6 +15,13 @@ class ReconIQBaseModel(BaseModel):
         return self.model_dump(mode="python")
 
 
+class KeywordSeed(ReconIQBaseModel):
+    """Measured on-page keyword phrase with provenance source."""
+
+    keyword: str = ""
+    source: str = ""
+
+
 class SEOKeywordsSchema(ReconIQBaseModel):
     top_keywords: list[str] = []
     content_gaps: list[str] = []
@@ -24,6 +31,9 @@ class SEOKeywordsSchema(ReconIQBaseModel):
     local_seo_signals: str = ""
     data_confidence: str = ""
     data_limitations: list[str] = []
+    # Tier 0 provenance (optional defaults keep old fixtures valid)
+    seed_keywords: list[KeywordSeed] = []
+    data_mode: str = ""
 
 
 class CompetitorItem(ReconIQBaseModel):
@@ -155,6 +165,8 @@ def _coerce_string_fields(data: dict[str, Any]) -> dict[str, Any]:
         "brand_voice", "primary_cta",
         # outreach pack fields
         "cold_email", "linkedin_dm", "discovery_call_opener", "proposal_outline",
+        # SEO Tier 0
+        "data_mode",
     )
     for field in string_fields:
         if field in data and data[field] is not None and not isinstance(data[field], str):
@@ -171,7 +183,8 @@ def _coerce_list_fields(data: dict[str, Any]) -> dict[str, Any]:
                 "inferred_platforms", "review_sites", "content_gaps",
                 "services_products", "marketing_channels", "service_area",
                 "strengths", "weaknesses", "opportunities", "threats",
-                "talking_points", "recommended_next_steps"):
+                "talking_points", "recommended_next_steps",
+                "seed_keywords", "top_keywords", "seo_weaknesses", "quick_wins"):
         if key in data and data[key] is None:
             data[key] = []
         elif key in data and not isinstance(data[key], list):

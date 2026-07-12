@@ -32,7 +32,13 @@ SEO_RESULT = {
     "estimated_traffic_tier": "low — inferred from narrow content footprint",
     "local_seo_signals": "weak — inferred from provided profile only",
     "data_confidence": "low",
-    "data_limitations": ["No live traffic or ranking data was available."],
+    "data_limitations": [
+        "No live traffic or ranking data was available.",
+        "No measured on-page keyword seeds extracted; keyword and traffic claims are pure "
+        "LLM inference without ranking/SERP/traffic data.",
+    ],
+    "seed_keywords": [],
+    "data_mode": "inferred_only",
 }
 
 COMPETITOR_RESULT = {

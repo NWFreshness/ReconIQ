@@ -62,7 +62,14 @@ def _section_content(d: dict) -> str:
         if isinstance(v, list):
             lines.append(f"**{display_key}:**")
             for item in v:
-                lines.append(f"- {item}")
+                if isinstance(item, dict):
+                    # e.g. seed_keywords: {keyword, source}
+                    if "keyword" in item and "source" in item:
+                        lines.append(f"- {item.get('keyword', '')} _(source: {item.get('source', '')})_")
+                    else:
+                        lines.append(f"- {item}")
+                else:
+                    lines.append(f"- {item}")
             lines.append("")
         elif isinstance(v, dict):
             lines.append(f"**{display_key}:**")
