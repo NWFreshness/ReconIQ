@@ -46,6 +46,12 @@ _PHONE_PATTERNS = [
 _EMAIL_PATTERN = re.compile(r"[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}")
 
 
+def _phone_key(phone: str) -> str:
+    """Canonical identity for a US phone: last 10 digits."""
+    digits = re.sub(r"\D", "", phone)
+    return digits[-10:] if len(digits) >= 10 else digits
+
+
 # ── extract_meta ──────────────────────────────────────────────────────────────
 
 
@@ -205,16 +211,18 @@ def extract_contact_info(soup: BeautifulSoup) -> tuple[list[str], list[str]]:
         href = a_tag["href"]
         if href.startswith("tel:"):
             phone = href[4:].strip()
-            if phone and phone not in seen_phones:
-                seen_phones.add(phone)
+            key = _phone_key(phone)
+            if phone and key and key not in seen_phones:
+                seen_phones.add(key)
                 phones.append(phone)
 
     # Also find phone numbers in plain text
     for pattern in _PHONE_PATTERNS:
         for match in pattern.finditer(text):
             phone = match.group(0).strip()
-            if phone and phone not in seen_phones:
-                seen_phones.add(phone)
+            key = _phone_key(phone)
+            if phone and key and key not in seen_phones:
+                seen_phones.add(key)
                 phones.append(phone)
 
     return phones, emails

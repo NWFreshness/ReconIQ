@@ -360,6 +360,15 @@ class TestExtractContactInfo:
         phones, emails = extract_contact_info(soup)
         assert len(phones) >= 1
 
+    def test_deduplicates_equivalent_phone_numbers(self):
+        html = """<html><body>
+            <a href="tel:3607716962">Call</a>
+            <p>360-771-6962</p>
+        </body></html>"""
+        soup = BeautifulSoup(html, "html.parser")
+        phones, emails = extract_contact_info(soup)
+        assert len(phones) == 1
+
     def test_multiple_emails(self):
         html = '''<html><body>
             <a href="mailto:info@example.com">Info</a>
