@@ -193,12 +193,8 @@ def _scrape_with_requests(url: str, timeout: int = 15) -> str:
         return ""
 
 
-def scrape_with_playwright(url: str, timeout: int = 25) -> str:
-    """
-    Scrape a URL using Playwright headless browser for JS-rendered content.
-
-    Returns empty string if Playwright is not installed or any error occurs.
-    """
+def fetch_html_with_playwright(url: str, timeout: int = 25) -> str:
+    """Return raw HTML from a headless browser, or empty string on failure."""
     if not _check_playwright():
         logger.warning("Playwright not available, skipping JS rendering for %s", url)
         return ""
@@ -211,20 +207,27 @@ def scrape_with_playwright(url: str, timeout: int = 25) -> str:
             try:
                 page = browser.new_page()
                 page.set_default_timeout(timeout * 1000)
-                # Use domcontentloaded instead of networkidle — many sites
-                # have persistent connections that prevent networkidle from firing.
                 page.goto(url, wait_until="domcontentloaded")
-                # Wait for JS rendering to settle
                 page.wait_for_timeout(3000)
                 html = page.content()
             finally:
                 browser.close()
 
-        return _clean_html(html)
+        return html or ""
 
     except Exception as exc:
         logger.warning("Playwright scrape failed for %s: %s", url, exc)
         return ""
+
+
+def scrape_with_playwright(url: str, timeout: int = 25) -> str:
+    """
+    Scrape a URL using Playwright headless browser for JS-rendered content.
+
+    Returns empty string if Playwright is not installed or any error occurs.
+    """
+    html = fetch_html_with_playwright(url, timeout=timeout)
+    return _clean_html(html) if html else ""
 
 
 def extract_domain_name(url: str) -> str:

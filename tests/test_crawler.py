@@ -12,6 +12,9 @@ from scraper.crawler import (
     fetch_robots_txt,
     fetch_sitemap_urls,
     is_allowed_by_robots,
+    _is_crawlable_page_url,
+    _is_homepage_url,
+    _score_path,
 )
 from scraper.models import PageData, ScrapeResult
 
@@ -115,6 +118,46 @@ class TestNormalizeUrlForDedup:
         assert result == "https://acme.com"
 
 
+# ── _is_crawlable_page_url ────────────────────────────────────────────────────
+
+
+class TestIsCrawlablePageUrl:
+    def test_rejects_xml_sitemaps(self):
+        assert _is_crawlable_page_url("https://acme.com/sitemap.website.xml") is False
+        assert _is_crawlable_page_url("https://acme.com/sitemap.xml") is False
+
+    def test_rejects_assets(self):
+        assert _is_crawlable_page_url("https://acme.com/menu.pdf") is False
+        assert _is_crawlable_page_url("https://acme.com/logo.png") is False
+
+    def test_rejects_fragments_and_js(self):
+        assert _is_crawlable_page_url("https://acme.com/#") is False
+        assert _is_crawlable_page_url("javascript:void(0)") is False
+
+    def test_accepts_html_paths(self):
+        assert _is_crawlable_page_url("https://acme.com/flavors") is True
+        assert _is_crawlable_page_url("https://acme.com/about/") is True
+
+
+class TestIsHomepageUrl:
+    def test_root_and_home(self):
+        base = "https://acme.com"
+        assert _is_homepage_url("https://acme.com", base) is True
+        assert _is_homepage_url("https://acme.com/", base) is True
+        assert _is_homepage_url("https://acme.com/home", base) is True
+        assert _is_homepage_url("https://www.acme.com/index.html", base) is True
+
+    def test_content_path_is_not_home(self):
+        assert _is_homepage_url("https://acme.com/flavors", "https://acme.com") is False
+
+
+class TestScorePath:
+    def test_services_beats_careers(self):
+        assert _score_path("/services") < _score_path("/join-our-team-1")
+        assert _score_path("/flavors") < _score_path("/privacy")
+        assert _score_path("/about") < _score_path("/blog/post-99")
+
+
 # ── _is_same_domain ───────────────────────────────────────────────────────────
 
 
@@ -204,6 +247,24 @@ class TestFetchSitemapUrls:
         urls = fetch_sitemap_urls("https://acme.com")
         assert urls == []
 
+    @responses.activate
+    def test_follows_sitemap_index_to_page_urls(self):
+        index_xml = """<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <sitemap><loc>https://acme.com/sitemap.website.xml</loc></sitemap>
+</sitemapindex>
+"""
+        child_xml = """<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>https://acme.com/flavors</loc></url>
+</urlset>
+"""
+        responses.add(responses.GET, "https://acme.com/sitemap.xml", body=index_xml, status=200)
+        responses.add(responses.GET, "https://acme.com/sitemap.website.xml", body=child_xml, status=200)
+        urls = fetch_sitemap_urls("https://acme.com")
+        assert "https://acme.com/flavors" in urls
+        assert not any(u.endswith(".xml") for u in urls)
+
 
 # ── _discover_seed_urls ──────────────────────────────────────────────────────
 
@@ -230,6 +291,13 @@ class TestDiscoverSeedUrls:
             _normalize_url_for_dedup(u) for u in urls
         }
 
+    def test_excludes_home_alias(self):
+        html = '<html><body><nav><a href="/home">Home</a><a href="/about">About</a></nav></body></html>'
+        soup = BeautifulSoup(html, "html.parser")
+        urls = _discover_seed_urls(soup, "https://acme.com", None, [])
+        assert not any(_is_homepage_url(u, "https://acme.com") for u in urls)
+        assert any("/about" in u for u in urls)
+
     def test_excludes_external_links(self):
         soup = BeautifulSoup(HOMEPAGE_HTML, "html.parser")
         urls = _discover_seed_urls(soup, "https://acme.com", None, [])
@@ -250,6 +318,12 @@ class TestDiscoverSeedUrls:
         assert any("/services" in u for u in urls)
         assert any("/contact" in u for u in urls)
         assert any("/blog" in u for u in urls)
+
+    def test_skips_seed_probes_when_nav_is_rich(self):
+        soup = BeautifulSoup(HOMEPAGE_HTML, "html.parser")
+        urls = _discover_seed_urls(soup, "https://acme.com", None, [])
+        assert not any(u.rstrip("/").endswith("/blog") for u in urls)
+        assert any("/about" in u for u in urls)
 
     def test_deduplicates_urls(self):
         # Two nav links pointing to the same URL
@@ -394,6 +468,30 @@ class TestCrawlSite:
         assert len(result.pages) <= 2
 
     @responses.activate
+    def test_crawl_skips_failed_seeds_and_still_fills_max_pages(self):
+        """max_pages counts successes, not how many seeds were considered first."""
+        responses.add(responses.GET, "https://acme.com", body=HOMEPAGE_HTML, status=200)
+        responses.add(responses.GET, "https://acme.com/robots.txt", status=404)
+        responses.add(responses.GET, "https://acme.com/sitemap.xml", status=404)
+        responses.add(responses.GET, "https://acme.com/about", status=404)
+        responses.add(responses.GET, "https://acme.com/services", body=SERVICES_PAGE_HTML, status=200)
+        for path in ("/contact", "/blog", "/privacy"):
+            responses.add(responses.GET, f"https://acme.com{path}", status=404)
+
+        import scraper.crawler as crawler_mod
+        original_sleep = crawler_mod.time.sleep
+        crawler_mod.time.sleep = lambda s: None
+
+        try:
+            result = crawl_site("https://acme.com", max_pages=1, max_depth=1)
+        finally:
+            crawler_mod.time.sleep = original_sleep
+
+        page_urls = [p.url for p in result.pages]
+        assert "https://acme.com/services" in page_urls
+        assert len(result.pages) == 1
+
+    @responses.activate
     def test_crawl_respects_max_depth(self):
         """With max_depth=1, only direct links from homepage are crawled — not links found on subpages."""
         responses.add(responses.GET, "https://acme.com", body=HOMEPAGE_HTML, status=200)
@@ -428,6 +526,52 @@ class TestCrawlSite:
         assert result.body_text == ""
         assert len(result.pages) == 0
         assert result.raw_html_length == 0
+
+    @responses.activate
+    def test_no_sleep_on_failed_subpage(self, monkeypatch):
+        responses.add(responses.GET, "https://acme.com", body=HOMEPAGE_HTML, status=200)
+        responses.add(responses.GET, "https://acme.com/robots.txt", status=404)
+        responses.add(responses.GET, "https://acme.com/sitemap.xml", status=404)
+        for path in ("/about", "/services", "/contact", "/blog", "/privacy"):
+            responses.add(responses.GET, f"https://acme.com{path}", status=404)
+
+        slept: list[float] = []
+        monkeypatch.setattr("scraper.crawler.time.sleep", lambda s: slept.append(s))
+        crawl_site("https://acme.com", max_pages=3, max_depth=1)
+        assert slept == []
+
+    @responses.activate
+    def test_sparse_homepage_uses_playwright_html_for_links(self, monkeypatch):
+        """Playwright HTML is used for link discovery when requests text is under 200 chars."""
+        sparse = "<html><body>Hi</body></html>"
+        rich = (
+            "<html><body><nav><a href='/secret-flavors'>Secret Flavors</a></nav>"
+            + ("Locally crafted ice cream. " * 20)
+            + "</body></html>"
+        )
+        about_html = ABOUT_PAGE_HTML
+        secret_html = "<html><head><title>Secret</title></head><body><h1>Secret Flavors</h1><p>Hidden menu.</p></body></html>"
+
+        def fake_fetch(url, timeout=15):
+            if url.rstrip("/") in ("https://acme.com", "https://acme.com/"):
+                return sparse
+            if "secret-flavors" in url:
+                return secret_html
+            if url.rstrip("/").endswith("/about"):
+                return about_html
+            return ""
+
+        monkeypatch.setattr("scraper.crawler.should_use_playwright", lambda: True)
+        monkeypatch.setattr("scraper.crawler._fetch_html", fake_fetch)
+        monkeypatch.setattr(
+            "scraper.crawler.fetch_html_with_playwright",
+            lambda url, timeout=25: rich,
+        )
+        monkeypatch.setattr("scraper.crawler.time.sleep", lambda s: None)
+
+        result = crawl_site("https://acme.com", max_pages=3, max_depth=1)
+        page_urls = [p.url for p in result.pages]
+        assert any("secret-flavors" in u for u in page_urls)
 
     @responses.activate
     def test_crawl_progress_callback(self):
@@ -535,6 +679,46 @@ class TestCrawlSite:
 
         facebook_count = sum(1 for sl in result.social_links if sl.platform == "facebook")
         assert facebook_count == 1, f"Expected 1 facebook link, got {facebook_count}"
+
+    @responses.activate
+    def test_skips_home_alias_and_sitemap_xml(self):
+        """Regression: /home and sitemap XML must not consume max_pages slots."""
+        html = """
+        <html>
+        <head><title>HOME</title></head>
+        <body>
+            <nav>
+                <a href="/home">HOME</a>
+                <a href="/flavors">FLAVORS</a>
+                <a href="/join-our-team-1">Join</a>
+                <a href="/sitemap.website.xml">sitemap</a>
+            </nav>
+            <main><h1>Shop</h1><p>Ice cream.</p></main>
+        </body>
+        </html>
+        """
+        flavors = "<html><head><title>FLAVORS</title></head><body><h1>FLAVORS</h1></body></html>"
+        jobs = "<html><head><title>Jobs</title></head><body><h1>Join</h1></body></html>"
+        responses.add(responses.GET, "https://acme.com", body=html, status=200)
+        responses.add(responses.GET, "https://acme.com/robots.txt", status=404)
+        responses.add(responses.GET, "https://acme.com/sitemap.xml", status=404)
+        responses.add(responses.GET, "https://acme.com/flavors", body=flavors, status=200)
+        responses.add(responses.GET, "https://acme.com/join-our-team-1", body=jobs, status=200)
+        responses.add(responses.GET, "https://acme.com/sitemap.website.xml", body="<xml></xml>", status=200)
+
+        import scraper.crawler as crawler_mod
+        original_sleep = crawler_mod.time.sleep
+        crawler_mod.time.sleep = lambda s: None
+        try:
+            result = crawl_site("https://acme.com", max_pages=3, max_depth=1)
+        finally:
+            crawler_mod.time.sleep = original_sleep
+
+        page_urls = [p.url for p in result.pages]
+        assert all(not u.endswith(".xml") for u in page_urls)
+        assert not any(u.rstrip("/").endswith("/home") for u in page_urls)
+        assert "https://acme.com/flavors" in page_urls
+        assert len(result.pages) <= 3
 
 
 # ── AnalysisRequest additions ────────────────────────────────────────────────
