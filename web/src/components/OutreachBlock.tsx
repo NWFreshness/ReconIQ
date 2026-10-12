@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Check, Copy, Mail, MessageSquare, Phone, FileText, ListChecks, Shield } from "lucide-react";
+import { Check, Copy } from "lucide-react";
 
 interface OutreachBlockProps {
   data: Record<string, unknown>;
@@ -31,13 +31,13 @@ function CopyButton({ text, label }: { text: string; label: string }) {
   return (
     <button
       onClick={handleCopy}
-      className="text-xs px-2 py-1 rounded-md bg-accent/10 text-accent border border-accent/20 hover:bg-accent/20 transition-all flex items-center gap-1.5"
+      className="btn"
       aria-label={`Copy ${label}`}
     >
       {copied ? (
         <>
           <Check className="w-3 h-3" />
-          Copied!
+          Copied
         </>
       ) : (
         <>
@@ -49,20 +49,16 @@ function CopyButton({ text, label }: { text: string; label: string }) {
   );
 }
 
-const assetFields: { key: string; label: string; icon: React.ReactNode }[] = [
-  { key: "cold_email", label: "Cold Email", icon: <Mail className="w-3.5 h-3.5" /> },
-  { key: "linkedin_dm", label: "LinkedIn DM", icon: <MessageSquare className="w-3.5 h-3.5" /> },
-  { key: "discovery_call_opener", label: "Discovery Call Opener", icon: <Phone className="w-3.5 h-3.5" /> },
-  { key: "proposal_outline", label: "Proposal Outline", icon: <FileText className="w-3.5 h-3.5" /> },
+const assetFields: { key: string; label: string }[] = [
+  { key: "cold_email", label: "Cold email" },
+  { key: "linkedin_dm", label: "LinkedIn DM" },
+  { key: "discovery_call_opener", label: "Discovery call opener" },
+  { key: "proposal_outline", label: "Proposal outline" },
 ];
 
 export function OutreachBlock({ data }: OutreachBlockProps) {
   if (!data || data.error) {
-    return (
-      <div className="bg-surface border border-border rounded-xl p-5 text-center">
-        <p className="text-xs text-muted">No outreach pack data available.</p>
-      </div>
-    );
+    return <p className="text-sm text-muted">No outreach pack data available.</p>;
   }
 
   const followUps = data.follow_up_sequence as string[] | undefined;
@@ -70,69 +66,50 @@ export function OutreachBlock({ data }: OutreachBlockProps) {
   const limitations = data.data_limitations as string[] | undefined;
 
   return (
-    <div className="bg-surface border border-border rounded-xl overflow-hidden">
-      <div className="px-5 py-3 border-b border-border bg-accent/5 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Shield className="w-3.5 h-3.5 text-accent" />
-          <h3 className="text-xs font-semibold uppercase tracking-wider text-foreground">
-            Outreach Pack
-          </h3>
-        </div>
-      </div>
-      <div className="divide-y divide-border">
-        {assetFields.map(({ key, label, icon }) => {
-          const value = data[key] as string | undefined;
-          if (!value) return null;
-          return (
-            <div key={key} className="p-4">
-              <div className="flex items-center justify-between mb-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-accent">{icon}</span>
-                  <span className="text-xs font-medium text-foreground">{label}</span>
-                </div>
-                <CopyButton text={value} label={label} />
-              </div>
-              <p className="text-xs text-muted whitespace-pre-wrap leading-relaxed">{value}</p>
-            </div>
-          );
-        })}
-
-        {followUps && Array.isArray(followUps) && followUps.length > 0 && (
-          <div className="p-4">
+    <div className="divide-y divide-border border-y border-border max-w-3xl">
+      {assetFields.map(({ key, label }) => {
+        const value = data[key] as string | undefined;
+        if (!value) return null;
+        return (
+          <div key={key} className="py-4">
             <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <ListChecks className="w-3.5 h-3.5 text-accent" />
-                <span className="text-xs font-medium text-foreground">Follow-up Sequence</span>
-              </div>
-              <CopyButton text={followUps.map((f, i) => `${i + 1}. ${f}`).join("\n")} label="Follow-up Sequence" />
+              <h3 className="text-sm font-semibold">{label}</h3>
+              <CopyButton text={value} label={label} />
             </div>
-            <ul className="text-xs text-muted space-y-1">
-              {followUps.map((item, i) => (
-                <li key={i} className="flex items-start gap-2">
-                  <span className="text-accent mt-0.5 min-w-[14px]">{i + 1}.</span>
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
+            <p className="text-sm text-muted whitespace-pre-wrap leading-relaxed">{value}</p>
           </div>
-        )}
+        );
+      })}
 
-        {(confidence || (limitations && limitations.length > 0)) && (
-          <div className="px-4 py-3 bg-background/50 text-[11px] text-muted">
-            {confidence && (
-              <p>
-                <span className="font-medium text-foreground">Confidence:</span> {confidence}
-              </p>
-            )}
-            {limitations && limitations.length > 0 && (
-              <p className="mt-1">
-                <span className="font-medium text-foreground">Limitations:</span>{" "}
-                {limitations.join("; ")}
-              </p>
-            )}
+      {followUps && Array.isArray(followUps) && followUps.length > 0 && (
+        <div className="py-4">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-semibold">Follow-up sequence</h3>
+            <CopyButton text={followUps.map((f, i) => `${i + 1}. ${f}`).join("\n")} label="Follow-up sequence" />
           </div>
-        )}
-      </div>
+          <ol className="list-decimal pl-5 space-y-1 text-sm text-muted">
+            {followUps.map((item, i) => (
+              <li key={i}>{item}</li>
+            ))}
+          </ol>
+        </div>
+      )}
+
+      {(confidence || (limitations && limitations.length > 0)) && (
+        <div className="py-3 text-xs text-muted">
+          {confidence && (
+            <p>
+              <span className="font-medium text-foreground">Confidence:</span> {confidence}
+            </p>
+          )}
+          {limitations && limitations.length > 0 && (
+            <p className="mt-1">
+              <span className="font-medium text-foreground">Limitations:</span>{" "}
+              {limitations.join("; ")}
+            </p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

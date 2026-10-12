@@ -35,28 +35,24 @@ export function EvidenceList({ items }: { items: EvidenceItem[] }) {
   }
 
   return (
-    <details className="mt-4 rounded-lg border border-cyan-400/10 bg-cyan-400/[0.03] p-3">
-      <summary className="cursor-pointer text-[10px] font-semibold uppercase tracking-wider text-cyan-300">
-        Evidence Sources ({items.length})
+    <details className="mt-5">
+      <summary className="cursor-pointer text-xs text-muted hover:text-foreground">
+        Evidence sources ({items.length})
       </summary>
-      <div className="mt-3 space-y-3">
+      <div className="mt-3 border-t border-border">
         {items.map((item, index) => (
-          <div key={`${item.url ?? "evidence"}-${item.selector_or_field ?? index}-${index}`} className="rounded-md border border-border bg-background/60 p-3">
-            <div className="mb-2 flex flex-wrap items-center gap-2 text-[10px] uppercase tracking-wider text-muted">
-              <span>{item.source_type ?? "source"}</span>
-              <span>·</span>
-              <span>{item.selector_or_field ?? "field"}</span>
-              <span>·</span>
-              <span>confidence: {item.confidence ?? "unknown"}</span>
-            </div>
-            {item.page_title && <p className="mb-1 text-xs font-semibold text-foreground">{item.page_title}</p>}
+          <div key={`${item.url ?? "evidence"}-${item.selector_or_field ?? index}-${index}`} className="border-b border-border py-3">
+            <p className="mb-1 text-xs text-muted">
+              {item.source_type ?? "source"}, {item.selector_or_field ?? "field"}, confidence {item.confidence ?? "unknown"}
+            </p>
+            {item.page_title && <p className="mb-1 text-sm font-medium">{item.page_title}</p>}
             {item.url && (
-              <a href={item.url} target="_blank" className="mb-2 flex items-center gap-1 text-xs text-accent hover:underline">
-                <ExternalLink className="h-3 w-3" />
+              <a href={item.url} target="_blank" className="mb-1 inline-flex items-center gap-1 text-xs text-accent hover:underline break-all">
+                <ExternalLink className="h-3 w-3 shrink-0" />
                 {item.url}
               </a>
             )}
-            {item.excerpt && <p className="text-xs leading-relaxed text-muted">“{item.excerpt}”</p>}
+            {item.excerpt && <p className="text-sm leading-relaxed text-muted">“{item.excerpt}”</p>}
           </div>
         ))}
       </div>
