@@ -23,7 +23,7 @@ from scraper.extractors import (
     _phone_key,
 )
 from scraper.models import LinkData, PageData, ScrapeResult, SocialLink
-from scraper.scraper import _clean_html, _fetch_html, fetch_html_with_playwright, normalize_url, should_use_playwright
+from scraper.scraper import _clean_html, _fetch_html, fetch_html_with_playwright, normalize_url, safe_get, should_use_playwright
 
 logger = logging.getLogger(__name__)
 
@@ -67,8 +67,7 @@ def fetch_robots_txt(base_url: str, timeout: int = 5) -> RobotFileParser | None:
     # Explicitly check that robots.txt is reachable before handing to
     # RobotFileParser, which silently treats 404 as an empty allow-all.
     try:
-        import requests
-        resp = requests.get(robots_url, headers={"User-Agent": "ReconIQ/1.0"}, timeout=timeout)
+        resp = safe_get(robots_url, headers={"User-Agent": "ReconIQ/1.0"}, timeout=timeout)
         resp.raise_for_status()
     except Exception:
         logger.debug("Could not fetch robots.txt from %s", robots_url)
@@ -121,8 +120,7 @@ def fetch_sitemap_urls(base_url: str, timeout: int = 5) -> list[str]:
     sitemap_url = f"{parsed.scheme}://{parsed.netloc}/sitemap.xml"
 
     try:
-        import requests
-        resp = requests.get(sitemap_url, headers={"User-Agent": "ReconIQ/1.0"}, timeout=timeout)
+        resp = safe_get(sitemap_url, headers={"User-Agent": "ReconIQ/1.0"}, timeout=timeout)
         resp.raise_for_status()
     except Exception:
         logger.debug("Could not fetch sitemap from %s", sitemap_url)
@@ -132,11 +130,11 @@ def fetch_sitemap_urls(base_url: str, timeout: int = 5) -> list[str]:
     nested_fetched = 0
     expanded: list[str] = []
     for href in raw_locs:
-        if _is_sitemap_loc(href) and nested_fetched < 3:
+        # Sitemap content is attacker-controlled: never leave the analysed domain.
+        if _is_sitemap_loc(href) and nested_fetched < 3 and _is_same_domain(href, base_url):
             nested_fetched += 1
             try:
-                import requests
-                child = requests.get(href, headers={"User-Agent": "ReconIQ/1.0"}, timeout=timeout)
+                child = safe_get(href, headers={"User-Agent": "ReconIQ/1.0"}, timeout=timeout)
                 child.raise_for_status()
                 expanded.extend(_locs_from_sitemap_xml(child.text))
             except Exception:
@@ -159,8 +157,8 @@ def _normalize_url_for_dedup(url: str) -> str:
 
 def _is_same_domain(url: str, base_url: str) -> bool:
     """Check whether *url* belongs to the same domain as *base_url*."""
-    url_domain = urlparse(url).netloc.lower().lstrip("www.")
-    base_domain = urlparse(base_url).netloc.lower().lstrip("www.")
+    url_domain = urlparse(url).netloc.lower().removeprefix("www.")
+    base_domain = urlparse(base_url).netloc.lower().removeprefix("www.")
     return url_domain == base_domain
 
 
