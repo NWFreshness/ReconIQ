@@ -1,6 +1,11 @@
 """Tests for scraper/crawler.py — Phase 9J-2: Multi-Page Crawler."""
 from __future__ import annotations
 
+import http.server
+import socketserver
+import threading
+from types import SimpleNamespace
+
 import pytest
 import responses
 
@@ -17,6 +22,7 @@ from scraper.crawler import (
     _score_path,
 )
 from scraper.models import PageData, ScrapeResult
+from scraper.scraper import _fetch_html, _route_via_safe_get, safe_get
 
 from bs4 import BeautifulSoup
 
@@ -86,6 +92,14 @@ Disallow: /private/
 
 User-agent: ReconBot
 Disallow: /
+"""
+
+
+def _index_xml(loc: str) -> str:
+    return f"""<?xml version="1.0" encoding="UTF-8"?>
+<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <sitemap><loc>{loc}</loc></sitemap>
+</sitemapindex>
 """
 
 
@@ -170,6 +184,9 @@ class TestIsSameDomain:
 
     def test_different_domain(self):
         assert _is_same_domain("https://other.com/page", "https://acme.com") is False
+
+    def test_www_lookalike_is_different(self):
+        assert _is_same_domain("https://wacme.com/x", "https://acme.com") is False
 
     def test_subdomain_different(self):
         assert _is_same_domain("https://blog.acme.com/post", "https://acme.com") is False
@@ -264,6 +281,138 @@ class TestFetchSitemapUrls:
         urls = fetch_sitemap_urls("https://acme.com")
         assert "https://acme.com/flavors" in urls
         assert not any(u.endswith(".xml") for u in urls)
+
+
+    @responses.activate
+    def test_nested_sitemap_on_other_domain_is_not_fetched(self):
+        responses.add(responses.GET, "https://acme.com/sitemap.xml", body=_index_xml("https://evil.com/sitemap.xml"), status=200)
+        responses.add(responses.GET, "https://evil.com/sitemap.xml", body=SITEMAP_XML, status=200)
+        assert fetch_sitemap_urls("https://acme.com") == []
+        assert [c.request.url for c in responses.calls] == ["https://acme.com/sitemap.xml"]
+
+    @responses.activate
+    def test_nested_sitemap_resolving_to_loopback_is_not_fetched(self, monkeypatch):
+        monkeypatch.setattr(
+            "scraper.scraper._resolve_ips",
+            lambda host: ["127.0.0.1"] if host == "www.acme.com" else ["93.184.216.34"],
+        )
+        responses.add(responses.GET, "https://acme.com/sitemap.xml", body=_index_xml("https://www.acme.com/sitemap-a.xml"), status=200)
+        responses.add(responses.GET, "https://www.acme.com/sitemap-a.xml", body=SITEMAP_XML, status=200)
+        assert fetch_sitemap_urls("https://acme.com") == []
+        assert [c.request.url for c in responses.calls] == ["https://acme.com/sitemap.xml"]
+
+    @responses.activate
+    def test_nested_sitemap_redirect_to_metadata_address_is_not_followed(self):
+        responses.add(responses.GET, "https://acme.com/sitemap.xml", body=_index_xml("https://acme.com/sitemap-a.xml"), status=200)
+        responses.add(
+            responses.GET, "https://acme.com/sitemap-a.xml", status=302,
+            headers={"Location": "http://169.254.169.254/latest/meta-data/"},
+        )
+        responses.add(responses.GET, "http://169.254.169.254/latest/meta-data/", body=SITEMAP_XML, status=200)
+        assert fetch_sitemap_urls("https://acme.com") == []
+        assert "http://169.254.169.254/latest/meta-data/" not in [c.request.url for c in responses.calls]
+
+
+class TestSafeGet:
+    @pytest.mark.parametrize("url", [
+        "http://127.0.0.1/",
+        "http://10.0.0.5/",
+        "http://169.254.169.254/latest/meta-data/",
+        "http://[::1]/",
+        "http://[::ffff:127.0.0.1]/",
+        "http://224.0.0.1/",
+        "file:///etc/passwd",
+    ])
+    @responses.activate
+    def test_rejects_non_public_targets(self, url):
+        with pytest.raises(ValueError):
+            safe_get(url)
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    def test_follows_redirect_to_public_host(self):
+        responses.add(responses.GET, "https://acme.com/", status=301, headers={"Location": "https://www.acme.com/"})
+        responses.add(responses.GET, "https://www.acme.com/", body="ok", status=200)
+        assert safe_get("https://acme.com/").text == "ok"
+
+    @responses.activate
+    def test_fetch_html_refuses_redirect_to_loopback(self):
+        responses.add(responses.GET, "https://acme.com/", status=302, headers={"Location": "http://127.0.0.1:8000/admin"})
+        responses.add(responses.GET, "http://127.0.0.1:8000/admin", body="secret", status=200)
+        assert _fetch_html("https://acme.com/") == ""
+
+
+    def test_connects_to_the_validated_ip_not_a_second_dns_lookup(self, monkeypatch):
+        """DNS rebinding: the hostname below does not resolve, so only the pinned IP can reach the server."""
+        seen_hosts = []
+
+        class Handler(http.server.BaseHTTPRequestHandler):
+            def do_GET(self):
+                seen_hosts.append(self.headers["Host"])
+                self.send_response(200)
+                self.end_headers()
+                self.wfile.write(b"pinned")
+
+            def log_message(self, *args):
+                pass
+
+        # Plain TCPServer: HTTPServer.server_bind does a slow reverse-DNS lookup.
+        server = socketserver.TCPServer(("127.0.0.1", 0), Handler)
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        port = server.server_address[1]
+        # First IP refuses the connection; the next validated IP must be tried.
+        monkeypatch.setattr("scraper.scraper._public_ips", lambda url: ["::1", "127.0.0.1"])
+        try:
+            response = safe_get(f"http://rebind.invalid:{port}/", timeout=5)
+        finally:
+            server.shutdown()
+            server.server_close()
+        assert response.text == "pinned"
+        assert seen_hosts == [f"rebind.invalid:{port}"]
+
+
+class _FakeRoute:
+    def __init__(self, url, method="GET", resource_type="document"):
+        self.request = SimpleNamespace(url=url, method=method, resource_type=resource_type, headers={})
+        self.aborted = False
+        self.fulfilled = None
+
+    def abort(self):
+        self.aborted = True
+
+    def fulfill(self, **kwargs):
+        self.fulfilled = kwargs
+
+
+class TestPlaywrightRouteGuard:
+    @responses.activate
+    def test_public_get_is_served_through_safe_get(self):
+        responses.add(responses.GET, "https://acme.com/app.js", body="js", status=200)
+        route = _FakeRoute("https://acme.com/app.js", resource_type="script")
+        _route_via_safe_get(route)
+        assert route.fulfilled["status"] == 200
+        assert route.fulfilled["body"] == b"js"
+
+    @responses.activate
+    def test_request_to_metadata_address_is_aborted(self):
+        route = _FakeRoute("http://169.254.169.254/latest/meta-data/", resource_type="fetch")
+        _route_via_safe_get(route)
+        assert route.aborted and route.fulfilled is None
+        assert len(responses.calls) == 0
+
+    @responses.activate
+    def test_redirect_to_loopback_is_aborted(self):
+        responses.add(responses.GET, "https://acme.com/r", status=302, headers={"Location": "http://127.0.0.1:8000/"})
+        route = _FakeRoute("https://acme.com/r", resource_type="fetch")
+        _route_via_safe_get(route)
+        assert route.aborted and route.fulfilled is None
+
+    @responses.activate
+    def test_non_get_is_aborted(self):
+        route = _FakeRoute("https://acme.com/api", method="POST", resource_type="fetch")
+        _route_via_safe_get(route)
+        assert route.aborted
+        assert len(responses.calls) == 0
 
 
 # ── _discover_seed_urls ──────────────────────────────────────────────────────

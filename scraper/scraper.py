@@ -1,11 +1,14 @@
 """Web scraper — extracts clean text from URLs, with Playwright fallback for JS-heavy sites."""
 from __future__ import annotations
 
+import ipaddress
 import logging
+import socket
 import time
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 import requests
+from requests.adapters import HTTPAdapter
 from bs4 import BeautifulSoup
 from core.settings import load_config
 from scraper.extractors import (
@@ -111,6 +114,106 @@ def should_use_playwright() -> bool:
     return _check_playwright()
 
 
+def _resolve_ips(host: str) -> list[str]:
+    return [info[4][0] for info in socket.getaddrinfo(host, None)]
+
+
+def _public_ips(url: str) -> list[str]:
+    """Resolve *url*'s host and return its addresses; raise ValueError unless it is http(s) and all are public."""
+    parsed = urlparse(url)
+    if parsed.scheme not in ("http", "https") or not parsed.hostname:
+        raise ValueError(f"Refusing non-http(s) URL: {url}")
+    ips = list(dict.fromkeys(_resolve_ips(parsed.hostname)))
+    if not ips:
+        raise ValueError(f"No addresses for {url}")
+    for raw in ips:
+        ip = ipaddress.ip_address(raw)
+        ip = getattr(ip, "ipv4_mapped", None) or ip
+        # is_global is False for loopback, private, link-local, reserved and CGNAT ranges
+        if not ip.is_global or ip.is_multicast:
+            raise ValueError(f"Refusing non-public address {ip} for {url}")
+    return ips
+
+
+class _PinnedAdapter(HTTPAdapter):
+    """Connect to one already-validated IP, keeping the URL's hostname for Host, SNI and cert checks.
+
+    Without this requests resolves the host a second time, which DNS rebinding can exploit.
+    """
+
+    def __init__(self, ip: str) -> None:
+        self._ip = ip
+        super().__init__()
+
+    def build_connection_pool_key_attributes(self, request, verify, cert=None):
+        host_params, pool_kwargs = super().build_connection_pool_key_attributes(request, verify, cert)
+        hostname = host_params["host"]
+        request.headers["Host"] = urlparse(request.url).netloc.rpartition("@")[2]
+        if host_params["scheme"] == "https":
+            pool_kwargs["server_hostname"] = hostname
+            pool_kwargs["assert_hostname"] = hostname
+        host_params["host"] = self._ip
+        return host_params, pool_kwargs
+
+
+def _pinned_get(url: str, ips: list[str], headers: dict | None, timeout: int) -> requests.Response:
+    for i, ip in enumerate(ips):
+        with requests.Session() as session:
+            # Env proxies would do their own DNS lookup and defeat the pin.
+            session.trust_env = False
+            adapter = _PinnedAdapter(ip)
+            session.mount("http://", adapter)
+            session.mount("https://", adapter)
+            try:
+                return session.get(url, headers=headers, timeout=timeout, allow_redirects=False)
+            except requests.ConnectionError:
+                if i == len(ips) - 1:
+                    raise
+    raise ValueError(f"No addresses for {url}")
+
+
+def safe_get(url: str, headers: dict | None = None, timeout: int = 15, max_redirects: int = 5) -> requests.Response:
+    """requests.get for untrusted URLs (SSRF guard).
+
+    Validates the target and every redirect hop, and connects to the validated IP.
+    """
+    for _ in range(max_redirects + 1):
+        response = _pinned_get(url, _public_ips(url), headers, timeout)
+        if not response.is_redirect:
+            return response
+        url = urljoin(url, response.headers["location"])
+    raise requests.TooManyRedirects(f"Exceeded {max_redirects} redirects")
+
+
+_UNSAFE_TO_REPLAY = {"content-encoding", "content-length", "transfer-encoding"}
+
+
+def _route_via_safe_get(route) -> None:
+    """Playwright route handler: serve every browser request through safe_get.
+
+    The browser never touches the network itself, so redirects and subresources
+    get the same validation and IP pinning as the requests path.
+    shortcut: non-GET requests are aborted, so pages that load content over POST
+    render without it; give safe_get a method argument if that matters.
+    """
+    request = route.request
+    # Not needed for the HTML snapshot, and every request here is serialized.
+    if request.method != "GET" or request.resource_type in ("image", "media", "font"):
+        route.abort()
+        return
+    try:
+        headers = {k: v for k, v in request.headers.items() if k.lower() != "accept-encoding"}
+        response = safe_get(request.url, headers=headers, timeout=15)
+    except Exception:
+        route.abort()
+        return
+    route.fulfill(
+        status=response.status_code,
+        headers={k: v for k, v in response.headers.items() if k.lower() not in _UNSAFE_TO_REPLAY},
+        body=response.content,
+    )
+
+
 def normalize_url(url: str) -> str:
     """Return a URL with an HTTP scheme, defaulting bare domains to HTTPS."""
     cleaned = url.strip()
@@ -181,7 +284,7 @@ def _scrape_with_requests(url: str, timeout: int = 15) -> str:
             ),
             "Accept": "text/html,application/xhtml+xml",
         }
-        response = requests.get(url, headers=headers, timeout=timeout, allow_redirects=True)
+        response = safe_get(url, headers=headers, timeout=timeout)
         response.raise_for_status()
 
         # Detect encoding from headers or content
@@ -202,10 +305,17 @@ def fetch_html_with_playwright(url: str, timeout: int = 25) -> str:
     try:
         from playwright.sync_api import sync_playwright
 
+        # Routed requests are fulfilled at the original URL, so navigate to the
+        # post-redirect URL to keep the page's origin and relative links right.
+        url = safe_get(url, timeout=timeout).url
         with sync_playwright() as p:
-            browser = p.chromium.launch(headless=True)
+            # Dead proxy: anything that escapes the route (WebSockets, service
+            # workers) fails instead of reaching the network unvalidated.
+            browser = p.chromium.launch(headless=True, proxy={"server": "http://127.0.0.1:9"})
             try:
-                page = browser.new_page()
+                context = browser.new_context(service_workers="block")
+                context.route("**/*", _route_via_safe_get)
+                page = context.new_page()
                 page.set_default_timeout(timeout * 1000)
                 page.goto(url, wait_until="domcontentloaded")
                 page.wait_for_timeout(3000)
@@ -339,7 +449,7 @@ def _fetch_html(url: str, timeout: int = 15) -> str:
             ),
             "Accept": "text/html,application/xhtml+xml",
         }
-        response = requests.get(url, headers=headers, timeout=timeout, allow_redirects=True)
+        response = safe_get(url, headers=headers, timeout=timeout)
         response.raise_for_status()
         response.encoding = response.apparent_encoding or "utf-8"
         return response.text
