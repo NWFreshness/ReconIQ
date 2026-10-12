@@ -1,20 +1,21 @@
 @import "tailwindcss";
 
 :root {
-  --background: #06060a;
-  --foreground: #f1f5f9;
-  --surface: #0f0f17;
-  --surface-hover: #1a1a26;
-  --border: #1e1e2e;
-  --accent: #f59e0b;
-  --accent-dim: #f59e0b20;
-  --cyan: #06b6d4;
-  --cyan-dim: #06b6d420;
-  --success: #10b981;
-  --danger: #ef4444;
-  --muted: #475569;
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --background: #eceee8;
+  --foreground: #17211c;
+  --surface: #f7f8f4;
+  --surface-hover: #e2e5dd;
+  --border: #c5ccc2;
+  --muted: #5c6a62;
+  --accent: #2a3ba8;
+  --success: #1f6b45;
+  --warn: #8a5a00;
+  --danger: #b3261e;
+  --chart-1: #2a3ba8;
+  --chart-2: #b07a00;
+  --chart-3: #0f766e;
+  --chart-4: #a1286f;
+  --chart-5: #c2410c;
 }
 
 @theme inline {
@@ -23,15 +24,19 @@
   --color-surface: var(--surface);
   --color-surface-hover: var(--surface-hover);
   --color-border: var(--border);
-  --color-accent: var(--accent);
-  --color-accent-dim: var(--accent-dim);
-  --color-cyan: var(--cyan);
-  --color-cyan-dim: var(--cyan-dim);
-  --color-success: var(--success);
-  --color-danger: var(--danger);
   --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-success: var(--success);
+  --color-warn: var(--warn);
+  --color-danger: var(--danger);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-zilla-slab);
 }
 
 body {
@@ -40,53 +45,43 @@ body {
   font-family: var(--font-sans), system-ui, sans-serif;
 }
 
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-::-webkit-scrollbar-track {
-  background: var(--background);
-}
-::-webkit-scrollbar-thumb {
-  background: var(--border);
-  border-radius: 3px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: var(--muted);
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
-/* Scanline effect overlay */
-.scanlines::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    rgba(0, 0, 0, 0.15) 2px,
-    rgba(0, 0, 0, 0.15) 4px
-  );
-  pointer-events: none;
-  z-index: 50;
-  opacity: 0.3;
+@layer components {
+  .field {
+    @apply w-full px-3 py-2 bg-surface border border-border rounded-sm text-sm text-foreground placeholder:text-muted;
+  }
+  .field-label {
+    @apply block text-xs font-medium text-muted mb-1;
+  }
+  .sub-label {
+    @apply text-sm font-semibold text-foreground mb-2;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-sm border border-border bg-surface text-foreground transition-colors hover:border-foreground disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply bg-accent text-surface border-accent hover:bg-foreground hover:border-foreground;
+  }
+  .btn-danger {
+    @apply text-danger hover:border-danger;
+  }
+  .tag {
+    @apply inline-block text-xs px-2 py-0.5 border border-border rounded-sm bg-surface;
+  }
+  .notice-danger {
+    @apply text-xs text-danger border border-danger/40 bg-danger/5 rounded-sm p-3;
+  }
 }
 
-/* Glow animation for status indicators */
-@keyframes pulse-glow {
-  0%, 100% { opacity: 1; box-shadow: 0 0 8px currentColor; }
-  50% { opacity: 0.5; box-shadow: 0 0 2px currentColor; }
+/* The one page-load moment; everything else moves only in response to the user. */
+@keyframes page-enter {
+  /* opacity only: a transform here would trap the fixed list dialog inside <main> */
+  from { opacity: 0; }
 }
-
-.animate-pulse-glow {
-  animation: pulse-glow 2s ease-in-out infinite;
-}
-
-/* Grid background pattern */
-.grid-pattern {
-  background-image:
-    linear-gradient(rgba(245, 158, 11, 0.03) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(245, 158, 11, 0.03) 1px, transparent 1px);
-  background-size: 40px 40px;
+@media (prefers-reduced-motion: no-preference) {
+  .page-enter { animation: page-enter 0.4s ease-out; }
 }

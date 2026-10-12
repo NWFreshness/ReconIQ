@@ -3,10 +3,9 @@
 interface CompetitorData {
   name: string;
   values: number[];
-  color: string;
 }
 
-const radarColors = ["#8b5cf6", "#06b6d4", "#f59e0b", "#10b981", "#ef4444"];
+const SERIES = ["text-chart-1", "text-chart-2", "text-chart-3", "text-chart-4", "text-chart-5"];
 const defaultAxes = ["Pricing", "Positioning", "Content", "Services", "SEO"];
 
 export function CompetitorRadarChart({ competitors, axes = defaultAxes }: { competitors: CompetitorData[]; axes?: string[] }) {
@@ -26,7 +25,7 @@ export function CompetitorRadarChart({ competitors, axes = defaultAxes }: { comp
 
   return (
     <div className="flex flex-col items-center">
-      <svg viewBox={`0 0 ${size} ${size + 20}`} className="w-full max-w-xs">
+      <svg viewBox={`0 0 ${size} ${size + 20}`} className="w-full max-w-sm" role="img" aria-label="Competitor comparison radar chart">
         {/* Grid rings */}
         {[0.25, 0.5, 0.75, 1.0].map((ringPct, ri) => {
           const r = maxR * ringPct;
@@ -36,8 +35,8 @@ export function CompetitorRadarChart({ competitors, axes = defaultAxes }: { comp
               key={ri}
               points={pts.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ")}
               fill="none"
-              stroke="#334155"
-              strokeWidth="0.5"
+              className="stroke-border"
+              strokeWidth="0.75"
             />
           );
         })}
@@ -49,8 +48,8 @@ export function CompetitorRadarChart({ competitors, axes = defaultAxes }: { comp
           const label = polar(angle, maxR + 22);
           return (
             <g key={i}>
-              <line x1={cx} y1={cy} x2={end.x.toFixed(1)} y2={end.y.toFixed(1)} stroke="#334155" strokeWidth="0.5" />
-              <text x={label.x.toFixed(1)} y={label.y.toFixed(1)} textAnchor="middle" fill="#94a3b8" fontSize="10">
+              <line x1={cx} y1={cy} x2={end.x.toFixed(1)} y2={end.y.toFixed(1)} className="stroke-border" strokeWidth="0.75" />
+              <text x={label.x.toFixed(1)} y={label.y.toFixed(1)} textAnchor="middle" className="fill-muted" fontSize="10">
                 {axis}
               </text>
             </g>
@@ -59,7 +58,6 @@ export function CompetitorRadarChart({ competitors, axes = defaultAxes }: { comp
 
         {/* Data series */}
         {competitors.map((comp, ci) => {
-          const color = comp.color || radarColors[ci % radarColors.length];
           const pts = comp.values.slice(0, n).map((v, i) => {
             const r = maxR * (Math.min(Math.max(v, 0), 100) / 100);
             return polar(i * angleStep, r);
@@ -68,9 +66,10 @@ export function CompetitorRadarChart({ competitors, axes = defaultAxes }: { comp
             <polygon
               key={ci}
               points={pts.map((p) => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" ")}
-              fill={color}
-              fillOpacity="0.15"
-              stroke={color}
+              className={SERIES[ci % SERIES.length]}
+              fill="currentColor"
+              fillOpacity="0.1"
+              stroke="currentColor"
               strokeWidth="2"
             />
           );
@@ -78,11 +77,11 @@ export function CompetitorRadarChart({ competitors, axes = defaultAxes }: { comp
       </svg>
 
       {/* Legend */}
-      <div className="flex flex-wrap gap-3 mt-2">
+      <div className="flex flex-wrap justify-center gap-x-4 gap-y-1.5 mt-2">
         {competitors.map((comp, ci) => (
-          <div key={ci} className="flex items-center gap-1.5">
-            <div className="w-2.5 h-2.5 rounded-sm" style={{ backgroundColor: comp.color || radarColors[ci % radarColors.length] }} />
-            <span className="text-[10px] text-muted">{comp.name}</span>
+          <div key={ci} className={`flex items-center gap-1.5 ${SERIES[ci % SERIES.length]}`}>
+            <div className="w-2.5 h-2.5 bg-current" />
+            <span className="text-xs text-foreground">{comp.name}</span>
           </div>
         ))}
       </div>

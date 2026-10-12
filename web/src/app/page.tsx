@@ -1,24 +1,15 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { Radar, Plus, RefreshCw, Terminal, Zap, Globe, Shield } from "lucide-react";
+import { RefreshCw } from "lucide-react";
 import { api, type AnalysisJob, prospectLists } from "@/lib/api";
 import { AnalysisCard } from "@/components/AnalysisCard";
+import { StatStrip } from "@/components/StatStrip";
+import { MODULE_LABELS } from "@/lib/modules";
 import {
   DashboardFiltersBar,
   type DashboardFilters,
 } from "@/components/DashboardFilters";
-
-const MODULE_LABELS = {
-  company_profile: "Company Profile",
-  seo_keywords: "SEO & Keywords",
-  competitor: "Competitors",
-  social_content: "Social & Content",
-  swot: "SWOT Analysis",
-  outreach: "Outreach Pack",
-  prospect_score: "Prospect Score",
-} as const;
 
 type ModuleKey = keyof typeof MODULE_LABELS;
 type EnabledModules = Record<ModuleKey, boolean>;
@@ -175,170 +166,104 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-full grid-pattern">
-      {/* Header */}
-      <header className="border-b border-border bg-background/80 backdrop-blur-md sticky top-0 z-40">
-        <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-accent/10 border border-accent/20 flex items-center justify-center">
-              <Radar className="w-4 h-4 text-accent" />
-            </div>
-            <div>
-              <h1 className="text-sm font-bold tracking-wider text-foreground">RECONIQ</h1>
-              <p className="text-[10px] text-muted uppercase tracking-widest">Marketing Intelligence</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-4 text-xs text-muted">
-            <span className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              API Online
-            </span>
-          </div>
-        </div>
-      </header>
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 lg:grid lg:grid-cols-[20rem_minmax(0,1fr)] lg:gap-12">
+      <aside className="mb-12 lg:mb-0 lg:sticky lg:top-8 lg:self-start">
+        <h1 className="font-display text-4xl font-semibold leading-tight mb-3">Research a competitor</h1>
+        <p className="text-sm text-muted leading-relaxed mb-6">
+          Enter a company URL. ReconIQ profiles the company, finds its competitors, checks SEO and
+          social signals, then writes a SWOT and strategy report.
+        </p>
 
-      <main className="max-w-6xl mx-auto px-6 py-10">
-        {/* Hero */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6 }}
-          className="mb-12"
-        >
-          <h2 className="text-4xl font-bold text-foreground mb-3 tracking-tight">
-            Competitive Intelligence
-          </h2>
-          <p className="text-muted max-w-xl text-sm leading-relaxed">
-            Enter a company URL and ReconIQ will research the company, competitors,
-            SEO signals, synthesize SWOT, and generate a strategy report — powered by AI.
-          </p>
-        </motion.div>
+        <form onSubmit={submit} className="space-y-4">
+          <label className="block">
+            <span className="field-label">Company URL</span>
+            <input
+              type="text"
+              value={url}
+              onChange={(e) => setUrl(e.target.value)}
+              placeholder="example.com"
+              className="field"
+              required
+            />
+          </label>
 
-        {/* Input Form */}
-        <motion.form
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-          onSubmit={submit}
-          className="bg-surface border border-border rounded-2xl p-6 mb-10"
-        >
-          <div className="flex gap-3 mb-5">
-            <div className="flex-1 relative">
-              <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
-              <input
-                type="text"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                placeholder="example.com"
-                className="w-full pl-10 pr-4 py-3 bg-background border border-border rounded-xl text-sm text-foreground placeholder:text-muted focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-all"
-                required
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="px-6 py-3 bg-accent text-background font-semibold text-sm rounded-xl hover:bg-amber-400 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-            >
-              {loading ? (
-                <RefreshCw className="w-4 h-4 animate-spin" />
-              ) : (
-                <Plus className="w-4 h-4" />
-              )}
-              {loading ? "Starting..." : "Analyze"}
-            </button>
-          </div>
-
-          {error && (
-            <div className="mb-4 text-xs text-red-400 bg-red-400/5 border border-red-400/10 rounded-lg p-3">
-              {error}
-            </div>
-          )}
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="text-[10px] text-muted uppercase tracking-wider mb-1.5 block">Provider</label>
-              <select
-                value={provider}
-                onChange={(e) => setProvider(e.target.value)}
-                className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-amber-500/50"
-              >
-                <option value="deepseek">DeepSeek</option>
-                <option value="openai">OpenAI</option>
-                <option value="anthropic">Anthropic</option>
-                <option value="groq">Groq</option>
-                <option value="ollama">Ollama</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-[10px] text-muted uppercase tracking-wider mb-1.5 block">Model Override</label>
-              <input
-                type="text"
-                value={model}
-                onChange={(e) => setModel(e.target.value)}
-                placeholder="Default"
-                className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground placeholder:text-muted focus:outline-none focus:border-amber-500/50"
-              />
-            </div>
-            <div>
-              <label className="text-[10px] text-muted uppercase tracking-wider mb-1.5 block">Format</label>
-              <select
-                value={fmt}
-                onChange={(e) => setFmt(e.target.value)}
-                className="w-full px-3 py-2 bg-background border border-border rounded-lg text-sm text-foreground focus:outline-none focus:border-amber-500/50"
-              >
-                <option value="md">Markdown</option>
-                <option value="html">HTML</option>
-                <option value="pdf">PDF</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="mt-4">
-            <label className="text-[10px] text-muted uppercase tracking-wider mb-2 block">Modules</label>
-            <div className="flex flex-wrap gap-2">
-              {MODULE_ENTRIES.map(([key, label]) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => toggleModule(key)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-all ${
-                    modules[key]
-                      ? "bg-cyan-400/10 text-cyan-400 border-cyan-400/30"
-                      : "bg-background text-muted border-border hover:border-muted"
-                  }`}
-                >
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </motion.form>
-
-        {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-10">
-          {[
-            { icon: Terminal, label: "Total", value: jobs.length },
-            { icon: Zap, label: "Running", value: runningJobs },
-            { icon: Shield, label: "Completed", value: completedJobs },
-            { icon: Radar, label: "Failed", value: failedJobs },
-          ].map((stat) => (
-            <motion.div
-              key={stat.label}
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.4 }}
-              className="bg-surface border border-border rounded-xl p-4"
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <stat.icon className="w-3.5 h-3.5 text-muted" />
-                <span className="text-[10px] text-muted uppercase tracking-wider">{stat.label}</span>
+          <details className="border-y border-border py-3">
+            <summary className="text-sm font-medium cursor-pointer">Options</summary>
+            <div className="mt-4 space-y-4">
+              <label className="block">
+                <span className="field-label">Provider</span>
+                <select value={provider} onChange={(e) => setProvider(e.target.value)} className="field">
+                  <option value="deepseek">DeepSeek</option>
+                  <option value="openai">OpenAI</option>
+                  <option value="anthropic">Anthropic</option>
+                  <option value="groq">Groq</option>
+                  <option value="ollama">Ollama</option>
+                </select>
+              </label>
+              <label className="block">
+                <span className="field-label">Model override</span>
+                <input
+                  type="text"
+                  value={model}
+                  onChange={(e) => setModel(e.target.value)}
+                  placeholder="Default"
+                  className="field"
+                />
+              </label>
+              <label className="block">
+                <span className="field-label">Report format</span>
+                <select value={fmt} onChange={(e) => setFmt(e.target.value)} className="field">
+                  <option value="md">Markdown</option>
+                  <option value="html">HTML</option>
+                  <option value="pdf">PDF</option>
+                </select>
+              </label>
+              <div>
+                <span className="field-label">Modules</span>
+                <div className="flex flex-wrap gap-2">
+                  {MODULE_ENTRIES.map(([key, label]) => (
+                    <button
+                      key={key}
+                      type="button"
+                      aria-pressed={modules[key]}
+                      onClick={() => toggleModule(key)}
+                      className={`btn ${modules[key] ? "bg-foreground text-surface border-foreground" : "text-muted"}`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <p className="text-2xl font-bold text-foreground font-mono">{stat.value}</p>
-            </motion.div>
-          ))}
+            </div>
+          </details>
+
+          {error && <div className="notice-danger">{error}</div>}
+
+          <button type="submit" disabled={loading} className="btn btn-primary w-full py-3 text-sm">
+            {loading && <RefreshCw className="w-4 h-4 animate-spin" />}
+            {loading ? "Starting..." : "Analyze"}
+          </button>
+        </form>
+      </aside>
+
+      <section>
+        <StatStrip
+          stats={[
+            { label: "Total", value: jobs.length },
+            { label: "Running", value: runningJobs },
+            { label: "Completed", value: completedJobs },
+            { label: "Failed", value: failedJobs },
+          ]}
+        />
+
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-display text-2xl font-semibold">Analyses</h2>
+          <button onClick={loadJobs} className="btn">
+            <RefreshCw className="w-3 h-3" />
+            Refresh
+          </button>
         </div>
 
-        {/* Filter Bar */}
         <DashboardFiltersBar
           filters={filters}
           onChange={(f) => setFilters(f)}
@@ -346,63 +271,27 @@ export default function Home() {
           totalCount={jobs.length}
         />
 
-        {/* Job List */}
-        <div>
-          <div className="flex items-center justify-between mb-5">
-            <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">Recent Analyses</h3>
-            <button
-              onClick={loadJobs}
-              className="text-xs text-muted hover:text-foreground transition-colors flex items-center gap-1"
-            >
-              <RefreshCw className="w-3 h-3" />
-              Refresh
-            </button>
+        {jobs.length === 0 ? (
+          <p className="border-y border-border py-12 text-sm text-muted">
+            No analyses to show. Enter a company URL to start one, or clear the filters.
+          </p>
+        ) : (
+          <div className="border-t border-border">
+            {jobs.map((job) => (
+              <AnalysisCard
+                key={job.id}
+                job={job}
+                onDelete={handleDelete}
+                score={scores[job.id]}
+                listIds={analysisLists[job.id]}
+                onListsChange={(newListIds) =>
+                  setAnalysisLists((prev) => ({ ...prev, [job.id]: newListIds }))
+                }
+              />
+            ))}
           </div>
-
-          <AnimatePresence>
-            {jobs.length === 0 ? (
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                className="text-center py-16 text-muted border border-dashed border-border rounded-xl"
-              >
-                <Radar className="w-8 h-8 mx-auto mb-3 opacity-30" />
-                <p className="text-sm">No analyses yet. Enter a URL above to begin.</p>
-              </motion.div>
-            ) : (
-              <div className="space-y-3">
-                {jobs.map((job) => (
-                  <motion.div
-                    key={job.id}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    <AnalysisCard
-                      job={job}
-                      onDelete={handleDelete}
-                      score={scores[job.id]}
-                      listIds={analysisLists[job.id]}
-                      onListsChange={(newListIds) =>
-                        setAnalysisLists((prev) => ({ ...prev, [job.id]: newListIds }))
-                      }
-                    />
-                  </motion.div>
-                ))}
-              </div>
-            )}
-          </AnimatePresence>
-        </div>
-      </main>
-
-      {/* Footer */}
-      <footer className="border-t border-border mt-auto">
-        <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between text-[10px] text-muted">
-          <span>ReconIQ v1.0.0 — Marketing Intelligence Platform</span>
-          <span className="font-mono">Powered by AI</span>
-        </div>
-      </footer>
+        )}
+      </section>
     </div>
   );
 }

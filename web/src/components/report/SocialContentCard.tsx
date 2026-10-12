@@ -1,6 +1,7 @@
 "use client";
 
-import { Globe, Users, Star, MessageSquare, ExternalLink, AlertTriangle } from "lucide-react";
+import { ExternalLink } from "lucide-react";
+import { Section, ConfidenceBadge, TagList, Limitations } from "./Section";
 
 interface SocialAccount {
   platform?: string;
@@ -27,73 +28,45 @@ interface SocialContentCardProps {
   data: SocialContentData;
 }
 
-function ConfidenceBadge({ level }: { level?: string }) {
-  if (!level) return null;
-  const color =
-    level === "high" ? "text-emerald-400 bg-emerald-400/10 border-emerald-400/30"
-    : level === "medium" ? "text-yellow-400 bg-yellow-400/10 border-yellow-400/30"
-    : "text-red-400 bg-red-400/10 border-red-400/30";
-  return (
-    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded border ${color}`}>
-      {level.toUpperCase()} CONFIDENCE
-    </span>
-  );
-}
-
-function SignalRow({ label, value }: { label: string; value?: string }) {
-  if (!value) return null;
-  return (
-    <div className="flex gap-3">
-      <div className="text-[10px] font-semibold uppercase tracking-wider text-muted w-32 flex-shrink-0 mt-0.5">{label}</div>
-      <div className="text-xs text-foreground">{value}</div>
-    </div>
-  );
-}
-
 export function SocialContentCard({ data }: SocialContentCardProps) {
-  return (
-    <div className="bg-surface border border-border rounded-xl overflow-hidden">
-      <div className="px-5 py-3 border-b border-border bg-background/50 flex items-center gap-2">
-        <Globe className="w-3.5 h-3.5 text-accent" />
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-foreground">Social & Content</h3>
-        <div className="ml-auto">
-          <ConfidenceBadge level={data.data_confidence} />
-        </div>
-      </div>
+  const tagGroups: [string, string[] | undefined, string][] = [
+    ["Active platforms", data.platforms, ""],
+    ["Inferred platforms", data.inferred_platforms, "text-muted"],
+    ["Review sites", data.review_sites, ""],
+  ];
+  const signals: [string, string | undefined][] = [
+    ["Content quality", data.content_quality],
+    ["Frequency", data.content_frequency],
+    ["Engagement", data.engagement_signals],
+    ["Blog and resources", data.blog_or_resources],
+    ["Email signals", data.email_signals],
+  ];
 
-      <div className="p-5 space-y-5">
-        {data.platforms?.length ? (
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <MessageSquare className="w-3.5 h-3.5 text-accent" />
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted">Active Platforms</span>
+  return (
+    <Section title="Social & Content" aside={<ConfidenceBadge level={data.data_confidence} />}>
+      <div className="space-y-5">
+        {tagGroups.map(([label, items, tone]) =>
+          items?.length ? (
+            <div key={label}>
+              <p className="sub-label">{label}</p>
+              <TagList items={items} tone={tone} />
             </div>
-            <div className="flex flex-wrap gap-1.5">
-              {data.platforms.map((p, i) => (
-                <span key={i} className="text-xs px-2 py-0.5 rounded-md bg-accent/10 text-accent border border-accent/20">
-                  {p}
-                </span>
-              ))}
-            </div>
-          </div>
-        ) : null}
+          ) : null
+        )}
 
         {data.verified_social_accounts?.length ? (
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <Users className="w-3.5 h-3.5 text-accent" />
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted">Verified Accounts</span>
-            </div>
-            <div className="space-y-1.5">
+            <p className="sub-label">Verified accounts</p>
+            <div className="flex flex-wrap gap-x-5 gap-y-1.5">
               {data.verified_social_accounts.map((acc, i) => (
                 <a
                   key={i}
                   href={acc.url || "#"}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-xs text-accent hover:underline"
+                  className="inline-flex items-center gap-1.5 text-sm text-accent hover:underline"
                 >
-                  <span className="font-semibold">{acc.platform}</span>
+                  {acc.platform}
                   <ExternalLink className="w-3 h-3" />
                 </a>
               ))}
@@ -101,88 +74,32 @@ export function SocialContentCard({ data }: SocialContentCardProps) {
           </div>
         ) : null}
 
-        {data.inferred_platforms?.length ? (
-          <div>
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted mb-1.5">Inferred Platforms</div>
-            <div className="flex flex-wrap gap-1.5">
-              {data.inferred_platforms.map((p, i) => (
-                <span key={i} className="text-xs px-2 py-0.5 rounded-md bg-muted/20 text-muted border border-muted/30">
-                  {p}
-                </span>
-              ))}
-            </div>
-          </div>
-        ) : null}
-
-        {(data.content_quality || data.content_frequency || data.engagement_signals) && (
-          <div className="border-t border-border pt-4 space-y-2">
-            <SignalRow label="Content Quality" value={data.content_quality} />
-            <SignalRow label="Frequency" value={data.content_frequency} />
-            <SignalRow label="Engagement" value={data.engagement_signals} />
-          </div>
+        {signals.some(([, value]) => value) && (
+          <dl className="sm:grid sm:grid-cols-[11rem_minmax(0,1fr)] sm:gap-x-6 sm:gap-y-3 max-w-3xl">
+            {signals.map(([label, value]) =>
+              value ? (
+                <div key={label} className="contents">
+                  <dt className="text-sm text-muted">{label}</dt>
+                  <dd className="text-sm leading-relaxed mb-3 sm:mb-0">{value}</dd>
+                </div>
+              ) : null
+            )}
+          </dl>
         )}
-
-        {data.review_sites?.length ? (
-          <div>
-            <div className="flex items-center gap-2 mb-2">
-              <Star className="w-3.5 h-3.5 text-yellow-400" />
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted">Review Sites</span>
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {data.review_sites.map((site, i) => (
-                <span key={i} className="text-xs px-2 py-0.5 rounded-md bg-yellow-400/10 text-yellow-400 border border-yellow-400/20">
-                  {site}
-                </span>
-              ))}
-            </div>
-          </div>
-        ) : null}
-
-        {data.blog_or_resources ? (
-          <div className="border-t border-border pt-4">
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted mb-1.5">Blog / Resources</div>
-            <p className="text-xs text-muted">{data.blog_or_resources}</p>
-          </div>
-        ) : null}
 
         {data.content_gaps?.length ? (
           <div>
-            <div className="flex items-center gap-2 mb-2">
-              <AlertTriangle className="w-3.5 h-3.5 text-yellow-400" />
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted">Content Gaps</span>
-            </div>
-            <ul className="space-y-1">
+            <p className="sub-label">Content gaps</p>
+            <ul className="list-disc pl-5 space-y-1 text-sm text-muted">
               {data.content_gaps.map((gap, i) => (
-                <li key={i} className="text-xs text-muted flex items-start gap-2">
-                  <span className="text-yellow-400 flex-shrink-0">—</span>
-                  <span>{gap}</span>
-                </li>
+                <li key={i}>{gap}</li>
               ))}
             </ul>
           </div>
         ) : null}
 
-        {data.email_signals ? (
-          <div className="border-t border-border pt-4">
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted mb-1.5">Email Signals</div>
-            <p className="text-xs text-muted">{data.email_signals}</p>
-          </div>
-        ) : null}
-
-        {data.data_limitations?.length ? (
-          <div className="border-t border-border pt-4">
-            <div className="text-[10px] font-semibold uppercase tracking-wider text-muted mb-2">Data Limitations</div>
-            <ul className="space-y-1">
-              {data.data_limitations.map((lim, i) => (
-                <li key={i} className="text-xs text-muted flex items-start gap-2">
-                  <span className="text-red-400 flex-shrink-0">—</span>
-                  <span>{lim}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        ) : null}
+        <Limitations items={data.data_limitations} />
       </div>
-    </div>
+    </Section>
   );
 }

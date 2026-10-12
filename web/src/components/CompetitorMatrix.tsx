@@ -1,4 +1,4 @@
-import { BarChart3, ExternalLink } from "lucide-react";
+import { ExternalLink } from "lucide-react";
 
 interface CompetitorRow {
   name: string;
@@ -64,29 +64,25 @@ export function CompetitorMatrix({ matrix }: { matrix: CompetitorMatrixModel }) 
   }
 
   return (
-    <div className="mb-4 rounded-xl border border-violet-400/10 bg-violet-400/[0.03] overflow-hidden">
-      <div className="flex items-center gap-2 border-b border-violet-400/10 px-4 py-3">
-        <BarChart3 className="h-4 w-4 text-violet-300" />
-        <h4 className="text-[11px] font-semibold uppercase tracking-wider text-violet-200">Competitor Comparison Matrix</h4>
-      </div>
-      <div className="overflow-x-auto">
+    <div className="mt-8">
+      <div className="overflow-x-auto border-y border-border">
         <table className="min-w-[900px] w-full text-left text-xs">
-          <thead className="bg-background/60 text-[10px] uppercase tracking-wider text-muted">
+          <thead className="bg-surface text-xs text-muted">
             <tr>
-              <th className="px-4 py-3 font-semibold">Competitor</th>
-              <th className="px-4 py-3 font-semibold">Pricing</th>
-              <th className="px-4 py-3 font-semibold">Positioning</th>
-              <th className="px-4 py-3 font-semibold">Messaging</th>
-              <th className="px-4 py-3 font-semibold">Services</th>
-              <th className="px-4 py-3 font-semibold">Weaknesses</th>
-              <th className="px-4 py-3 font-semibold">Content</th>
-              <th className="px-4 py-3 font-semibold">SEO</th>
+              <th className="px-3 py-2.5 font-medium">Competitor</th>
+              <th className="px-3 py-2.5 font-medium">Pricing</th>
+              <th className="px-3 py-2.5 font-medium">Positioning</th>
+              <th className="px-3 py-2.5 font-medium">Messaging</th>
+              <th className="px-3 py-2.5 font-medium">Services</th>
+              <th className="px-3 py-2.5 font-medium">Weaknesses</th>
+              <th className="px-3 py-2.5 font-medium">Content</th>
+              <th className="px-3 py-2.5 font-medium">SEO</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {matrix.rows.map((row, index) => (
               <tr key={`${row.url || row.name}-${index}`} className="align-top text-muted">
-                <td className="px-4 py-3 font-medium text-foreground">
+                <td className="px-3 py-3 font-display text-base font-medium text-foreground whitespace-nowrap">
                   {row.url ? (
                     <a href={row.url} target="_blank" className="inline-flex items-center gap-1 text-accent hover:underline">
                       {row.name}
@@ -96,13 +92,13 @@ export function CompetitorMatrix({ matrix }: { matrix: CompetitorMatrixModel }) 
                     row.name
                   )}
                 </td>
-                <td className="px-4 py-3">{row.pricing_tier}</td>
-                <td className="px-4 py-3 leading-relaxed">{row.positioning}</td>
-                <td className="px-4 py-3 leading-relaxed">{row.key_messaging}</td>
-                <td className="px-4 py-3">{row.services.length ? row.services.join(", ") : DASH}</td>
-                <td className="px-4 py-3">{row.weaknesses.length ? row.weaknesses.join(", ") : DASH}</td>
-                <td className="px-4 py-3 leading-relaxed">{row.content_quality}</td>
-                <td className="px-4 py-3 leading-relaxed">{row.seo_notes}</td>
+                <td className="px-3 py-3">{row.pricing_tier}</td>
+                <td className="px-3 py-3 leading-relaxed">{row.positioning}</td>
+                <td className="px-3 py-3 leading-relaxed">{row.key_messaging}</td>
+                <td className="px-3 py-3">{row.services.length ? row.services.join(", ") : DASH}</td>
+                <td className="px-3 py-3">{row.weaknesses.length ? row.weaknesses.join(", ") : DASH}</td>
+                <td className="px-3 py-3 leading-relaxed">{row.content_quality}</td>
+                <td className="px-3 py-3 leading-relaxed">{row.seo_notes}</td>
               </tr>
             ))}
           </tbody>
