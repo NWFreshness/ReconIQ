@@ -529,6 +529,11 @@ def get_search_provider(config: dict[str, Any] | None = None) -> SearchProvider:
 
     provider_name = search_cfg.get("provider", "firecrawl")
 
+    if provider_name == "parallel":
+        from research.parallel_search import ParallelSearchProvider
+
+        return ParallelSearchProvider()
+
     if provider_name == "firecrawl":
         firecrawl_cfg = search_cfg.get("firecrawl", {})
         api_key = firecrawl_cfg.get("api_key") or ""
@@ -568,6 +573,10 @@ def _build_individual_provider(
     search_cfg: dict[str, Any], provider_name: str
 ) -> SearchProvider | None:
     """Instantiate a single named provider without fallback chaining."""
+    if provider_name == "parallel":
+        from research.parallel_search import ParallelSearchProvider
+
+        return ParallelSearchProvider()
     if provider_name == "firecrawl":
         firecrawl_cfg = search_cfg.get("firecrawl", {})
         api_key = firecrawl_cfg.get("api_key") or ""

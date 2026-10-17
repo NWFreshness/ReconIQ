@@ -72,7 +72,34 @@ Copy `.env.example` to `.env` and add your API keys:
 | `ANTHROPIC_API_KEY` | No | Anthropic API key |
 | `GROQ_API_KEY` | No | Groq API key |
 
-**Without `FIRECRAWL_API_KEY` and `SERPAPI_API_KEY`, competitor search returns zero results.** Both are configured as a fallback chain in `config.yaml` — the system tries Firecrawl first, then SerpAPI, so at least one will work.
+Firecrawl is the default search provider, with SerpAPI configured as its fallback.
+The default Firecrawl cloud configuration uses an empty key for keyless search;
+SerpAPI requires its own key.
+
+### Optional Parallel search
+
+Use [Parallel Search MCP](https://docs.parallel.ai/integrations/mcp/search-mcp)
+for free competitor and social-account discovery without an account or API key.
+Anonymous search uses Fast mode and has rate limits. After installing
+`requirements.txt`, change the existing `search.provider` in `config.yaml`:
+
+```yaml
+search:
+  enabled: true
+  provider: "parallel"
+```
+
+Keep your other configuration sections. Run an analysis with the CLI or dashboard
+as usual. ReconIQ sends company names, industry/location queries, and the target
+URL to `https://search.parallel.ai/mcp` using Streamable HTTP. It maps search
+excerpts into competitor snippets and social profile URLs; competitor pages still
+use ReconIQ's existing scraper. This provider does not call the MCP fetch tool.
+Search errors and rate limits become `data_limitations` in the report.
+
+To use Parallel only as a fallback, keep `provider: "firecrawl"` and append
+`parallel` to `search.fallback_chains.firecrawl`. Set `search.enabled: false` to
+disable all live search. Existing provider selections and fallback settings keep
+their behavior unless you change them.
 
 ### config.yaml
 
