@@ -45,7 +45,7 @@ llm_cache:
 
 search:
   enabled: true
-  provider: "firecrawl"
+  provider: "firecrawl"           # Opt in to keyless Parallel Search MCP with "parallel"
   max_results: 5
   firecrawl:
     api_url: "https://api.firecrawl.dev"
