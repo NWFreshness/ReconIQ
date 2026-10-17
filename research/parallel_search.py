@@ -27,6 +27,12 @@ SOCIAL_DOMAINS = {
 }
 
 
+def _site_host(url: str) -> str:
+    """Treat a site's common www alias as the same company hostname."""
+    host = urlparse(url if "://" in url else "https://" + url).hostname or ""
+    return host.removeprefix("www.")
+
+
 class ParallelSearchProvider(SearchProvider):
     """Use Streamable HTTP MCP without reading API keys or saved credentials."""
 
@@ -83,17 +89,24 @@ class ParallelSearchProvider(SearchProvider):
         query = builder.primary_query() or ""
         if not queries:
             return _empty_search_result("No competitor search query available.", self.name, query)
+        # Target-name queries can overwhelm a batched search with pages about
+        # the target itself. Prefer the builder's industry/location variants.
+        queries = [q for q in queries if not q.startswith("companies like ")] or queries
+        target_host = _site_host(target_url)
+        if target_host:
+            queries = [f"{q} -site:{target_host}" for q in queries]
         try:
             results, limitations = self._search(
-                f"Find competitor company websites for {company_profile.get('company_name') or target_url}. "
-                f"Use the industry and location in the queries. Exclude the target website {target_url}.",
+                f"Find official websites of alternative businesses competing with "
+                f"{company_profile.get('company_name') or target_url}. "
+                f"Use the industry and location in the queries. Exclude {target_url}, "
+                "pages about the target, directories, news articles and company databases.",
                 queries[:3],
             )
         except Exception as exc:
             reason = str(exc) or type(exc).__name__
             return _empty_search_result(f"Parallel competitor search failed: {reason}", self.name, query)
-        target_host = urlparse(target_url).hostname
-        results = [r for r in results if urlparse(r["url"]).hostname != target_host][:5]
+        results = [r for r in results if _site_host(r["url"]) != target_host][:5]
         if not results:
             limitations.append("No competitors found via Parallel search.")
         return {"results": results, "accounts": [], "provider": self.name,
@@ -116,7 +129,7 @@ class ParallelSearchProvider(SearchProvider):
             domains = (domain, "twitter.com") if platform == "twitter" else (domain,)
             for result in results:
                 host = urlparse(result["url"]).hostname or ""
-                if host != urlparse(target_url).hostname and any(
+                if _site_host(result["url"]) != _site_host(target_url) and any(
                     host == d or host.endswith("." + d) for d in domains
                 ):
                     accounts.append({"platform": platform, "url": result["url"]})

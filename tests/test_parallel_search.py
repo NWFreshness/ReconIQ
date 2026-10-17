@@ -95,6 +95,8 @@ def test_competitor_entry_point_normalizes_and_deduplicates(mcp_server, structur
     assert "Acme" in args["objective"] and TARGET in args["objective"]
     assert 1 <= len(args["search_queries"]) <= 3
     assert "Portland" in args["search_queries"][0]
+    assert all("companies like " not in q for q in args["search_queries"])
+    assert all("-site:acme.example" in q for q in args["search_queries"])
     assert all(c.is_closed for c in mcp_server["clients"])
 
 
@@ -104,6 +106,20 @@ def test_competitors_are_capped(mcp_server):
     ]}
     result = search.discover_competitors(PROFILE, TARGET, CONFIG)
     assert len(result["results"]) == 5
+
+
+@pytest.mark.parametrize("target,own_url", [
+    ("https://acme.example", "https://www.acme.example/about"),
+    ("https://www.acme.example", "https://acme.example/about"),
+    ("acme.example", "https://WWW.Acme.Example:443/about"),
+])
+def test_target_www_alias_is_excluded(mcp_server, target, own_url):
+    mcp_server["result"] = {"results": [
+        {"url": own_url, "excerpts": []},
+        {"url": "https://rival.example", "excerpts": []},
+    ]}
+    result = search.discover_competitors(PROFILE, target, CONFIG)
+    assert [r["url"] for r in result["results"]] == ["https://rival.example"]
 
 
 def test_social_entry_point_checks_real_platform_hosts(mcp_server):
@@ -186,6 +202,30 @@ def test_downstream_competitor_module_consumes_search_excerpts(mcp_server, monke
     assert "Emergency repairs" in prompts[0]
     assert result["competitors"][0]["url"] == "https://rival.example"
     assert result["inferred_competitors"] == []
+
+
+def test_downstream_social_module_preserves_discovered_accounts(mcp_server, monkeypatch):
+    from research import social_content
+
+    mcp_server["result"] = {"results": [
+        {"url": "https://www.linkedin.com/company/acme", "excerpts": ["Acme profile"]},
+    ]}
+    monkeypatch.setattr("core.settings.load_config", lambda: CONFIG)
+
+    def complete(prompt, **kwargs):
+        return json.dumps({
+            "platforms": ["invented"], "verified_social_accounts": [],
+            "content_quality": "moderate", "content_frequency": "sporadic",
+            "engagement_signals": "weak", "review_sites": [], "blog_or_resources": "no",
+            "content_gaps": [], "email_signals": "minimal", "data_confidence": "low",
+            "data_limitations": [],
+        })
+
+    result = social_content.run(PROFILE, TARGET, complete)
+    assert result["platforms"] == ["linkedin"]
+    assert result["verified_social_accounts"] == [
+        {"platform": "linkedin", "url": "https://www.linkedin.com/company/acme"},
+    ]
 
 
 def test_factory_preserves_existing_selections_and_disabled_search(mcp_server):
